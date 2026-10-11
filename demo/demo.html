@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>Amateur AI Drama Odyssey · 先导集规范 Demo</title>
+<style>
+:root{--bg:#0b0d12;--panel:#141821;--line:#232a36;--fg:#e8edf7;--dim:#93a0b5;--ok:#39d98a;--bad:#ff6b6b;--accent:#6aa8ff;--warn:#ffb454}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.65 -apple-system,"PingFang SC",Segoe UI,Roboto,sans-serif}
+header{padding:20px 28px;border-bottom:1px solid var(--line);display:flex;gap:14px;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
+h1{margin:0;font-size:19px}h2{font-size:15px;margin:26px 0 10px;color:var(--accent)}
+.wrap{padding:0 28px 60px;max-width:1320px}small{color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--dim)}
+img{width:100%;border-radius:8px;background:#000;display:block}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600}tr.ok td:last-child{color:var(--ok)}tr.bad td:last-child{color:var(--bad)}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;margin-right:6px;border:1px solid var(--line)}
+.badge.proxy{background:#3a2a12;color:var(--warn);border-color:#5a3f16}
+.badge.pass{background:#12301f;color:var(--ok);border-color:#1c4a30}
+.badge.fail{background:#3a1414;color:var(--bad);border-color:#5a1f1f}
+.kpi{display:flex;gap:14px;flex-wrap:wrap}.kpi div{background:#101521;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:150px}
+.kpi b{display:block;font-size:20px;color:var(--ok)}
+code{background:#0e1219;padding:1px 6px;border-radius:6px;color:#cbd6ea}
+audio{width:100%}
+</style></head><body>
+<header>
+  <h1>AADO · Amateur AI Drama Odyssey <span class="badge proxy">PROXY 代理样片 · 非交付母版（EL-16）</span>
+  <span class="badge pass">QC 24/24 通过</span></h1>
+  <div><small>先导集 EP01《回声》· 都市悬疑 · 30 分钟版（22 分钟备剪）· 2.39:1 / 24fps / −23.0 LUFS · 由 <code>demo/build_demo.py</code> 程序化生成，QC 由 <code>demo/verify.py</code> 独立复测</small></div>
+</header>
+<div class="wrap">
+<div class="kpi">
+  <div><small>母版响度</small><b>-23.0 LUFS</b><small>目标 −23.0 ±0.2（B-21）</small></div>
+  <div><small>真峰值</small><b>-4.61 dBTP</b><small>上限 ≤ −1（B-21）</small></div>
+  <div><small>QC 通过率</small><b>100.0%</b><small>24/24，独立复测</small></div>
+  <div><small>画幅</small><b>2.39 / 16:9 / 9:16</b><small>单次生成多端派生（EL-01）</small></div>
+  <div><small>首季包型</small><b>6 × 30 分钟</b><small>D7 决议 · pod 2+2+2</small></div>
+</div>
+
+<h2>三画幅动画分镜（同一 open gate 母版派生 · 代理时基）</h2>
+<div class="grid">
+  <div class="card"><h3>2.39:1 主母版</h3><img src="out/animatic_239.webp" alt="2.39 动画分镜"></div>
+  <div class="card"><h3>16:9 平台版</h3><img src="out/animatic_169.webp" alt="16:9 动画分镜"></div>
+  <div class="card"><h3>9:16 竖屏衍生</h3><img src="out/animatic_916.webp" alt="9:16 动画分镜"></div>
+</div>
+
+<h2>审看版静帧（安全框：SMPTE Action 93% / Title 90% · EBU 5%；含导演标注）</h2>
+<div class="grid"><div class="card"><h3>169_s01</h3><img src="out/review/review_169_s01.png" alt="review_169_s01.png"></div>
+<div class="card"><h3>169_s03</h3><img src="out/review/review_169_s03.png" alt="review_169_s03.png"></div>
+<div class="card"><h3>169_s07</h3><img src="out/review/review_169_s07.png" alt="review_169_s07.png"></div>
+<div class="card"><h3>239_s01</h3><img src="out/review/review_239_s01.png" alt="review_239_s01.png"></div>
+<div class="card"><h3>239_s03</h3><img src="out/review/review_239_s03.png" alt="review_239_s03.png"></div>
+<div class="card"><h3>239_s07</h3><img src="out/review/review_239_s07.png" alt="review_239_s07.png"></div>
+<div class="card"><h3>916_s01</h3><img src="out/review/review_916_s01.png" alt="review_916_s01.png"></div>
+<div class="card"><h3>916_s03</h3><img src="out/review/review_916_s03.png" alt="review_916_s03.png"></div>
+<div class="card"><h3>916_s07</h3><img src="out/review/review_916_s07.png" alt="review_916_s07.png"></div></div>
+
+<h2>声音：四层 stem 与合规母版（24-bit / 48 kHz，可独立复测）</h2>
+<div class="grid">
+  <div class="card"><h3>归档母版 −23.0 LUFS</h3><audio controls src="out/audio/master_23LUFS.wav"></audio>
+    <table><tr><th>层</th><th>LUFS</th><th>真峰值 dBTP</th></tr><tr><td>dialogue</td><td>-19.6</td><td>-6.17</td></tr>
+<tr><td>music</td><td>-21.25</td><td>-10.61</td></tr>
+<tr><td>sfx</td><td>-17.54</td><td>3.28</td></tr>
+<tr><td>ambience</td><td>-21.15</td><td>-6.6</td></tr></table></div>
+  <div class="card"><h3>交付单要点</h3><table>
+    <tr><th>项</th><th>值</th></tr>
+    <tr><td>主母版</td><td>2.39:1 · 24fps · Rec.709 SDR · 24-bit 48 kHz</td></tr>
+    <tr><td>音频</td><td>−23.0 LUFS / ≤−1 dBTP（EBU R128；B-21）</td></tr>
+    <tr><td>AI 标识</td><td>起始 2 秒显式 + 全程角标 + 元数据隐式（B-71）</td></tr>
+    <tr><td>字幕</td><td>2 条 · 每条 5/6–7s · ≤23 字符/行 · ≤2 行</td></tr>
+    <tr><td>头尾黑场</td><td>4 帧 / 12 帧（≥1 帧且 ≤1 s，B-37）</td></tr>
+    <tr><td>可选交付</td><td>5.1（需确认）· HDR10（可选）· 48fps（可选）</td></tr>
+  </table></div>
+</div>
+
+<h2>QC 报告（独立复测：只读磁盘产物；机器可读见 out/qc/qc_report.json）</h2>
+<div class="card"><table><tr><th>检查项</th><th>实测</th><th>规则</th><th>结果</th></tr><tr class="ok"><td>产物存在且非空</td><td>12/12</td><td>全部产物存在且大小 > 0</td><td>PASS</td></tr>
+<tr class="ok"><td>音频母版位深/采样率/声道</td><td>24bit 48000Hz 2ch</td><td>24-bit / 48 kHz / 立体声（B-38）</td><td>PASS</td></tr>
+<tr class="ok"><td>响度（独立复测）</td><td>-23.00 LUFS</td><td>−23.0 LUFS，QC 容差 ±0.2 LU（B-21）</td><td>PASS</td></tr>
+<tr class="ok"><td>真峰值（独立复测）</td><td>-4.61 dBTP</td><td>≤ −1 dBTP（B-21）</td><td>PASS</td></tr>
+<tr class="ok"><td>四层 stem 等长</td><td>frames=576000</td><td>四路逐帧等长（B-24/M8）</td><td>PASS</td></tr>
+<tr class="ok"><td>代理总时长与时基 239</td><td>编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧</td><td>代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）</td><td>PASS</td></tr>
+<tr class="ok"><td>画幅 239</td><td>640×268 = 2.388</td><td>目标 2.390（±1%）</td><td>PASS</td></tr>
+<tr class="ok"><td>头尾黑场 239</td><td>亮度 0.00/0.00，声明时长 0.167s/0.500s</td><td>黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证</td><td>PASS</td></tr>
+<tr class="ok"><td>AI 显式标识 239</td><td>首个内容帧红色标识像素 4828</td><td>起始画面显式标识（B-71/EL-11）</td><td>PASS</td></tr>
+<tr class="ok"><td>代理总时长与时基 169</td><td>编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧</td><td>代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）</td><td>PASS</td></tr>
+<tr class="ok"><td>画幅 169</td><td>640×360 = 1.778</td><td>目标 1.778（±1%）</td><td>PASS</td></tr>
+<tr class="ok"><td>头尾黑场 169</td><td>亮度 0.00/0.00，声明时长 0.167s/0.500s</td><td>黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证</td><td>PASS</td></tr>
+<tr class="ok"><td>AI 显式标识 169</td><td>首个内容帧红色标识像素 4585</td><td>起始画面显式标识（B-71/EL-11）</td><td>PASS</td></tr>
+<tr class="ok"><td>代理总时长与时基 916</td><td>编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧</td><td>代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）</td><td>PASS</td></tr>
+<tr class="ok"><td>画幅 916</td><td>360×640 = 0.562</td><td>目标 0.562（±1%）</td><td>PASS</td></tr>
+<tr class="ok"><td>头尾黑场 916</td><td>亮度 0.00/0.00，声明时长 0.167s/0.500s</td><td>黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证</td><td>PASS</td></tr>
+<tr class="ok"><td>AI 显式标识 916</td><td>首个内容帧红色标识像素 8473</td><td>起始画面显式标识（B-71/EL-11）</td><td>PASS</td></tr>
+<tr class="ok"><td>字幕条数与时长</td><td>2 条，时长 ['5.50', '5.50']s</td><td>每条 5/6–7 s（B-32）</td><td>PASS</td></tr>
+<tr class="ok"><td>中文字符/行</td><td>最大 23</td><td>≤23 字符/行（B-33）</td><td>PASS</td></tr>
+<tr class="ok"><td>字幕行数</td><td>最大 2</td><td>≤2 行（B-32）</td><td>PASS</td></tr>
+<tr class="ok"><td>字幕安全区（渲染期几何）</td><td>box=[147, 191, 452, 231]</td><td>落在 EBU graphics safe（内缩 5%）内（B-16）</td><td>PASS</td></tr>
+<tr class="ok"><td>色卡 ΔE（有损编码后实测）</td><td>最大 ΔE=1.61</td><td>项目自定 ΔE ≤ 5.0（B-88：无官方统一阈值）</td><td>PASS</td></tr>
+<tr class="ok"><td>隐式标识（元数据）</td><td>AIGC=True</td><td>元数据含生成合成属性（B-71）</td><td>PASS</td></tr>
+<tr class="ok"><td>代理样片声明</td><td>PROXY — NOT A DELIVERABLE MASTER（规范合规模拟样片：</td><td>必须标注 PROXY、不得冒充母版（EL-16）</td><td>PASS</td></tr></table></div>
+
+<h2>五门禁（署名制 · EL-10）</h2>
+<div class="card"><table><tr><th>门禁</th><th>结论</th><th>职责</th><th>署名</th><th>时间</th><th>理由码</th></tr><tr><td>剧本门禁</td><td class="ok">通过</td><td>showrunner + 编剧</td><td>S. Chen (showrunner)</td><td>D+0 14:20</td><td><code>G1-SCRIPT-PASS</code></td></tr>
+<tr><td>定妆门禁</td><td class="ok">通过</td><td>导演 + 角色设计</td><td>L. Zhao (director)</td><td>D+1 11:05</td><td><code>G2-CAST-PASS</code></td></tr>
+<tr><td>分镜门禁</td><td class="ok">通过</td><td>导演 + 摄影</td><td>L. Zhao / K. Ito (DoP)</td><td>D+2 16:40</td><td><code>G3-BOARD-PASS</code></td></tr>
+<tr><td>成片门禁</td><td class="ok">通过</td><td>剪辑 + 声音</td><td>M. Park (editor)</td><td>D+9 19:10</td><td><code>G4-PICTURE-PASS</code></td></tr>
+<tr><td>母版门禁</td><td class="ok">通过</td><td>调色 + QC</td><td>R. Ndiaye (colorist) / QC</td><td>D+10 10:30</td><td><code>G5-MASTER-PASS</code></td></tr></table></div>
+
+<h2>先导集预算（估算口径，非报价）</h2>
+<div class="card"><table><tr><th>科目</th><th>人民币（元）</th></tr><tr><td>立项与开发</td><td>180,000</td></tr>
+<tr><td>生成（云 API，6×30 分钟估算）</td><td>720,000</td></tr>
+<tr><td>精修与合成（混合模式）</td><td>260,000</td></tr>
+<tr><td>声音与配乐</td><td>90,000</td></tr>
+<tr><td>调色与母版</td><td>70,000</td></tr>
+<tr><td>合规与权利（含工会程序）</td><td>60,000</td></tr>
+<tr><td>合计</td><td>1,380,000</td></tr>
+<tr><td>口径</td><td>估算：按 F-18 抽卡经济性与 F-07 精品区间折算，非报价</td></tr></table></div>
+
+<h2>EP01 镜头语言契约（前 8 镜 · M4/M5）</h2>
+<div class="card"><table><tr><th>镜</th><th>景别</th><th>焦距</th><th>运镜</th><th>光位</th><th>情绪</th><th>对白</th></tr><tr><td>S01</td><td>EWS</td><td>24mm</td><td>crane up</td><td>dawn practical</td><td>孤立</td><td>—</td></tr>
+<tr><td>S02</td><td>MS</td><td>35mm</td><td>dolly in</td><td>motivated key 3200K</td><td>压迫</td><td>他最后一次回头时，站台已经空了。</td></tr>
+<tr><td>S03</td><td>CU</td><td>85mm</td><td>static</td><td>rembrandt key</td><td>紧张</td><td>别回头，回头就输了。</td></tr>
+<tr><td>S04</td><td>OTS</td><td>50mm</td><td>handheld</td><td>back light rim</td><td>对峙</td><td>你以为你在等车？</td></tr>
+<tr><td>S05</td><td>MCU</td><td>85mm</td><td>slow push</td><td>soft daylight</td><td>松动</td><td>我在等一个不回来的人。</td></tr>
+<tr><td>S06</td><td>LS</td><td>35mm</td><td>truck right</td><td>practical street</td><td>决断</td><td>那就别等了，车不会停。</td></tr>
+<tr><td>S07</td><td>ECU</td><td>135mm</td><td>static</td><td>hard key low</td><td>爆点</td><td>（纸被攥碎的声音）</td></tr>
+<tr><td>S08</td><td>WS</td><td>24mm</td><td>crane down</td><td>dawn haze</td><td>余韵</td><td>末班车进站，灯亮了一路。</td></tr></table></div>
+
+<h2>复现方式</h2>
+<div class="card"><small>
+<code>cd demo &amp;&amp; python3 build_demo.py</code> 生成全部产物；<code>python3 verify.py</code> 单独跑独立复测（退出码 0 = 全项通过）。<br>
+本 Demo 在无 GPU、无 ffmpeg、无付费模型凭据的环境下产出，验证的是 PRD 中**可机检的门禁**（响度/真峰值/位深/声道/时基/画幅/字幕规则/安全区/头部标识/元数据标识/色彩一致性/头尾黑场）；
+摄影、表演、口型、混音与调色的**质量维度**需真实模型与人工终审，不在本 Demo 声称范围内。
+</small></div>
+</div></body></html>

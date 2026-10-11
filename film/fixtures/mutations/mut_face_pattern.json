@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_face_pattern",
+  "rule_id": "R-FACE-PATTERN",
+  "description": "人物镜未声明人脸布光图案（none）。",
+  "op": "contract",
+  "base_shot": 3,
+  "overrides": {"face_pattern": "none"},
+  "note": "M5.3-F03：人物镜必须声明 Rembrandt/Loop/Butterfly/Split 之一。"
+}

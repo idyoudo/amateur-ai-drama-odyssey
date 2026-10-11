@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_light_contract",
+  "rule_id": "R-LIGHT-CONTRACT",
+  "description": "人物镜三点光登记不全（缺轮廓光方位）。",
+  "op": "contract",
+  "base_shot": 2,
+  "overrides": {"back_clock": "none"},
+  "note": "M5.3-F01：人物镜三点光登记率 100%。"
+}

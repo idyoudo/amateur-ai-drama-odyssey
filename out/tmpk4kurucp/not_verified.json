@@ -1,0 +1,15 @@
+{
+  "not_verified": [
+    "真实生成模型对提示词契约的遵从度（本切片不调用任何付费模型）",
+    "ACES IDT 与色卡往返（96 号 G-02/G-03）",
+    "ProRes 母版编码与 TC 嵌入（NFR-13；无 ffmpeg）",
+    "5.1 下混兼容（96 号 G-04）",
+    "口型同步与音画偏移（96 号 G-05；NFR-07）",
+    "EDL/AAF 回批（96 号 G-06）",
+    "−23 LUFS 归档母版（本切片的代理音频来自既有 demo/ 产物，不是本切片产出）",
+    "PP1 退出标准的完整达成——本切片只推进 M4/M5 契约层"
+  ],
+  "p1_exit_criteria_advanced": false,
+  "p1_exit_criteria_note": "本切片推进 M4/M5 契约层；P1 退出标准（2.39 母版 + 24fps + −23 LUFS + TC）尚未达成",
+  "proxy_notice": "PROXY — NOT A DELIVERABLE MASTER"
+}

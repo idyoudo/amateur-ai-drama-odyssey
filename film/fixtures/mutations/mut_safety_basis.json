@@ -1,0 +1,8 @@
+{
+  "mut_id": "mut_safety_basis",
+  "rule_id": "R-SAFETY-BASIS",
+  "description": "全片安全区口径未显式声明（M4.7-F01 要求择一并全片统一）。",
+  "op": "meta",
+  "overrides": {"safety_basis": ""},
+  "note": "M4.7-F01：口径必须择一，缺省即拒绝（fail-closed）。"
+}

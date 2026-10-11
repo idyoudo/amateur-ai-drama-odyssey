@@ -1,0 +1,49 @@
+{
+  "project": "Amateur AI Drama Odyssey（amateur-ai-drama-odyssey）先导集——Demo 演练",
+  "episode": "EP01",
+  "master": {
+    "aspect": "2.39:1",
+    "codec": "ProRes 422 HQ（本 Demo 以 WebP 动画分镜模拟画面，音频为真实 WAV 母版）",
+    "resolution": "1920×804（2.39 派生）",
+    "fps": 24,
+    "audio": "−23.0 LUFS / ≤−1 dBTP / 24-bit 48 kHz",
+    "head_tail_black": "≥1 帧且 ≤1 s（B-37）",
+    "ai_label": "起始 2 秒显式 + 全程角标 + 元数据隐式"
+  },
+  "derivatives": [
+    {
+      "name": "16:9 平台版",
+      "status": "保证",
+      "rule": "EL-01"
+    },
+    {
+      "name": "9:16 竖屏衍生",
+      "status": "保证",
+      "rule": "EL-02/EL-05"
+    },
+    {
+      "name": "5.1 环绕",
+      "status": "需确认",
+      "rule": "EL-06：须真实 stem 且通过下混兼容测试"
+    },
+    {
+      "name": "HDR10",
+      "status": "可选",
+      "rule": "EL-08：独立下游 pass + ST 2086 元数据"
+    },
+    {
+      "name": "48fps 高帧率",
+      "status": "可选",
+      "rule": "EL-09：由 24fps 母版重定时"
+    }
+  ],
+  "subtitles": [
+    {
+      "lang": "zh-Hans",
+      "cues": 2,
+      "rules": "B-32/B-33/B-16"
+    }
+  ],
+  "qc": "out/qc/qc_report.json",
+  "metadata": "out/delivery/master.metadata.json"
+}

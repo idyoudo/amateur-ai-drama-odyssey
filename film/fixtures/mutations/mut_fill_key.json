@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_fill_key",
+  "rule_id": "R-FILL-KEY",
+  "description": "辅光强度超过主光 50%（fill=0.8 × key）。",
+  "op": "contract",
+  "base_shot": 5,
+  "overrides": {"key_ratio": 1.0, "fill_ratio": 0.8},
+  "note": "M5.3-F02：fill ≤ key 的 50%，生成前预检必须拦截。"
+}

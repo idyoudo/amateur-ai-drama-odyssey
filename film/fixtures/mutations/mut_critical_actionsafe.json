@@ -1,0 +1,14 @@
+{
+  "mut_id": "mut_critical_actionsafe",
+  "rule_id": "R-SAFEFRAME",
+  "description": "关键信息区在 2.39 画幅越出 action safe（原参考实现 S07 的 subject_y=0.66）。",
+  "op": "meta",
+  "overrides": {
+    "geometry": {
+      "7": {
+        "subject_y": 0.66
+      }
+    }
+  },
+  "note": "NFR-09 + EL-02：关键表演与叙事信息必须落在三画幅 action safe 内。"
+}

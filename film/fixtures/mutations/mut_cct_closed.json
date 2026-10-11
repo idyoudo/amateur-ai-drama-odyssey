@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_cct_closed",
+  "rule_id": "R-CCT-CLOSED",
+  "description": "色温档落在封闭集合之外（3800K）。",
+  "op": "spec",
+  "base_shot": 5,
+  "overrides": {"key_cct": "3800K", "fill_cct": "3800K"},
+  "note": "M5.3-F05：色温只能取封闭档（2700/3000/3200/4300/5600/6500K）。"
+}

@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_volumetric_media",
+  "rule_id": "R-VOLUMETRIC-MEDIA",
+  "description": "声明体积光但未声明介质。",
+  "op": "contract",
+  "base_shot": 1,
+  "overrides": {"volumetric_active": true, "volumetric_media": "none"},
+  "note": "M5.3-F06：无介质不得写「体积光」。"
+}

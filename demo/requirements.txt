@@ -1,0 +1,3 @@
+# Demo 生成与复测依赖（无 ffmpeg / 无 GPU 需求）
+numpy>=2.0
+Pillow>=10.0

@@ -1,0 +1,12 @@
+{
+  "mut_id": "mut_safeframe",
+  "rule_id": "R-SAFEFRAME",
+  "description": "关键信息主体越出 9:16 窗口（参考实现 demo/build_demo.py 的 S03 原构图 subject_x=0.58）。",
+  "op": "geometry",
+  "overrides": {
+    "3": {
+      "subject_x": 0.58
+    }
+  },
+  "note": "M4.7-F02：9:16 关键信息出框镜数 = 0；本变异复现参考实现原构图（右溢 15px），证明规则不是恒真。"
+}

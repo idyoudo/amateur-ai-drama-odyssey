@@ -1,0 +1,109 @@
+{
+  "fixture_id": "pilot-ep01-contract-v2",
+  "description": "先导集《回声》EP01 镜头契约的**契约表来源与构图几何声明**。契约字段本身不在此手抄，由 tools/build_p1_a.py 从 PRD/96-先导集演练.md 的「EP01 前 8 镜镜头契约」表解析；本文件只补 PRD 表**未提供**的字段，并逐条登记来源。",
+  "contract_source": {
+    "path": "PRD/96-先导集演练.md",
+    "table": "EP01 前 8 镜镜头契约",
+    "policy": "表内字段一律从 PRD 原文解析，禁止手抄（避免文档数字与产物漂移）"
+  },
+  "gate": {
+    "w": 1920,
+    "h": 1080,
+    "role": "16:9 open gate 唯一生成母版（EL-01/D1）"
+  },
+  "safety_basis": "SMPTE-ST-2046-1",
+  "safety_basis_note": "M4.7-F01 要求 SMPTE 与 EBU 两种口径择一并全片统一。本切片选 SMPTE ST 2046-1（B-14：Action 93% / Title 90%）作为**全片唯一取景口径**；字幕等图形元素另按 EBU R95 内缩 5%（B-16）校验，并在报告中显式分层标注，不与取景口径混用。",
+  "geometry_solver": {
+    "rule": "关键信息区（头顶至颈部，即头部椭圆扩展 0.10/0.05×full_h）必须落在 2.39/16:9/9:16 三画幅各自的 action safe 内（NFR-09 + EL-02 + D1 缓解措施 1）",
+    "method": "解析式求解：给定 subject_scale 求可行 subject_y 区间与 subject_x 区间；取最接近原构图意图（subject_y=0.66、subject_x 保持原偏置）的解",
+    "params": {
+      "subject_width_scale": 3.0,
+      "head_radius_frac": 0.4,
+      "height_frac": 0.4,
+      "body_dy": [
+        0.36,
+        0.14,
+        0.6
+      ],
+      "critical_top_frac": 0.1,
+      "critical_bottom_frac": 0.05
+    },
+    "note": "这些参数是**参考实现 demo/build_demo.py 的构图语义**（与 96 表口径一致的代理实现），不是 PRD 硬阈值；复测脚本用同一公式独立复算，并对代理 PNG 做像素级交叉核对。"
+  },
+  "geometry": [
+    {
+      "no": 1,
+      "scene": "SC-EP01-01",
+      "subject_x": 0.5,
+      "subject_y": 0.66,
+      "subject_scale": 0.16,
+      "geometry_source": "anchor:demo-render"
+    },
+    {
+      "no": 2,
+      "scene": "SC-EP01-01",
+      "subject_x": 0.42,
+      "subject_y": 0.66,
+      "subject_scale": 0.38,
+      "geometry_source": "anchor:demo-render"
+    },
+    {
+      "no": 3,
+      "scene": "SC-EP01-01",
+      "subject_x": 0.558,
+      "subject_y": 0.724,
+      "subject_scale": 0.72,
+      "geometry_source": "declared:director",
+      "geometry_note": "原参考实现 subject_x=0.58 使头部椭圆在 9:16 窗右溢 15px（M4.7-F02 要求出框=0），且 subject_y=0.66 使关键信息区在 2.39 画幅越出 action safe；求解器给出 x∈[0.440,0.560]、y≥0.724，取 0.558/0.724，保留「偏画右」的构图意图。"
+    },
+    {
+      "no": 4,
+      "scene": "SC-EP01-02",
+      "subject_x": 0.43,
+      "subject_y": 0.66,
+      "subject_scale": 0.44,
+      "geometry_source": "anchor:demo-render"
+    },
+    {
+      "no": 5,
+      "scene": "SC-EP01-02",
+      "subject_x": 0.54,
+      "subject_y": 0.66,
+      "subject_scale": 0.55,
+      "geometry_source": "anchor:demo-render"
+    },
+    {
+      "no": 6,
+      "scene": "SC-EP01-02",
+      "subject_x": 0.46,
+      "subject_y": 0.66,
+      "subject_scale": 0.3,
+      "geometry_source": "anchor:demo-render"
+    },
+    {
+      "no": 7,
+      "scene": "SC-EP01-03",
+      "subject_x": 0.48,
+      "subject_y": 0.724,
+      "subject_scale": 0.72,
+      "geometry_source": "declared:director",
+      "geometry_note": "135mm 手部/票根细节镜：原参考实现 subject_x=0.62 在 9:16 右溢 128px，subject_scale=0.88 使关键信息区在三画幅均越出 action safe；求解器在该尺度下给出 x∈[0.440,0.560]、y≥0.724，取 0.48/0.724（细节落在画面下中部，符合手部插入镜构图）。"
+    },
+    {
+      "no": 8,
+      "scene": "SC-EP01-04",
+      "subject_x": 0.5,
+      "subject_y": 0.66,
+      "subject_scale": 0.22,
+      "geometry_source": "anchor:demo-render"
+    }
+  ],
+  "expected": {
+    "note": "本切片对先导集契约的**预期结论**（由 rules 引擎逐条判定，不是放行结论）。",
+    "safeframe_all_pass": true,
+    "known_warnings": [
+      "同场戏焦距档漂移：SC-EP01-01（24/35/85mm）与 SC-EP01-02（35/50/85mm）——M4.2-F03 要求同场戏锁同一档，PRD 表本身未锁，属契约层待裁决项（docs/plans/P1-待裁决清单.md C-05）",
+      "同场戏色温漂移：SC-EP01-02 内 3000K（S07）与 3200K（S04/S05/S06）并存；3000K 亦不在 M5.3-F05 原列五档内（C-03）"
+    ]
+  }
+}

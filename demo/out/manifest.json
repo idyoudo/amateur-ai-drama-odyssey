@@ -1,0 +1,214 @@
+{
+  "fps": 24,
+  "proxy_frame_ms": 42,
+  "content_frames": 288,
+  "head_black_frames": 4,
+  "tail_black_frames": 12,
+  "sizes": {
+    "239": [
+      600,
+      252
+    ],
+    "169": [
+      600,
+      338
+    ],
+    "916": [
+      338,
+      600
+    ]
+  },
+  "patches": {
+    "skin": [
+      222,
+      184,
+      152
+    ],
+    "sky": [
+      108,
+      148,
+      196
+    ],
+    "foliage": [
+      86,
+      118,
+      74
+    ],
+    "neutral18": [
+      118,
+      118,
+      118
+    ],
+    "neutral90": [
+      232,
+      232,
+      232
+    ],
+    "red": [
+      196,
+      62,
+      58
+    ],
+    "blue": [
+      58,
+      92,
+      196
+    ],
+    "amber": [
+      214,
+      158,
+      62
+    ]
+  },
+  "declared_thresholds": {
+    "delta_e_max": 5.0,
+    "source": "项目自定（B-88：无官方统一阈值）",
+    "proxy_timebase_drift_pct": 1.0
+  },
+  "subtitle_boxes": {
+    "239": [
+      147,
+      191,
+      452,
+      231
+    ]
+  },
+  "shots": [
+    {
+      "no": 1,
+      "size": "EWS",
+      "lens": "24mm",
+      "move": "crane up",
+      "light": "dawn practical",
+      "mood": "孤立",
+      "line": "",
+      "start_frame": 0,
+      "frames": 36
+    },
+    {
+      "no": 2,
+      "size": "MS",
+      "lens": "35mm",
+      "move": "dolly in",
+      "light": "motivated key 3200K",
+      "mood": "压迫",
+      "line": "他最后一次回头时，站台已经空了。",
+      "start_frame": 36,
+      "frames": 36
+    },
+    {
+      "no": 3,
+      "size": "CU",
+      "lens": "85mm",
+      "move": "static",
+      "light": "rembrandt key",
+      "mood": "紧张",
+      "line": "别回头，回头就输了。",
+      "start_frame": 72,
+      "frames": 36
+    },
+    {
+      "no": 4,
+      "size": "OTS",
+      "lens": "50mm",
+      "move": "handheld",
+      "light": "back light rim",
+      "mood": "对峙",
+      "line": "你以为你在等车？",
+      "start_frame": 108,
+      "frames": 36
+    },
+    {
+      "no": 5,
+      "size": "MCU",
+      "lens": "85mm",
+      "move": "slow push",
+      "light": "soft daylight",
+      "mood": "松动",
+      "line": "我在等一个不回来的人。",
+      "start_frame": 144,
+      "frames": 36
+    },
+    {
+      "no": 6,
+      "size": "LS",
+      "lens": "35mm",
+      "move": "truck right",
+      "light": "practical street",
+      "mood": "决断",
+      "line": "那就别等了，车不会停。",
+      "start_frame": 180,
+      "frames": 36
+    },
+    {
+      "no": 7,
+      "size": "ECU",
+      "lens": "135mm",
+      "move": "static",
+      "light": "hard key low",
+      "mood": "爆点",
+      "line": "（纸被攥碎的声音）",
+      "start_frame": 216,
+      "frames": 36
+    },
+    {
+      "no": 8,
+      "size": "WS",
+      "lens": "24mm",
+      "move": "crane down",
+      "light": "dawn haze",
+      "mood": "余韵",
+      "line": "末班车进站，灯亮了一路。",
+      "start_frame": 252,
+      "frames": 36
+    }
+  ],
+  "gates": [
+    {
+      "gate": "剧本门禁",
+      "role": "showrunner + 编剧",
+      "signer": "S. Chen (showrunner)",
+      "at": "D+0 14:20",
+      "code": "G1-SCRIPT-PASS"
+    },
+    {
+      "gate": "定妆门禁",
+      "role": "导演 + 角色设计",
+      "signer": "L. Zhao (director)",
+      "at": "D+1 11:05",
+      "code": "G2-CAST-PASS"
+    },
+    {
+      "gate": "分镜门禁",
+      "role": "导演 + 摄影",
+      "signer": "L. Zhao / K. Ito (DoP)",
+      "at": "D+2 16:40",
+      "code": "G3-BOARD-PASS"
+    },
+    {
+      "gate": "成片门禁",
+      "role": "剪辑 + 声音",
+      "signer": "M. Park (editor)",
+      "at": "D+9 19:10",
+      "code": "G4-PICTURE-PASS"
+    },
+    {
+      "gate": "母版门禁",
+      "role": "调色 + QC",
+      "signer": "R. Ndiaye (colorist) / QC",
+      "at": "D+10 10:30",
+      "code": "G5-MASTER-PASS"
+    }
+  ],
+  "budget_cny": {
+    "立项与开发": 180000,
+    "生成（云 API，6×30 分钟估算）": 720000,
+    "精修与合成（混合模式）": 260000,
+    "声音与配乐": 90000,
+    "调色与母版": 70000,
+    "合规与权利（含工会程序）": 60000,
+    "合计": 1380000,
+    "口径": "估算：按 F-18 抽卡经济性与 F-07 精品区间折算，非报价"
+  },
+  "verification": "out/qc/qc_report.json（独立复测，仅读磁盘产物）"
+}

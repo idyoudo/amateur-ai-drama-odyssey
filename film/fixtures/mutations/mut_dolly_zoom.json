@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_dolly_zoom",
+  "rule_id": "R-DOLLY-ZOOM",
+  "description": "dolly 分支被写成 zoom 语义（推镜的光位描述里出现 zoom），违反 dolly/zoom 不得混指。",
+  "op": "contract",
+  "base_shot": 2,
+  "overrides": {"light_note": "zoom 变焦推近的动机光"},
+  "note": "M5.1-F04：禁止用「推镜头」一词混指 dolly 与 zoom。"
+}

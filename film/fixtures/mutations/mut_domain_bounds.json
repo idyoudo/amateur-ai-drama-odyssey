@@ -1,0 +1,8 @@
+{
+  "mut_id": "mut_domain_bounds",
+  "rule_id": "R-DOMAIN-BOUNDS",
+  "description": "构图几何域值非法（subject_x > 1）。",
+  "op": "geometry",
+  "overrides": {"3": {"subject_x": 1.4}},
+  "note": "M5.6-F05 / E-17：生成前预检必须拦住因输入导致的付费失败。"
+}

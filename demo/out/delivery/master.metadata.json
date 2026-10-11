@@ -1,0 +1,20 @@
+{
+  "ContentProducer": "Amateur AI Drama Odyssey (amateur-ai-drama-odyssey) — Hollywood-grade AI drama pipeline (demo)",
+  "ProduceID": "AADO-PILOT-EP01-0001",
+  "AIGC": {
+    "isAIGenerated": true,
+    "level": "generative",
+    "visibleLabelRequired": true,
+    "visibleLabelFrames": 48,
+    "standard": "B-71 / EL-11"
+  },
+  "ColorPrimaries": "BT.709",
+  "TransferCharacteristic": "BT.709",
+  "MatrixCoefficients": "BT.709",
+  "FrameRate": 24,
+  "AspectRatioMaster": "2.39:1",
+  "AudioLoudness": -23.0,
+  "ProxyNotice": "PROXY — NOT A DELIVERABLE MASTER（规范合规模拟样片：画面为程序化动画分镜，音频为真实母版）",
+  "Renderer": "demo/build_demo.py (procedural; no GPU, no ffmpeg, no paid model)",
+  "Intent": "verify machine-checkable gates defined in PRD/91 and EL-01~EL-16 only"
+}

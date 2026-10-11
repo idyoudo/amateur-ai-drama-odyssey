@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_clock_drift",
+  "rule_id": "R-DRIFT-clock",
+  "description": "同场戏光位方位漂移超过 30°（12 点 → 6 点，180°）。",
+  "op": "contract",
+  "base_shot": 2,
+  "overrides": {"key_clock": "6 o'clock"},
+  "note": "M4.2-F04：同场戏色温/光位漂移超限必须生成可复核告警条目。"
+}

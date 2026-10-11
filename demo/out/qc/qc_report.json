@@ -1,0 +1,189 @@
+{
+  "checks": [
+    {
+      "item": "产物存在且非空",
+      "value": "12/12",
+      "rule": "全部产物存在且大小 > 0",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "音频母版位深/采样率/声道",
+      "value": "24bit 48000Hz 2ch",
+      "rule": "24-bit / 48 kHz / 立体声（B-38）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "响度（独立复测）",
+      "value": "-23.00 LUFS",
+      "rule": "−23.0 LUFS，QC 容差 ±0.2 LU（B-21）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "真峰值（独立复测）",
+      "value": "-4.61 dBTP",
+      "rule": "≤ −1 dBTP（B-21）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "四层 stem 等长",
+      "value": "frames=576000",
+      "rule": "四路逐帧等长（B-24/M8）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "代理总时长与时基 239",
+      "value": "编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧",
+      "rule": "代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "画幅 239",
+      "value": "640×268 = 2.388",
+      "rule": "目标 2.390（±1%）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "头尾黑场 239",
+      "value": "亮度 0.00/0.00，声明时长 0.167s/0.500s",
+      "rule": "黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "AI 显式标识 239",
+      "value": "首个内容帧红色标识像素 4828",
+      "rule": "起始画面显式标识（B-71/EL-11）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "代理总时长与时基 169",
+      "value": "编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧",
+      "rule": "代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "画幅 169",
+      "value": "640×360 = 1.778",
+      "rule": "目标 1.778（±1%）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "头尾黑场 169",
+      "value": "亮度 0.00/0.00，声明时长 0.167s/0.500s",
+      "rule": "黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "AI 显式标识 169",
+      "value": "首个内容帧红色标识像素 4585",
+      "rule": "起始画面显式标识（B-71/EL-11）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "代理总时长与时基 916",
+      "value": "编码 288 帧 / 共 12.096s（声明 288 帧 / 12.000s @ 1/24s）/ 标称 42.0ms/帧",
+      "rule": "代理样片：内容帧数与总时长对应母版时间线，偏差 ≤1%（黑场另按时间线资产验证）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "画幅 916",
+      "value": "360×640 = 0.562",
+      "rule": "目标 0.562（±1%）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "头尾黑场 916",
+      "value": "亮度 0.00/0.00，声明时长 0.167s/0.500s",
+      "rule": "黑场 ≥1 帧（1/24s）且 ≤1 s（B-37）；以母版时间线资产验证",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "AI 显式标识 916",
+      "value": "首个内容帧红色标识像素 8473",
+      "rule": "起始画面显式标识（B-71/EL-11）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "字幕条数与时长",
+      "value": "2 条，时长 ['5.50', '5.50']s",
+      "rule": "每条 5/6–7 s（B-32）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "中文字符/行",
+      "value": "最大 23",
+      "rule": "≤23 字符/行（B-33）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "字幕行数",
+      "value": "最大 2",
+      "rule": "≤2 行（B-32）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "字幕安全区（渲染期几何）",
+      "value": "box=[147, 191, 452, 231]",
+      "rule": "落在 EBU graphics safe（内缩 5%）内（B-16）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "色卡 ΔE（有损编码后实测）",
+      "value": "最大 ΔE=1.61",
+      "rule": "项目自定 ΔE ≤ 5.0（B-88：无官方统一阈值）",
+      "pass": true,
+      "note": "阈值由项目声明，非官方标准"
+    },
+    {
+      "item": "隐式标识（元数据）",
+      "value": "AIGC=True",
+      "rule": "元数据含生成合成属性（B-71）",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "item": "代理样片声明",
+      "value": "PROXY — NOT A DELIVERABLE MASTER（规范合规模拟样片：",
+      "rule": "必须标注 PROXY、不得冒充母版（EL-16）",
+      "pass": true,
+      "note": ""
+    }
+  ],
+  "summary": {
+    "total": 24,
+    "pass": 24,
+    "pass_rate": 100.0
+  },
+  "delta_e": {
+    "skin": 0.68,
+    "sky": 0.38,
+    "foliage": 0.57,
+    "neutral18": 1.12,
+    "neutral90": 1.19,
+    "red": 1.15,
+    "blue": 0.0,
+    "amber": 1.61
+  },
+  "verified_from": "on-disk artifacts only (independent pass)",
+  "verifier": "demo/verify.py"
+}

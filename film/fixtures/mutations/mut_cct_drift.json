@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_cct_drift",
+  "rule_id": "R-DRIFT-cct",
+  "description": "同场戏色温漂移超过 200K（3200K → 6500K）。",
+  "op": "contract",
+  "base_shot": 2,
+  "overrides": {"key_cct": "6500K", "fill_cct": "6500K"},
+  "note": "M4.2-F04：漂移 > 200K 必须告警。"
+}

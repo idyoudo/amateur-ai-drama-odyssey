@@ -1,0 +1,139 @@
+{
+  "finding_count": 4,
+  "findings": [
+    {
+      "kind": "lens",
+      "message": "同场戏焦距档漂移：24/35/85 mm",
+      "rule_id": "R-DRIFT-lens",
+      "scene": "SC-EP01-01",
+      "shots": [
+        1,
+        2,
+        3
+      ],
+      "values": [
+        24,
+        35,
+        85
+      ]
+    },
+    {
+      "kind": "cct",
+      "message": "同场戏色温漂移 1100K > 阈值 200K",
+      "rule_id": "R-DRIFT-cct",
+      "scene": "SC-EP01-01",
+      "shots": [
+        1,
+        2,
+        3
+      ],
+      "values": [
+        3200,
+        4300
+      ]
+    },
+    {
+      "kind": "lens",
+      "message": "同场戏焦距档漂移：35/50/85 mm",
+      "rule_id": "R-DRIFT-lens",
+      "scene": "SC-EP01-02",
+      "shots": [
+        4,
+        5,
+        6
+      ],
+      "values": [
+        35,
+        50,
+        85
+      ]
+    },
+    {
+      "kind": "cct",
+      "message": "同场戏色温漂移 2400K > 阈值 200K",
+      "rule_id": "R-DRIFT-cct",
+      "scene": "SC-EP01-02",
+      "shots": [
+        4,
+        5,
+        6
+      ],
+      "values": [
+        3200,
+        5600
+      ]
+    }
+  ],
+  "policy": "漂移检测为**告警**而非否决（M4.5-F02 同纪律）；每条告警必须带镜号与场次",
+  "scene_groups": {
+    "SC-EP01-01": [
+      {
+        "dof": "shallow",
+        "key_cct": 4300,
+        "key_clock": "11 o'clock",
+        "lens_mm": 24,
+        "shot": "S01"
+      },
+      {
+        "dof": "shallow",
+        "key_cct": 3200,
+        "key_clock": "11 o'clock",
+        "lens_mm": 35,
+        "shot": "S02"
+      },
+      {
+        "dof": "shallow",
+        "key_cct": 3200,
+        "key_clock": "11 o'clock",
+        "lens_mm": 85,
+        "shot": "S03"
+      }
+    ],
+    "SC-EP01-02": [
+      {
+        "dof": "shallow",
+        "key_cct": 3200,
+        "key_clock": "11 o'clock",
+        "lens_mm": 50,
+        "shot": "S04"
+      },
+      {
+        "dof": "shallow",
+        "key_cct": 5600,
+        "key_clock": "11 o'clock",
+        "lens_mm": 85,
+        "shot": "S05"
+      },
+      {
+        "dof": "shallow",
+        "key_cct": 3200,
+        "key_clock": "11 o'clock",
+        "lens_mm": 35,
+        "shot": "S06"
+      }
+    ],
+    "SC-EP01-03": [
+      {
+        "dof": "shallow",
+        "key_cct": 3000,
+        "key_clock": "11 o'clock",
+        "lens_mm": 135,
+        "shot": "S07"
+      }
+    ],
+    "SC-EP01-04": [
+      {
+        "dof": "shallow",
+        "key_cct": 4300,
+        "key_clock": "11 o'clock",
+        "lens_mm": 24,
+        "shot": "S08"
+      }
+    ]
+  },
+  "thresholds": {
+    "cct_drift_k": 200.0,
+    "clock_drift_deg": 30.0,
+    "source": "项目自定（PRD 未给数值）"
+  }
+}

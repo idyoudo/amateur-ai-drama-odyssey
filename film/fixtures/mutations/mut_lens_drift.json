@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_lens_drift",
+  "rule_id": "R-DRIFT-lens",
+  "description": "同场戏内焦距档漂移（同一场景两镜用 24mm 与 135mm）。",
+  "op": "contract",
+  "base_shot": 2,
+  "overrides": {"lens_mm": 135},
+  "note": "M4.2-F03：同场戏焦距档漂移必须告警且带镜号。"
+}

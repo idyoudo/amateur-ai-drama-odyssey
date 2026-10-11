@@ -1,0 +1,100 @@
+{
+  "fps": 24,
+  "frame_duration_sec": {
+    "numerator": 1,
+    "denominator": 24
+  },
+  "content_frames": 288,
+  "head_black_frames": 4,
+  "tail_black_frames": 12,
+  "shots": [
+    {
+      "no": 1,
+      "size": "EWS",
+      "lens": "24mm",
+      "move": "crane up",
+      "light": "dawn practical",
+      "mood": "孤立",
+      "line": "",
+      "start_frame": 0,
+      "frames": 36
+    },
+    {
+      "no": 2,
+      "size": "MS",
+      "lens": "35mm",
+      "move": "dolly in",
+      "light": "motivated key 3200K",
+      "mood": "压迫",
+      "line": "他最后一次回头时，站台已经空了。",
+      "start_frame": 36,
+      "frames": 36
+    },
+    {
+      "no": 3,
+      "size": "CU",
+      "lens": "85mm",
+      "move": "static",
+      "light": "rembrandt key",
+      "mood": "紧张",
+      "line": "别回头，回头就输了。",
+      "start_frame": 72,
+      "frames": 36
+    },
+    {
+      "no": 4,
+      "size": "OTS",
+      "lens": "50mm",
+      "move": "handheld",
+      "light": "back light rim",
+      "mood": "对峙",
+      "line": "你以为你在等车？",
+      "start_frame": 108,
+      "frames": 36
+    },
+    {
+      "no": 5,
+      "size": "MCU",
+      "lens": "85mm",
+      "move": "slow push",
+      "light": "soft daylight",
+      "mood": "松动",
+      "line": "我在等一个不回来的人。",
+      "start_frame": 144,
+      "frames": 36
+    },
+    {
+      "no": 6,
+      "size": "LS",
+      "lens": "35mm",
+      "move": "truck right",
+      "light": "practical street",
+      "mood": "决断",
+      "line": "那就别等了，车不会停。",
+      "start_frame": 180,
+      "frames": 36
+    },
+    {
+      "no": 7,
+      "size": "ECU",
+      "lens": "135mm",
+      "move": "static",
+      "light": "hard key low",
+      "mood": "爆点",
+      "line": "（纸被攥碎的声音）",
+      "start_frame": 216,
+      "frames": 36
+    },
+    {
+      "no": 8,
+      "size": "WS",
+      "lens": "24mm",
+      "move": "crane down",
+      "light": "dawn haze",
+      "mood": "余韵",
+      "line": "末班车进站，灯亮了一路。",
+      "start_frame": 252,
+      "frames": 36
+    }
+  ]
+}

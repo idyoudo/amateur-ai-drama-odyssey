@@ -1,0 +1,9 @@
+{
+  "mut_id": "mut_one_move",
+  "rule_id": "R-ONE-MOVE",
+  "description": "同一镜出现第二个主运动（机位摇），违反「一镜一运动铁律」。",
+  "op": "contract",
+  "base_shot": 3,
+  "overrides": {"move_secondary": "摇"},
+  "note": "M5.1-F02：多主运动镜头数必须为 0。"
+}
