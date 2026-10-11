@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>AADO · 好莱坞级 AI 短剧</title>
+<style>
+:root{--bg:#0f1216;--card:#1a2029;--line:#2a3442;--fg:#e6edf3;--dim:#8b98a5;--acc:#4da3ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;background:var(--bg);color:var(--fg)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0}
+header nav a{color:var(--acc);text-decoration:none;margin-left:16px;font-size:14px}
+main{max-width:960px;margin:24px auto;padding:0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{margin:0 0 8px;font-size:14px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px}
+.ok{background:#123322;color:#5ad18a}.off{background:#2a2430;color:#b08bd0}
+form{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+form input,form select{width:100%;padding:8px;margin:6px 0;background:#0f141a;border:1px solid var(--line);border-radius:6px;color:var(--fg)}
+form button{background:var(--acc);color:#04121f;border:0;padding:9px 18px;border-radius:6px;font-weight:600;cursor:pointer;margin-top:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}
+th{color:var(--dim);font-weight:500}
+pre{background:#0b0f14;border:1px solid var(--line);padding:10px;border-radius:8px;font-size:12px;overflow:auto;color:var(--dim)}
+h2{font-size:15px;margin:22px 0 8px;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 AADO · 好莱坞级 AI 短剧</h1>
+  <nav>
+    <a href="/models">模型配置</a>
+    <a href="/docs">API 文档</a>
+  </nav>
+</header>
+<main>
+  <h2>模型状态</h2>
+  <div class="grid" id="models"></div>
+
+  <h2>创建项目</h2>
+  <form id="proj">
+    <div class="row">
+      <input name="title" placeholder="片名" required>
+      <input name="logline" placeholder="一句话故事（logline，必填 ≤120 字）" required>
+    </div>
+    <div class="row">
+      <input name="platform" placeholder="目标平台" required>
+      <input name="genre" placeholder="题材">
+    </div>
+    <div class="row">
+      <select name="rating"><option>全龄</option><option>12+</option><option>16+</option></select>
+      <select name="minutes"><option value="30">30 分钟/集</option><option value="22">22 分钟/集</option><option value="45">45 分钟/集</option></select>
+    </div>
+    <button type="submit">创建立项</button>
+  </form>
+
+  <h2>项目列表</h2>
+  <table><thead><tr><th>ID</th><th>片名</th><th>状态</th><th>集数×时长</th></tr></thead><tbody id="projs"></tbody></table>
+
+  <h2>提交任务</h2>
+  <form id="job">
+    <div class="row">
+      <input name="project_id" placeholder="项目 ID" required>
+      <select name="type"><option value="adapt">剧本开发</option><option value="casting">选角定妆</option><option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
+    </div>
+    <button type="submit">入队任务</button>
+  </form>
+  <pre id="log"></pre>
+</main>
+<script>
+async function j(url,opt){const r=await fetch(url,opt);return r.json()}
+async function loadModels(){
+  const d=await j("/api/models/config");
+  document.getElementById("models").innerHTML=Object.entries(d.config).map(([k,c])=>{
+    const on=c.model&&c.api_key;
+    return `<div class="card"><h3>${k}</h3><span class="badge ${on?'ok':'off'}">${on?'已配置':'Mock'}</span><div style="font-size:12px;color:var(--dim);margin-top:6px">${c.model||'未填'}</div></div>`;
+  }).join("");
+}
+async function loadProjs(){
+  const d=await j("/api/dramas");
+  document.getElementById("projs").innerHTML=(d||[]).map(p=>
+    `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td>${p.episodes}×${p.minutes}min</td></tr>`).join("")||"<tr><td colspan=4>暂无项目</td></tr>";
+}
+document.getElementById("proj").onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target);
+  const body=Object.fromEntries(f);body.episodes=6;
+  const r=await fetch("/api/dramas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  log(await r.json());loadProjs();
+};
+document.getElementById("job").onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target);
+  const b=Object.fromEntries(f);
+  b.idempotency_key=b.project_id+":"+b.type+":"+Date.now();
+  const r=await fetch("/api/drama-jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+  log(await r.json());
+};
+function log(x){document.getElementById("log").textContent=JSON.stringify(x,null,2)}
+loadModels();loadProjs();
+</script>
+</body>
+</html>

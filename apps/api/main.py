@@ -49,6 +49,13 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/", response_class=HTMLResponse)
+def home():
+    import os
+    html = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    return open(html, encoding="utf-8").read()
+
+
 @app.get("/models", response_class=HTMLResponse)
 def models_page():
     import os
@@ -79,7 +86,26 @@ def create_project(body: CreateProject):
     violations = proj_mod.validate_project(p)
     if violations:
         raise HTTPException(status_code=422, detail=violations)
-    return {"title": p["title"], "package": p["package"], "delivery_spec": p["delivery_spec"]}
+    with Session() as s:
+        row = jobs_db.Project(title=p["title"], logline=p["logline"],
+                              platform=p["platform"], rating=p["rating"],
+                              genre=p["genre"], style=p["style"],
+                              episodes=p["package"]["episodes"],
+                              minutes=p["package"]["minutes"],
+                              delivery_spec=p["delivery_spec"],
+                              pilot_mode=p["pilot_mode"])
+        s.add(row)
+        s.commit()
+        return {"id": row.id, "title": row.title, "status": row.status,
+                "package": p["package"], "delivery_spec": p["delivery_spec"]}
+
+
+@app.get("/api/dramas")
+def list_projects():
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Project).order_by(jobs_db.Project.id.desc())).all()
+    return [{"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
+             "episodes": r.episodes, "minutes": r.minutes} for r in rows]
 
 
 @app.post("/api/drama-jobs")

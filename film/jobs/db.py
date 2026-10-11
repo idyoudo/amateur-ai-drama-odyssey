@@ -48,6 +48,26 @@ class Job(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class Project(Base):
+    """立项（M1）。"""
+    __tablename__ = "projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(128), nullable=False)
+    logline: Mapped[str] = mapped_column(String(512), nullable=False)
+    platform: Mapped[str] = mapped_column(String(64), nullable=True)
+    rating: Mapped[str] = mapped_column(String(16), nullable=True)
+    genre: Mapped[str] = mapped_column(String(64), nullable=True)
+    style: Mapped[str] = mapped_column(String(32), nullable=True)
+    episodes: Mapped[int] = mapped_column(Integer, nullable=True)
+    minutes: Mapped[int] = mapped_column(Integer, nullable=True)
+    delivery_spec: Mapped[dict] = mapped_column(JSON, default=dict)
+    pilot_mode: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[str] = mapped_column(String(32), default="draft")
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Intent(Base):
     __tablename__ = "intents"
 

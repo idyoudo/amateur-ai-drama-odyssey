@@ -64,6 +64,15 @@ check("PUT 后 available 含 video", "video" in r.json()["available"])
 r = client.get("/models")
 check("模型配置页面 200", r.status_code == 200 and "模型参数配置" in r.text)
 
+# 首页 + 项目持久化
+r = client.get("/")
+check("首页 200", r.status_code == 200 and "AADO" in r.text)
+r = client.post("/api/dramas", json={"title": "回声", "logline": "一句话故事", "platform": "短剧平台",
+                                     "rating": "全龄", "genre": "悬疑", "episodes": 6, "minutes": 30})
+check("立项返回 id", r.status_code == 200 and r.json().get("id") is not None)
+r = client.get("/api/dramas")
+check("项目列表含回声", r.status_code == 200 and any(p["title"] == "回声" for p in r.json()))
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
