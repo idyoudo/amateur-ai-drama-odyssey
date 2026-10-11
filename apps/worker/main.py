@@ -18,13 +18,20 @@ def build_queue():
 
 
 def main():
-    from film.suppliers import config as sup_config
+    import time
     from apps.worker import handlers
+    from film.suppliers import config as sup_config
     queue = build_queue()
     worker = Worker(queue)
     handler = handlers.make_handler(sup_config.load_from_env())
-    done = worker.run_until_empty(handler)
-    print("processed_jobs=%d" % done)
+    poll_ms = float(os.environ.get("WORKER_POLL_MS", "5000"))
+    print("worker started (poll %dms)" % poll_ms, flush=True)
+    while True:
+        job = worker.run_once(handler)
+        if job is None:
+            time.sleep(poll_ms / 1000.0)
+        else:
+            print("processed job_id=%s type=%s" % (job.id, job.type), flush=True)
 
 
 if __name__ == "__main__":
