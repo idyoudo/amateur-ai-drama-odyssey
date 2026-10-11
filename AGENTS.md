@@ -130,7 +130,7 @@ docs/agent-prd-method.md ← 八步工作流、关键机制、七类真实踩坑
 | 项 | 事实 |
 |----|------|
 | Python | **3.9.6**（venv 与系统同版本）→ **禁用 3.10+ 语法**（`match`、运行时 `X \| Y`、`dict \| dict`） |
-| 依赖 | 只有 `.venv` 里有 `numpy` / `Pillow`（见 `demo/requirements.txt`）；**系统 `python3` 没有** |
+| 依赖 | `.venv` 里有 `numpy`/`Pillow`（`demo/requirements.txt`）+ `SQLAlchemy`/`psycopg2-binary`/`alembic`（`requirements.txt`）；**系统 `python3` 没有** |
 | 无 ffmpeg | 视频封装/编码/响度工具链一律不可用 → 只能用纯 Python / numpy / Pillow 自证 |
 | 无 GPU | 不跑任何本地大模型 |
 | 无付费凭据 | 不调用任何付费 API；**重复付费调用必须恒为 0** |
@@ -242,3 +242,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 新增「变更档位」（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁）与 `execute-plan`/`review-plan` 两个 skill（Codex `.agents/skills/` + Cursor `.cursor/skills/`） |
 | 2026-10-11 | Agent | 新增远端部署规范与脚手架：`docs/guid/remote-deploy.md`、`docker-compose.prod.yml`（独立 postgres）、`.env.example`、`scripts/deploy-remote.sh`；与 retail 目录/数据卷/数据库三方隔离 |
 | 2026-10-11 | Agent | 新增 P1 开发范式与自主决策协议：六步流水线、模块级范围、文档不漂移、开源参考政策；选举替代人类拍板（12 项拍板分类处置） |
+| 2026-10-11 | Agent | 新增后端依赖 `requirements.txt`（SQLAlchemy/psycopg2-binary/alembic）与 M13 模型层 `film/jobs/db.py`、`tools/verify_db.py` |
