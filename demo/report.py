@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """由实测产物生成：demo/README.md 与 PRD/97-Demo验证报告.md（数字全部取自 qc_report.json / manifest.json）。"""
 from __future__ import annotations
+import datetime as dt
 import json
 from pathlib import Path
 
@@ -68,7 +69,7 @@ open demo.html            # 打开仪表盘（也可直接用浏览器打开 dem
 """
     (ROOT / 'README.md').write_text(readme, encoding='utf-8')
 
-    report = f"""# Demo 验证报告（附录）· Amateur AI Drama Odyssey
+    report_body = f"""# Demo 验证报告（附录）· Amateur AI Drama Odyssey
 
 > 本报告由 `demo/report.py` 依据**实测产物**生成（数据源：`demo/out/qc/qc_report.json`、`demo/out/manifest.json`），不含手抄数字。
 > 复测方式：`demo/verify.py` **只读磁盘产物**重新测量（fail-closed），生成器内部结果不参与判定。
@@ -118,14 +119,27 @@ cd demo && python3 build_demo.py && python3 verify.py && python3 report.py
 1. 本 Demo **不冒充成片母版**；画面为程序化代理，未使用任何生成模型。
 2. 色卡 ΔE 的阈值按 B-88 由项目声明（无官方统一值），本报告如实标注为「项目自定」。
 3. 未覆盖项见 `demo/README.md`「未证明」清单；其中口型、ACES IDT、5.1 下混需接入真实能力后实测。
-
-## 七、变更记录
-
-| 日期 | 修订人 | 变更内容 |
-|------|--------|----------|
-| 2026-10-11 | Agent | 由 `demo/report.py` 依据实测产物生成：QC {s['pass']}/{s['total']}、镜头契约、五门禁与预算、复现步骤与局限 |
 """
-    (PRD / '97-Demo验证报告.md').write_text(report, encoding='utf-8')
+
+    # —— 变更记录：追加型 + 幂等（正文不变则不重写，避免 re-render 制造无意义 diff / 丢历史）——
+    today = dt.date.today().isoformat()
+    new_row = (f"| {today} | Agent | 由 `demo/report.py` 依据实测产物生成/重生成："
+               f"QC {s['pass']}/{s['total']}、镜头契约、五门禁与预算、复现步骤与局限 |")
+    report_path = PRD / '97-Demo验证报告.md'
+    hist_rows, old_body = [], ""
+    if report_path.exists():
+        old_text = report_path.read_text(encoding='utf-8')
+        if '## 七、变更记录' in old_text:
+            old_body, tail = old_text.split('## 七、变更记录', 1)
+            hist_rows = [ln for ln in tail.splitlines()
+                         if ln.strip().startswith('|') and '日期' not in ln and '修订人' not in ln]
+    if old_body and old_body.strip() == report_body.strip():
+        pass  # 正文未变：跳过重写，不制造新 diff
+    else:
+        report = (report_body + "## 七、变更记录\n\n"
+                  "| 日期 | 修订人 | 变更内容 |\n|------|--------|----------|\n"
+                  + "\n".join(hist_rows + [new_row]) + "\n")
+        report_path.write_text(report, encoding='utf-8')
     print(json.dumps({'readme': 'demo/README.md', 'report': 'PRD/97-Demo验证报告.md', 'qc': s}, ensure_ascii=False))
     return 0
 

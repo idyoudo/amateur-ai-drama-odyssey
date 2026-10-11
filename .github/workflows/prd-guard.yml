@@ -1,0 +1,23 @@
+name: prd-guard
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: 全量结构体检（强规则二）
+        run: python3 tools/prd_guard.py --all
+      - name: 变更登记校验（强规则一）
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -n "$BASE" ] && git cat-file -e "$BASE" 2>/dev/null; then
+            python3 tools/prd_guard.py --range "$BASE..HEAD"
+          else
+            echo "无可用基线，跳过登记校验"
+          fi

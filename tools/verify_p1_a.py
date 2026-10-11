@@ -419,10 +419,16 @@ def main():
             "NFR-09 + EL-02：关键信息区（头顶至颈部）必须落在三窗 action safe 内",
             not crit_bad, "判据矩形取各窗 action 93%")
 
-    # ---------- A6b 锚点互核：规则必须能检出参考实现的真实缺陷（证明规则有牙）
+    # ---------- A6b 锚点互核：返修后的参考实现必须全合规；规则之「牙」由变异/负样本证明
     anchor_doc = load_json(os.path.join(out_dir, "anchor_crosscheck.json"))
     anchor_defects = anchor_doc["defects"]
-    ref_full, ref_crit, _m = geometry.critical_from_params(0.62, 0.88, 0.66,
+    declared_defect_shots = sorted(d["shot"] for d in anchor_defects)
+    rep.add("锚点互核：返修后参考实现 8/8 合规（C-08 已落地）",
+            "%d/%d 镜不合格" % (anchor_doc["non_compliant_count"], anchor_doc["shot_count"]),
+            "S03/S04/S07 返修后（C-08 选举决议）必须 0 不合格",
+            anchor_doc["non_compliant_count"] == 0, "缺陷：%s" % declared_defect_shots)
+    # 规则有牙的独立证明：把 S03 灌回返修前的构图参数，必须被 R-SAFEFRAME 判 FAIL
+    ref_full, ref_crit, _m = geometry.critical_from_params(0.58, 0.72, 0.66,
                                                            gate_w=gate_w, gate_h=gate_h)
     ref_reasons = []
     for k in ("239", "169", "916"):
@@ -430,18 +436,10 @@ def main():
             ref_reasons.append(k)
         if sum(geometry.overflow(geometry.safe_rect(crops[k], basis_frac), ref_crit).values()) > 0:
             ref_reasons.append("%s-action-safe" % k)
-    rep.add("锚点互核：参考实现 S07(x=0.62,scale=0.88) 必须被判不合格",
+    rep.add("锚点互核：返修前 S03(x=0.58) 必须被判不合格（规则有牙）",
             "命中画幅=%s" % sorted(set(ref_reasons)),
-            "同一判据必须检出参考实现的真实缺陷（证伪「恒真断言」）",
+            "同一判据必须能检出返修前的真实缺陷（证伪「恒真断言」）",
             bool(ref_reasons), "独立复算（不复用 anchor 模块产物）")
-    declared_defect_shots = sorted(d["shot"] for d in anchor_defects)
-    rep.add("锚点互核：缺陷清单与产物一致", "%d/%d 镜不合格 %s"
-            % (anchor_doc["non_compliant_count"], anchor_doc["shot_count"], declared_defect_shots),
-            "anchor_crosscheck.json 必须如实列出不合格镜（含参考实现原构图）",
-            anchor_doc["non_compliant_count"] >= 3
-            and "S03" in declared_defect_shots and "S04" in declared_defect_shots
-            and "S07" in declared_defect_shots,
-            "至少 S03/S04/S07 三镜不合格（与本次实测一致）")
     rep.add("锚点互核不越权否定 demo 结论", anchor_doc["disclaimer"][:40] + "…",
             "必须声明「不否定 demo 24/24 机检结论」并说明判据差异",
             "不受本互核否定" in anchor_doc["disclaimer"])

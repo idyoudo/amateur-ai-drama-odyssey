@@ -1,0 +1,20 @@
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.idea/
+.vscode/
+*.log
+.claude/worktrees/
+
+# 切片产物：可复现生成，不入库
+#   —— out/p1a/ 已提交的 46 个文件是「交接证据」（PRD/97、docs/spec 引用），保持跟踪；
+#      但它们可用 `tools/build_p1_a.py` + `tools/verify_p1_a.py` 逐字节重建。
+#   —— out/tmp*/ 是临时/对抗式自测目录，禁止入库（历史上被误提交过 1630 个文件）。
+out/tmp*/
+out/**/_det_*/
+out/**/_det_a/
+out/**/_det_b/

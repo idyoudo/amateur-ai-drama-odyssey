@@ -1,0 +1,8 @@
+#!/bin/sh
+# PRD 治理门禁：强规则一（变更必登记）+ 强规则二（两个稳定）
+python3 "$(git rev-parse --show-toplevel)/tools/prd_guard.py" --staged || {
+  echo ""
+  echo "提交被拒绝：PRD 变更未登记或破坏「项目级文档唯一 / 功能必归模块」。"
+  echo "见 GOVERNANCE.md 的「合规改动三步」。"
+  exit 1
+}

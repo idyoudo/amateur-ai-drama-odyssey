@@ -15,15 +15,16 @@
 from . import geometry
 
 REFERENCE_GEOMETRY = [
-    # demo/build_demo.py:57-66 的 SHOTS（subject_x / subject_scale），逐字对齐原值
-    {"no": 1, "label": "EWS 24mm crane up", "subject_x": 0.50, "subject_scale": 0.16},
-    {"no": 2, "label": "MS 35mm dolly in", "subject_x": 0.42, "subject_scale": 0.38},
-    {"no": 3, "label": "CU 85mm static", "subject_x": 0.58, "subject_scale": 0.72},
-    {"no": 4, "label": "OTS 50mm handheld", "subject_x": 0.36, "subject_scale": 0.44},
-    {"no": 5, "label": "MCU 85mm slow push", "subject_x": 0.54, "subject_scale": 0.55},
-    {"no": 6, "label": "LS 35mm truck right", "subject_x": 0.46, "subject_scale": 0.30},
-    {"no": 7, "label": "ECU 135mm static", "subject_x": 0.62, "subject_scale": 0.88},
-    {"no": 8, "label": "WS 24mm crane down", "subject_x": 0.50, "subject_scale": 0.22},
+    # demo/build_demo.py:58-66 的 SHOTS（subject_x / subject_scale / subject_y），逐字对齐。
+    # 2026-10-11 依 C-08 选举决议返修 S03/S04/S07，使其满足多画幅安全框（NFR-09 / EL-02）。
+    {"no": 1, "label": "EWS 24mm crane up", "subject_x": 0.50, "subject_scale": 0.16, "subject_y": 0.66},
+    {"no": 2, "label": "MS 35mm dolly in", "subject_x": 0.42, "subject_scale": 0.38, "subject_y": 0.66},
+    {"no": 3, "label": "CU 85mm static", "subject_x": 0.555, "subject_scale": 0.72, "subject_y": 0.724},
+    {"no": 4, "label": "OTS 50mm handheld", "subject_x": 0.43, "subject_scale": 0.44, "subject_y": 0.66},
+    {"no": 5, "label": "MCU 85mm slow push", "subject_x": 0.54, "subject_scale": 0.55, "subject_y": 0.66},
+    {"no": 6, "label": "LS 35mm truck right", "subject_x": 0.46, "subject_scale": 0.30, "subject_y": 0.66},
+    {"no": 7, "label": "ECU 135mm static", "subject_x": 0.48, "subject_scale": 0.72, "subject_y": 0.724},
+    {"no": 8, "label": "WS 24mm crane down", "subject_x": 0.50, "subject_scale": 0.22, "subject_y": 0.66},
 ]
 
 REFERENCE_SOURCE = {

@@ -8,74 +8,10 @@
     "source": "B-14（SMPTE ST 2046-1）",
     "title_frac": 0.9
   },
-  "defects": [
-    {
-      "bounds": {
-        "x0": 948,
-        "x1": 1279,
-        "y0": 4,
-        "y1": 1080
-      },
-      "critical_region": {
-        "x0": 948,
-        "x1": 1279,
-        "y0": 97,
-        "y1": 797
-      },
-      "reasons": [
-        "239 关键信息越出 action safe 69 px",
-        "9:16 主体出框 15 px",
-        "916 主体水平出框 15 px",
-        "916 关键信息越出 action safe 37 px"
-      ],
-      "shot": "S03"
-    },
-    {
-      "bounds": {
-        "x0": 590,
-        "x1": 793,
-        "y0": 279,
-        "y1": 1055
-      },
-      "critical_region": {
-        "x0": 590,
-        "x1": 793,
-        "y0": 336,
-        "y1": 764
-      },
-      "reasons": [
-        "9:16 主体出框 66 px",
-        "916 主体水平出框 66 px",
-        "916 关键信息越出 action safe 87 px"
-      ],
-      "shot": "S04"
-    },
-    {
-      "bounds": {
-        "x0": 988,
-        "x1": 1393,
-        "y0": 0,
-        "y1": 1080
-      },
-      "critical_region": {
-        "x0": 988,
-        "x1": 1393,
-        "y0": 0,
-        "y1": 815
-      },
-      "reasons": [
-        "169 关键信息越出 action safe 38 px",
-        "239 关键信息越出 action safe 166 px",
-        "9:16 主体出框 129 px",
-        "916 主体水平出框 129 px",
-        "916 关键信息越出 action safe 189 px"
-      ],
-      "shot": "S07"
-    }
-  ],
+  "defects": [],
   "disclaimer": "参考实现（demo/）的 24/24 机检结论**不受本互核否定**：其判据集合不含多画幅安全框。本互核只证明「该缺陷类真实存在」以及「本切片判据有牙」，不构成对 demo 的返修要求。",
   "judgement": "本互核使用与 P1-A 切片同一套判据（9:16 出框=0 + 三窗水平可裁切 + 关键信息落 action safe）",
-  "non_compliant_count": 3,
+  "non_compliant_count": 0,
   "rows": [
     {
       "bounds": {
@@ -227,17 +163,17 @@
     },
     {
       "bounds": {
-        "x0": 948,
-        "x1": 1279,
-        "y0": 4,
+        "x0": 900,
+        "x1": 1231,
+        "y0": 73,
         "y1": 1080
       },
-      "compliant": false,
+      "compliant": true,
       "critical_region": {
-        "x0": 948,
-        "x1": 1279,
-        "y0": 97,
-        "y1": 797
+        "x0": 900,
+        "x1": 1231,
+        "y0": 166,
+        "y1": 866
       },
       "label": "CU 85mm static",
       "per_aspect": {
@@ -259,62 +195,57 @@
           "overflow_total": 0
         },
         "239": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
             "left": 0,
             "right": 0,
-            "top": 69
+            "top": 0
           },
           "horizontal_overflow": 0,
           "overflow_px": {
             "bottom": 139,
             "left": 0,
             "right": 0,
-            "top": 134
+            "top": 65
           },
-          "overflow_total": 273
+          "overflow_total": 204
         },
         "916": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
             "left": 0,
-            "right": 37,
+            "right": 0,
             "top": 0
           },
-          "horizontal_overflow": 15,
+          "horizontal_overflow": 0,
           "overflow_px": {
             "bottom": 0,
             "left": 0,
-            "right": 15,
+            "right": 0,
             "top": 0
           },
-          "overflow_total": 15
+          "overflow_total": 0
         }
       },
-      "reasons": [
-        "239 关键信息越出 action safe 69 px",
-        "9:16 主体出框 15 px",
-        "916 主体水平出框 15 px",
-        "916 关键信息越出 action safe 37 px"
-      ],
+      "reasons": [],
       "shot": "S03",
       "subject_scale": 0.72,
-      "subject_x": 0.58,
-      "subject_y": 0.66
+      "subject_x": 0.555,
+      "subject_y": 0.724
     },
     {
       "bounds": {
-        "x0": 590,
-        "x1": 793,
+        "x0": 724,
+        "x1": 927,
         "y0": 279,
         "y1": 1055
       },
-      "compliant": false,
+      "compliant": true,
       "critical_region": {
-        "x0": 590,
-        "x1": 793,
+        "x0": 724,
+        "x1": 927,
         "y0": 336,
         "y1": 764
       },
@@ -355,31 +286,27 @@
           "overflow_total": 114
         },
         "916": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
-            "left": 87,
+            "left": 0,
             "right": 0,
             "top": 0
           },
-          "horizontal_overflow": 66,
+          "horizontal_overflow": 0,
           "overflow_px": {
             "bottom": 0,
-            "left": 66,
+            "left": 0,
             "right": 0,
             "top": 0
           },
-          "overflow_total": 66
+          "overflow_total": 0
         }
       },
-      "reasons": [
-        "9:16 主体出框 66 px",
-        "916 主体水平出框 66 px",
-        "916 关键信息越出 action safe 87 px"
-      ],
+      "reasons": [],
       "shot": "S04",
       "subject_scale": 0.44,
-      "subject_x": 0.36,
+      "subject_x": 0.43,
       "subject_y": 0.66
     },
     {
@@ -532,27 +459,27 @@
     },
     {
       "bounds": {
-        "x0": 988,
-        "x1": 1393,
-        "y0": 0,
+        "x0": 756,
+        "x1": 1087,
+        "y0": 73,
         "y1": 1080
       },
-      "compliant": false,
+      "compliant": true,
       "critical_region": {
-        "x0": 988,
-        "x1": 1393,
-        "y0": 0,
-        "y1": 815
+        "x0": 756,
+        "x1": 1087,
+        "y0": 166,
+        "y1": 866
       },
       "label": "ECU 135mm static",
       "per_aspect": {
         "169": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
             "left": 0,
             "right": 0,
-            "top": 38
+            "top": 0
           },
           "horizontal_overflow": 0,
           "overflow_px": {
@@ -564,51 +491,45 @@
           "overflow_total": 0
         },
         "239": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
             "left": 0,
             "right": 0,
-            "top": 166
+            "top": 0
           },
           "horizontal_overflow": 0,
           "overflow_px": {
             "bottom": 139,
             "left": 0,
             "right": 0,
-            "top": 138
+            "top": 65
           },
-          "overflow_total": 277
+          "overflow_total": 204
         },
         "916": {
-          "critical_in_action_safe": false,
+          "critical_in_action_safe": true,
           "critical_overflow_px": {
             "bottom": 0,
             "left": 0,
-            "right": 151,
-            "top": 38
+            "right": 0,
+            "top": 0
           },
-          "horizontal_overflow": 129,
+          "horizontal_overflow": 0,
           "overflow_px": {
             "bottom": 0,
             "left": 0,
-            "right": 129,
+            "right": 0,
             "top": 0
           },
-          "overflow_total": 129
+          "overflow_total": 0
         }
       },
-      "reasons": [
-        "169 关键信息越出 action safe 38 px",
-        "239 关键信息越出 action safe 166 px",
-        "9:16 主体出框 129 px",
-        "916 主体水平出框 129 px",
-        "916 关键信息越出 action safe 189 px"
-      ],
+      "reasons": [],
       "shot": "S07",
-      "subject_scale": 0.88,
-      "subject_x": 0.62,
-      "subject_y": 0.66
+      "subject_scale": 0.72,
+      "subject_x": 0.48,
+      "subject_y": 0.724
     },
     {
       "bounds": {

@@ -109,9 +109,8 @@ AI Agent 的入口文件不是 PRD 文件，**不受强规则一台账约束**�
 
 | 文件 | 角色 | 规则 |
 |------|------|------|
-| `AGENTS.md` | **唯一事实来源**（跨 harness：Claude Code / DeepSeek Harness / Codex / Cursor…） | 承载硬约束、必跑命令、环境事实与机器可读事实块 |
+| `AGENTS.md` | **唯一事实来源**（跨 harness：Claude Code / DeepSeek Harness / Codex / Cursor…） | 承载硬约束、必跑命令、环境事实、项目资产与机器可读事实块 |
 | `CLAUDE.md` | Claude Code 适配层 | **只允许指向 AGENTS.md 并补充工具专属注意事项，禁止复制规则** |
-| `HANDOFF.md` | 人类交接简报 | 面向人，可含背景叙事 |
 
 校验命令：`python3 tools/prd_guard.py --agent-docs`（`--all` 也会执行）。校验内容：
 事实块键齐备性与取值合法性、路径/命令真实存在、声明的 Python 版本与实际解释器一致（主次版本）、

@@ -142,7 +142,7 @@
     },
     {
       "item": "字幕安全区（渲染期几何）",
-      "value": "box=[147, 191, 452, 231]",
+      "value": "box=[156, 204, 484, 246]",
       "rule": "落在 EBU graphics safe（内缩 5%）内（B-16）",
       "pass": true,
       "note": ""

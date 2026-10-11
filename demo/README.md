@@ -29,9 +29,9 @@ open demo.html            # 打开仪表盘（也可直接用浏览器打开 dem
 
 | 文件 | 大小 |
 |------|------|
-| `out/animatic_169.webp` | 1144 KB |
-| `out/animatic_239.webp` | 992 KB |
-| `out/animatic_916.webp` | 1060 KB |
+| `out/animatic_169.webp` | 1149 KB |
+| `out/animatic_239.webp` | 997 KB |
+| `out/animatic_916.webp` | 1112 KB |
 | `out/audio/master_23LUFS.wav` | 3375 KB |
 | `out/audio/stem_ambience.wav` | 3375 KB |
 | `out/audio/stem_dialogue.wav` | 3375 KB |
@@ -58,8 +58,8 @@ open demo.html            # 打开仪表盘（也可直接用浏览器打开 dem
 | `out/review/review_239_s03.png` | 914 KB |
 | `out/review/review_239_s07.png` | 916 KB |
 | `out/review/review_916_s01.png` | 1329 KB |
-| `out/review/review_916_s03.png` | 1325 KB |
-| `out/review/review_916_s07.png` | 1331 KB |
+| `out/review/review_916_s03.png` | 1326 KB |
+| `out/review/review_916_s07.png` | 1335 KB |
 | `out/subs/pilot.zh.srt` | 0 KB |
 | `out/timeline.json` | 2 KB |
 

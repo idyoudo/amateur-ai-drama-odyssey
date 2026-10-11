@@ -54,14 +54,15 @@ class Shot:
     no: int; size: str; lens: str; move: str; light: str; mood: str
     desc: str; line: str; subject_x: float; subject_scale: float; exposure: float
     hue: tuple
+    subject_y: float = 0.66   # 纵向锚点（0=顶 1=底）；多画幅安全框约束下可下移（C-08 裁决）
 SHOTS = [
     Shot(1,'EWS','24mm','crane up','dawn practical','孤立','雨夜车站远景，主体被压在小画幅中','',0.50,0.16,0.92,(26,34,52)),
     Shot(2,'MS','35mm','dolly in','motivated key 3200K','压迫','主体入画，背景霓虹成块状散景','他最后一次回头时，站台已经空了。',0.42,0.38,0.96,(30,42,66)),
-    Shot(3,'CU','85mm','static','rembrandt key','紧张','面部特写，眼线朝画右','别回头，回头就输了。',0.58,0.72,1.00,(38,30,30)),
-    Shot(4,'OTS','50mm','handheld','back light rim','对峙','过肩构图，对手只留轮廓','你以为你在等车？',0.36,0.44,0.94,(44,36,28)),
+    Shot(3,'CU','85mm','static','rembrandt key','紧张','面部特写，眼线朝画右','别回头，回头就输了。',0.555,0.72,1.00,(38,30,30),0.724),
+    Shot(4,'OTS','50mm','handheld','back light rim','对峙','过肩构图，对手只留轮廓','你以为你在等车？',0.43,0.44,0.94,(44,36,28)),
     Shot(5,'MCU','85mm','slow push','soft daylight','松动','肩线入画，眼神下移','我在等一个不回来的人。',0.54,0.55,1.02,(40,44,52)),
     Shot(6,'LS','35mm','truck right','practical street','决断','横向调度，主体穿越光带','那就别等了，车不会停。',0.46,0.30,0.98,(30,36,48)),
-    Shot(7,'ECU','135mm','static','hard key low','爆点','手部细节：攥紧的票根','（纸被攥碎的声音）',0.62,0.88,1.04,(52,32,26)),
+    Shot(7,'ECU','135mm','static','hard key low','爆点','手部细节：攥紧的票根','（纸被攥碎的声音）',0.48,0.72,1.04,(52,32,26),0.724),
     Shot(8,'WS','24mm','crane down','dawn haze','余韵','远景收束，画面留白','末班车进站，灯亮了一路。',0.50,0.22,0.90,(34,42,60)),
 ]
 
@@ -103,7 +104,7 @@ def open_gate_frame(shot: Shot, w: int = 1920, h: int = 1080) -> Image.Image:
     bg += haze * np.array([46, 52, 66], np.float32) * (0.6 + 0.4 * shot.exposure)
     bg = _blur(bg, dof_radius)                                          # 背景按焦距虚化
     # --- 主体层：人形剪影 + 边缘光（锐利） ---
-    cx, cy = int(shot.subject_x * w), int(0.66 * h)
+    cx, cy = int(shot.subject_x * w), int(shot.subject_y * h)
     sw, sh = int(0.10 * w * shot.subject_scale * 3), int(0.40 * h * shot.subject_scale * 3)
     subj = np.zeros((h, w), np.float32)
     head = (((xx - cx) / max(sw * 0.40, 1)) ** 2 + ((yy - (cy - sh * 0.36)) / max(sh * 0.40, 1)) ** 2 <= 1)

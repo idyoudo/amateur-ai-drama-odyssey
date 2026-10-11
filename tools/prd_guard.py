@@ -10,7 +10,7 @@
 退出码：0 通过；1 违规；2 用法/环境错误。
 """
 from __future__ import annotations
-import argparse, datetime as dt, json, re, subprocess, sys
+import argparse, datetime as dt, json, os, re, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -345,10 +345,10 @@ def parse_facts(text: str) -> dict[str, str]:
 def check_agent_docs() -> None:
     """Agent 指令文件一致性：单一事实来源 + 事实块可验证 + 命令/路径真实可达。
 
-    覆盖：AGENTS.md（跨 harness 唯一事实来源）、CLAUDE.md（Claude Code 薄适配层）、
-    HANDOFF.md（人类简报）。**这些文件不是 PRD，不受强规则一台账约束**，但必须与仓库真实状态一致。
+    覆盖：AGENTS.md（跨 harness 唯一事实来源）、CLAUDE.md（Claude Code 薄适配层）。
+    **这些文件不是 PRD，不受强规则一台账约束**，但必须与仓库真实状态一致。
     """
-    agents_p, claude_p, handoff_p = ROOT / 'AGENTS.md', ROOT / 'CLAUDE.md', ROOT / 'HANDOFF.md'
+    agents_p, claude_p = ROOT / 'AGENTS.md', ROOT / 'CLAUDE.md'
     agents, claude = read(agents_p), read(claude_p)
     if not agents:
         err('[AG] 缺少 AGENTS.md（所有 Agent 的统一入口）')
@@ -357,8 +357,6 @@ def check_agent_docs() -> None:
         err('[AG] 缺少 CLAUDE.md（Claude Code 适配层）')
     elif 'AGENTS.md' not in claude:
         err('[AG] CLAUDE.md 必须指向 AGENTS.md 作为唯一事实来源（禁止各自维护一份规则）')
-    if not read(handoff_p):
-        warn('[AG] 缺少 HANDOFF.md（人类交接简报）')
     if len(claude) > 6 * len(agents) and len(claude) > 4000:
         warn('[AG] CLAUDE.md 体积接近 AGENTS.md，疑似复制而非引用（易漂移）')
 
@@ -451,6 +449,61 @@ def check_agent_docs() -> None:
         err(f'[AG] aado-facts 的 max_parallel_writers 必须为整数，当前 {mpw!r}')
 
 
+def check_doc_links() -> None:
+    """断链检查：仓库内所有 .md 的相对链接目标必须存在（防文档引用不存在的文件）。"""
+    skip = {'.venv', '.git', '.claude', 'node_modules', '__pycache__'}
+    broken = []
+    for p in ROOT.rglob('*.md'):
+        rel = p.relative_to(ROOT)
+        if any(part in skip for part in rel.parts):
+            continue
+        for m in re.finditer(r'\[[^\]]*\]\(([^)]+)\)', read(p)):
+            target = m.group(1).strip()
+            if target.startswith(('http://', 'https://', '#', 'mailto:', '<', '/')):
+                continue
+            target = target.split('#')[0]
+            if not target.endswith('.md'):
+                continue
+            if not (p.parent / target).resolve().exists():
+                broken.append(f'{rel} → {target}')
+    for b in broken:
+        err(f'[DOC] 断链：{b}')
+
+
+def check_docs_index() -> None:
+    """docs/README.md 的「文档清单」必须与 docs/ 下实际 .md 一一对应（索引一致性，防文档游离）。"""
+    index = ROOT / 'docs' / 'README.md'
+    if not index.exists():
+        err('[DOC] 缺少 docs/README.md（权威索引 + 归位约定）')
+        return
+    text = read(index)
+    if '## 四、文档清单' not in text:
+        err('[DOC] docs/README.md 缺少「## 四、文档清单」章节')
+        return
+    body = text.split('## 四、文档清单', 1)[1].split('## 五、', 1)[0]
+    listed = set()
+    for line in body.splitlines():
+        line = line.strip()
+        if not line.startswith('|') or '---' in line:
+            continue
+        cells = [c.strip().strip('`') for c in line.strip('|').split('|')]
+        if len(cells) < 2 or not cells[1].endswith('.md'):
+            continue
+        d = cells[0].rstrip('/')
+        f = cells[1]
+        rel_dir = '' if d == 'docs' else d[len('docs/'):]
+        listed.add(f'{rel_dir}/{f}' if rel_dir else f)
+    actual = {p.relative_to(ROOT / 'docs').as_posix()
+              for p in (ROOT / 'docs').rglob('*.md')
+              if p.relative_to(ROOT / 'docs').as_posix() != 'README.md'}
+    missing = sorted(actual - listed)
+    stale = sorted(listed - actual)
+    if missing:
+        err('[DOC] docs/ 下文件未登记进 docs/README.md 清单：' + '、'.join(missing))
+    if stale:
+        err('[DOC] docs/README.md 清单引用了不存在的文件：' + '、'.join(stale))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description='PRD 治理门禁')
     g = ap.add_mutually_exclusive_group(required=True)
@@ -459,7 +512,7 @@ def main() -> int:
     g.add_argument('--range', metavar='BASE..HEAD', help='CI：范围校验（用 BASE 作为对比点）')
     g.add_argument('--new-entry', action='store_true', help='生成台账条目')
     g.add_argument('--agent-docs', action='store_true',
-                   help='Agent 指令文件一致性（AGENTS.md / CLAUDE.md / HANDOFF.md）')
+                   help='Agent 指令文件一致性（AGENTS.md / CLAUDE.md）')
     ap.add_argument('--type', default='修订', choices=sorted(VALID_TYPE))
     ap.add_argument('--level', default='L2', choices=sorted(VALID_LEVEL))
     ap.add_argument('--files', nargs='*', default=[])
@@ -499,9 +552,11 @@ def main() -> int:
         load_ledger()
     check_refs()
     check_governance_self()
-    # Agent 指令文件一致性也纳入全量体检（保持单一事实来源，防多份指令漂移）
+    # Agent 指令文件一致性 + 文档断链/索引一致性 也纳入全量体检
     if args.all:
         check_agent_docs()
+        check_doc_links()
+        check_docs_index()
 
     for w in warns:
         print(f'警告 {w}')
