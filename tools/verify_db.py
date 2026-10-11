@@ -102,6 +102,28 @@ q.claim(now=0)
 q.reclaim_stale(now=100)
 check("reclaim 无产出->requeue", status_of(j4.id) == "queued")
 
+# ---------------- 门禁阻塞（wait_human / resolve_human） ----------------
+# 清空前面测试残留的 queued 任务，避免 claim 领到旧任务
+from sqlalchemy import text as _text
+with Session() as s:
+    s.execute(_text("DELETE FROM jobs"))
+    s.commit()
+
+
+j5 = q.enqueue(project_id="p", episode_id=1, shot_id=5, type="board",
+               idempotency_key="p:1:5:board:fp5")
+c5 = q.claim(now=0)
+q.wait_human(j5.id, c5.lease_epoch)
+check("PG wait_human->waiting_human", status_of(j5.id) == "waiting_human")
+q.resolve_human(j5.id, approve=True)
+check("PG resolve approve->completed", status_of(j5.id) == "completed")
+j6 = q.enqueue(project_id="p", episode_id=1, shot_id=6, type="board",
+               idempotency_key="p:1:6:board:fp6")
+c6 = q.claim(now=0)
+q.wait_human(j6.id, c6.lease_epoch)
+q.resolve_human(j6.id, approve=False, reason_code="reject_quality")
+check("PG resolve reject->failed(gate)", status_of(j6.id) == "failed")
+
 # ---------------- intent / outbox 表存在 ----------------
 with Session() as s:
     s.add(db.Intent(job_id=j1.id, provider="p", fingerprint="f", request_id="r"))

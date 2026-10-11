@@ -156,6 +156,32 @@ class SqlQueue:
             s.commit()
             return row
 
+    def wait_human(self, job_id, epoch):
+        """门禁阻塞任务（M13.5-F01）：running → waiting_human，释放租约。"""
+        with self.session_factory() as s:
+            row = self._fenced(s, job_id, epoch)
+            state_machine.require_transition(row.status, "waiting_human")
+            row.status = "waiting_human"
+            row.locked_until = None
+            s.commit()
+            return row
+
+    def resolve_human(self, job_id, approve, reason_code=None):
+        """人工裁决：通过→completed；驳回→failed(gate_rejected)。"""
+        with self.session_factory() as s:
+            row = s.get(Job, job_id)
+            if row is None:
+                raise QueueError("任务不存在：%s" % (job_id,))
+            state_machine.require_transition(row.status, "completed" if approve else "failed")
+            if approve:
+                row.status = "completed"
+            else:
+                row.status = "failed"
+                row.error_class = "gate_rejected"
+                row.error_code = reason_code
+            s.commit()
+            return row
+
     def reclaim_stale(self, now):
         from sqlalchemy import select
         with self.session_factory() as s:
