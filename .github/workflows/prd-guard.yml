@@ -21,3 +21,25 @@ jobs:
           else
             echo "无可用基线，跳过登记校验"
           fi
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: 安装依赖
+        run: python3 -m pip install -q -r requirements.txt -r demo/requirements.txt
+      - name: 19 模块契约层 + API 复测
+        run: |
+          for v in verify_jobs verify_storage verify_rbac verify_projects verify_script \
+                   verify_casting verify_consistency verify_performance verify_audio \
+                   verify_timeline verify_master verify_delivery verify_cost \
+                   verify_suppliers verify_legal verify_vfx verify_api verify_db; do
+            python3 tools/$v.py || exit 1
+          done
+      - name: demo 复测
+        run: (cd demo && python3 verify.py && python3 report.py)
+      - name: P1-A 复测
+        run: |
+          python3 tools/build_p1_a.py --out out/p1a
+          python3 tools/verify_p1_a.py --out out/p1a --determinism
