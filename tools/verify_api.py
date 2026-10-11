@@ -77,7 +77,7 @@ check("项目列表含回声", r.status_code == 200 and any(p["title"] == "回�
 r = client.post("/api/dramas", json={"title": "回声2", "logline": "一句话", "platform": "p", "rating": "全龄", "genre": "悬疑"})
 pid = r.json()["id"]
 r = client.post("/api/dramas/%d/run" % pid)
-check("run 返回 9 阶段", r.status_code == 200 and len(r.json()["stages"]) == 9)
+check("run 返回 19 阶段", r.status_code == 200 and len(r.json()["stages"]) == 19)
 check("run 全通过", r.json()["summary"]["deliverable"] is True)
 
 total = _total[0]
