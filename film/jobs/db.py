@@ -129,6 +129,13 @@ class SqlQueue:
             raise QueueError("fencing 拒绝：epoch=%s 当前=%s" % (epoch, row.lease_epoch))
         return row
 
+    def heartbeat(self, job_id, epoch, now):
+        with self.session_factory() as s:
+            row = self._fenced(s, job_id, epoch)
+            row.locked_until = now + self.lease_sec
+            s.commit()
+            return row
+
     def complete(self, job_id, epoch, checkpoint=None):
         with self.session_factory() as s:
             row = self._fenced(s, job_id, epoch)

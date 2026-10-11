@@ -55,6 +55,14 @@ c = q.claim(now=0)
 check("claim 高优先级", c.id == j1.id)
 check("claim 置 running", c.status == "running")
 check("claim attempts/epoch", c.attempts == 1 and c.lease_epoch == 1)
+q.heartbeat(j1.id, 1, now=50)
+with Session() as s:
+    check("心跳续租 locked_until", s.get(db.Job, j1.id).locked_until == 50 + 10)
+try:
+    q.heartbeat(j1.id, 0, now=50)
+    check("心跳旧 epoch 拒绝", False)
+except db.QueueError:
+    check("心跳旧 epoch 拒绝", True)
 
 # ---------------- fencing ----------------
 try:

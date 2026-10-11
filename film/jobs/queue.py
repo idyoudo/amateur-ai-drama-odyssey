@@ -52,6 +52,12 @@ class InMemoryQueue:
             raise QueueError("fencing 拒绝：epoch=%s 当前=%s" % (epoch, job["lease_epoch"]))
         return job
 
+    def heartbeat(self, job_id, epoch, now):
+        """续租 locked_until（只对 lease_epoch 匹配的行，M13.3-F02）。"""
+        job = self._get_fenced(job_id, epoch)
+        job["locked_until"] = now + self.lease_sec
+        return job
+
     def complete(self, job_id, epoch, checkpoint=None):
         job = self._get_fenced(job_id, epoch)
         state_machine.require_transition(job["status"], "completed")

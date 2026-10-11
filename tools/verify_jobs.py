@@ -111,6 +111,13 @@ c = q.claim()
 check("claim 高优先级+FIFO", c["id"] == j1["id"])
 check("claim 置 running", c["status"] == "running")
 check("claim attempts/epoch", c["attempts"] == 1 and c["lease_epoch"] == 1)
+q.heartbeat(j1["id"], 1, now=50)
+check("心跳续租 locked_until", q.get(j1["id"])["locked_until"] == 50 + 90 * 60)
+try:
+    q.heartbeat(j1["id"], 0, now=50)
+    check("心跳旧 epoch 拒绝", False)
+except queue_mod.QueueError:
+    check("心跳旧 epoch 拒绝", True)
 
 try:
     q.complete(j1["id"], 0)
