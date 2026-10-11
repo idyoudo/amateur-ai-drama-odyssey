@@ -107,9 +107,11 @@ GOVERNANCE.md        ← 两条强规则 + 合规三步
 README.md            ← 面向人的仓库总览
 PRD/                 ← 产品需求（唯一归档位置）：L1 00-项目背景 + M1..M19 模块 + 90..99 附录 + 两份台账
 demo/                ← 可运行「规范合规模拟母版」代理样片（build_demo.py / verify.py / report.py / demo.html）
-film/                ← P1-A 切片实现包：契约枚举 / 提示词编译 / 安全框几何 / 漂移 / 门禁字段契约 / 锚点互核
+film/                ← 纯函数媒体核心：P1-A 契约 + 19 模块契约层（jobs/storage/rbac/projects/script/casting/consistency/performance/audio/timeline/master/delivery/cost/suppliers/legal/vfx）
   fixtures/          ← 先导集构图几何声明 + 13 个违例样本（变异测试）
-tools/               ← prd_guard.py（治理门禁）、build_p1_a.py、verify_p1_a.py、install-hooks.sh
+apps/               ← 控制面：apps/api（FastAPI 入队/查询/终审）+ apps/worker（PG 队列消费者）
+alembic/            ← 数据库迁移（jobs/intents/outbox，Alembic 版本化）
+tools/               ← prd_guard.py、build/verify_p1_a.py、verify_{jobs,db,storage,rbac,projects,script,casting,consistency,performance,audio,timeline,master,delivery,cost,suppliers,legal,vfx,api,pg}.py、install-hooks.sh
 out/p1a/             ← P1-A 产物（契约 / 提示词 / 安全框 / 漂移 / 预检 / 门禁收据 / 代理帧）
 docs/README.md       ← 文档地图 + 归位约定（权威索引，改动必须同步）
 docs/architecture.md ← 系统架构（技术选型 / 进程拓扑 / 模块映射）
@@ -242,4 +244,5 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 新增「变更档位」（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁）与 `execute-plan`/`review-plan` 两个 skill（Codex `.agents/skills/` + Cursor `.cursor/skills/`） |
 | 2026-10-11 | Agent | 新增远端部署规范与脚手架：`docs/guid/remote-deploy.md`、`docker-compose.prod.yml`（独立 postgres）、`.env.example`、`scripts/deploy-remote.sh`；与 retail 目录/数据卷/数据库三方隔离 |
 | 2026-10-11 | Agent | 新增 P1 开发范式与自主决策协议：六步流水线、模块级范围、文档不漂移、开源参考政策；选举替代人类拍板（12 项拍板分类处置） |
+| 2026-10-11 | Agent | 19 模块契约层全部落地（film/ 16 子包 + 337 断言）；5 人选举裁决 6 项拍板；M13 PG 集成（Alembic 迁移 + SKIP LOCKED 并发测试）；新增 apps/api + apps/worker |
 | 2026-10-11 | Agent | 新增后端依赖 `requirements.txt`（SQLAlchemy/psycopg2-binary/alembic）与 M13 模型层 `film/jobs/db.py`、`tools/verify_db.py` |

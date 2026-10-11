@@ -1,5 +1,7 @@
-# AADO 后端依赖（M13+ 任务编排 / FastAPI / worker）
-# 与 demo/requirements.txt（numpy/Pillow）互补：demo 是媒体核心，这里是控制面
+# AADO 后端依赖（控制面 FastAPI + worker + 数据）
 SQLAlchemy>=2.0,<2.1
 psycopg2-binary>=2.9,<3
 alembic>=1.13,<2
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29,<1
+httpx>=0.27,<1
