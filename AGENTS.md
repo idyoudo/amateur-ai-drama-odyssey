@@ -218,7 +218,7 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 ### 现在处在哪一步
 
 - **已完成**：PRD 好莱坞级重构 + 两轮选举 + 先导集演练 + 规范合规 Demo + P1 切片 A + 开发交接包（架构/数据模型/API 契约/实施计划/测试策略）。
-- **待启动**：P1 主干的**实现**（见 `docs/plans/P1-实施计划.md`；第 0 批 M13/M15/M16 可直接开工）。
+- **待启动**：P1 主干的**实现**（开发范式见 `docs/plans/P1-开发范式与自主决策协议.md`；工单见 `docs/plans/P1-实施计划.md`；第 0 批 M13/M15/M16 可直接开工）。
 - **真机才能证的三项**：ACES IDT hero shot 往返、5.1 下混、口型引擎（`PRD/96` 的 G-02/G-03、EL-14）。
 - **待补原文（不得作验收阈值）**：SAG-AFTRA 2026 MOA / WGA 2026 MBA / AB 1836 签署版 / 标识强制国标编号 / ΔE 与闪白 PSE 阈值。
 
@@ -241,3 +241,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 新增强规则三（开发任务必登记模块文档）：硬约束第 6 条、`docs/modules/` 目录、aado-facts 新增 `module_docs` 键 |
 | 2026-10-11 | Agent | 新增「变更档位」（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁）与 `execute-plan`/`review-plan` 两个 skill（Codex `.agents/skills/` + Cursor `.cursor/skills/`） |
 | 2026-10-11 | Agent | 新增远端部署规范与脚手架：`docs/guid/remote-deploy.md`、`docker-compose.prod.yml`（独立 postgres）、`.env.example`、`scripts/deploy-remote.sh`；与 retail 目录/数据卷/数据库三方隔离 |
+| 2026-10-11 | Agent | 新增 P1 开发范式与自主决策协议：六步流水线、模块级范围、文档不漂移、开源参考政策；选举替代人类拍板（12 项拍板分类处置） |
