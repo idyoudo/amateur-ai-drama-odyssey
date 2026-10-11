@@ -62,6 +62,49 @@ def enqueue_job(body: CreateJob):
     return {"id": row.id, "status": row.status}
 
 
+class ResolveJob(BaseModel):
+    approve: bool
+    reason_code: Optional[str] = None
+
+
+class CancelJob(BaseModel):
+    epoch: int
+
+
+@app.post("/api/drama-jobs/{job_id}/retry")
+def retry_job(job_id: int):
+    q = jobs_db.SqlQueue(Session)
+    try:
+        ok = q.retry(job_id)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=409, detail="重试预算耗尽")
+    return {"id": job_id, "status": "queued"}
+
+
+@app.post("/api/drama-jobs/{job_id}/cancel")
+def cancel_job(job_id: int, body: CancelJob):
+    q = jobs_db.SqlQueue(Session)
+    try:
+        q.cancel(job_id, body.epoch)
+    except jobs_db.QueueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"id": job_id, "status": "cancelled"}
+
+
+@app.post("/api/drama-jobs/{job_id}/resolve")
+def resolve_job(job_id: int, body: ResolveJob):
+    q = jobs_db.SqlQueue(Session)
+    try:
+        q.resolve_human(job_id, body.approve, body.reason_code)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"id": job_id, "status": "completed" if body.approve else "failed"}
+
+
 @app.get("/api/dramas/{project_id}/jobs")
 def list_jobs(project_id: str) -> List[dict]:
     with Session() as s:

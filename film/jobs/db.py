@@ -156,6 +156,14 @@ class SqlQueue:
             s.commit()
             return row
 
+    def cancel(self, job_id, epoch):
+        with self.session_factory() as s:
+            row = self._fenced(s, job_id, epoch)
+            state_machine.require_transition(row.status, "cancelled")
+            row.status = "cancelled"
+            s.commit()
+            return row
+
     def wait_human(self, job_id, epoch):
         """门禁阻塞任务（M13.5-F01）：running → waiting_human，释放租约。"""
         with self.session_factory() as s:
