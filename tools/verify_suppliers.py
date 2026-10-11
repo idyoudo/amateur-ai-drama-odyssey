@@ -48,6 +48,30 @@ check("InsightFace 商用违规", license.validate_insightface("InsightFace", Tr
 check("InsightFace 非商用合规", license.validate_insightface("InsightFace", False) == [])
 check("普通模型商用合规", license.validate_insightface("Wan", True) == [])
 
+# ---------------- 模型配置 + 适配层 ----------------
+from film.suppliers import adapter, config as sup_config
+
+cfg = sup_config.load_from_env()
+check("5 个模型 kind", set(cfg.keys()) == set(sup_config.MODEL_KINDS))
+check("无凭据时无可用 kind", sup_config.available_kinds(cfg) == [])
+
+full_cfg = {k: {"model": "%s_model" % k, "api_key": "key", "api_url": ""} for k in sup_config.MODEL_KINDS}
+check("完整配置校验通过", sup_config.validate_config(full_cfg) == [])
+check("完整配置 5 个可用", len(sup_config.available_kinds(full_cfg)) == 5)
+
+partial = dict(full_cfg)
+partial["video"] = {"model": "m", "api_key": "", "api_url": ""}
+check("配置不完整违规", sup_config.validate_config(partial) != [])
+
+p = adapter.make_adapter("video", {"model": "", "api_key": ""})
+check("未配置走 Mock", isinstance(p, adapter.MockProvider))
+sub = p.submit({"fingerprint": "fp", "prompt": "hello"})
+check("Mock submit 返回 task_id", sub["task_id"].startswith("mock:"))
+q = p.query(sub["task_id"])
+check("Mock query done", q["status"] == "done")
+d = p.download(q)
+check("Mock download 标 EL-16", "MOCK" in d["source"])
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)

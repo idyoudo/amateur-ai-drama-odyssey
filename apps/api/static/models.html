@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>AADO 模型参数配置</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;max-width:720px}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #ccc;padding:6px;text-align:left}
+input{width:100%;box-sizing:border-box}
+button{margin-top:1em;padding:6px 14px}
+pre{background:#f4f4f4;padding:8px;font-size:12px}
+</style>
+</head>
+<body>
+<h1>模型参数配置</h1>
+<p>model + API Key 齐备则该类型走真实供应商；缺一则走 Mock（自证链路）。</p>
+<table>
+<thead><tr><th>类型</th><th>模型名</th><th>API Key</th><th>API URL</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+<button onclick="save()">保存</button>
+<pre id="status"></pre>
+<script>
+const KINDS=["video","image","tts","music","lipsync"];
+async function load(){
+  const r=await fetch("/api/models/config");
+  const d=await r.json();
+  document.getElementById("rows").innerHTML=KINDS.map(k=>{
+    const c=(d.config||{})[k]||{};
+    return `<tr><td>${k}</td>
+      <td><input id="${k}_model" value="${c.model||''}"></td>
+      <td><input id="${k}_key" value="${c.api_key||''}"></td>
+      <td><input id="${k}_url" value="${c.api_url||''}"></td></tr>`;
+  }).join("");
+}
+async function save(){
+  const config={};
+  for(const k of KINDS){
+    config[k]={
+      model:document.getElementById(k+"_model").value,
+      api_key:document.getElementById(k+"_key").value,
+      api_url:document.getElementById(k+"_url").value
+    };
+  }
+  const r=await fetch("/api/models/config",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({config})});
+  document.getElementById("status").textContent="已保存："+JSON.stringify(await r.json());
+}
+load();
+</script>
+</body>
+</html>

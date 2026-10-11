@@ -3,12 +3,14 @@ import os
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from film.jobs import db as jobs_db
 from film.projects import project as proj_mod
+from film.suppliers import config as sup_config
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -38,9 +40,36 @@ class CreateProject(BaseModel):
     minutes: int = 30
 
 
+# 模型参数配置（env 为默认，页面/API 可运行时覆盖）
+_model_config = sup_config.load_from_env()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/models", response_class=HTMLResponse)
+def models_page():
+    import os
+    html = os.path.join(os.path.dirname(__file__), "static", "models.html")
+    return open(html, encoding="utf-8").read()
+
+
+@app.get("/api/models/config")
+def get_model_config():
+    return {"config": _model_config, "available": sup_config.available_kinds(_model_config)}
+
+
+@app.put("/api/models/config")
+def update_model_config(body: dict):
+    global _model_config
+    for kind, cfg in (body.get("config") or {}).items():
+        if kind in sup_config.MODEL_KINDS:
+            for field in ("model", "api_key", "api_url"):
+                if field in cfg:
+                    _model_config[kind][field] = cfg.get(field, "")
+    return {"config": _model_config, "available": sup_config.available_kinds(_model_config)}
 
 
 @app.post("/api/dramas")

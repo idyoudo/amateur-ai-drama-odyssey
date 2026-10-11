@@ -55,6 +55,15 @@ check("幂等入队同一 id", r1.status_code == 200 and r1.json()["id"] == r2.j
 r = client.get("/api/dramas/p1/jobs")
 check("列任务", r.status_code == 200 and len(r.json()) == 1)
 
+# 模型配置
+r = client.get("/api/models/config")
+check("config 5 个 kind", r.status_code == 200 and len(r.json()["config"]) == 5)
+r = client.put("/api/models/config", json={"config": {"video": {"model": "v1", "api_key": "k1", "api_url": ""}}})
+check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
+check("PUT 后 available 含 video", "video" in r.json()["available"])
+r = client.get("/models")
+check("模型配置页面 200", r.status_code == 200 and "模型参数配置" in r.text)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
