@@ -52,12 +52,12 @@ check("普通模型商用合规", license.validate_insightface("Wan", True) == [
 from film.suppliers import adapter, config as sup_config
 
 cfg = sup_config.load_from_env()
-check("5 个模型 kind", set(cfg.keys()) == set(sup_config.MODEL_KINDS))
+check("6 个模型 kind", set(cfg.keys()) == set(sup_config.MODEL_KINDS))
 check("无凭据时无可用 kind", sup_config.available_kinds(cfg) == [])
 
 full_cfg = {k: {"model": "%s_model" % k, "api_key": "key", "api_url": ""} for k in sup_config.MODEL_KINDS}
 check("完整配置校验通过", sup_config.validate_config(full_cfg) == [])
-check("完整配置 5 个可用", len(sup_config.available_kinds(full_cfg)) == 5)
+check("完整配置 6 个可用", len(sup_config.available_kinds(full_cfg)) == 6)
 
 partial = dict(full_cfg)
 partial["video"] = {"model": "m", "api_key": "", "api_url": ""}

@@ -5,9 +5,9 @@
 """
 import os
 
-MODEL_KINDS = ("video", "image", "tts", "music", "lipsync")
+MODEL_KINDS = ("text", "video", "image", "tts", "music", "lipsync")
 
-_ENV_PREFIX = {"video": "VIDEO", "image": "IMAGE", "tts": "TTS",
+_ENV_PREFIX = {"text": "TEXT", "video": "VIDEO", "image": "IMAGE", "tts": "TTS",
                "music": "MUSIC", "lipsync": "LIPSYNC"}
 
 # 能力矩阵字段（供页面展示与路由判断，对齐 M17.1-F04）

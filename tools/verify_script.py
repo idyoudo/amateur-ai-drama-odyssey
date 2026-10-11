@@ -62,6 +62,15 @@ check("整体缺拍违规", outline.validate_outline(o2) != [])
 o3 = outline.make_outline("bogus", scenes, 0.24, 0.50, 0.80, [])
 check("非法形态违规", outline.validate_outline(o3) != [])
 
+# ---------------- 生成（实现层，Mock） ----------------
+from film.suppliers import adapter as sup_adapter
+from film.script import generate as script_gen
+
+ad = sup_adapter.make_adapter("text", {"model": "", "api_key": ""})
+ol, cp = script_gen.generate_outline("一句话", ad)
+check("生成 outline 结构合规", outline.validate_outline(ol) == [])
+check("生成 checkpoint 有产出", len(cp["produced_keys"]) == 1)
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)

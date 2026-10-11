@@ -57,7 +57,7 @@ check("列任务", r.status_code == 200 and len(r.json()) == 1)
 
 # 模型配置
 r = client.get("/api/models/config")
-check("config 5 个 kind", r.status_code == 200 and len(r.json()["config"]) == 5)
+check("config 6 个 kind", r.status_code == 200 and len(r.json()["config"]) == 6)
 r = client.put("/api/models/config", json={"config": {"video": {"model": "v1", "api_key": "k1", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])

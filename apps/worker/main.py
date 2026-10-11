@@ -18,13 +18,11 @@ def build_queue():
 
 
 def main():
+    from film.suppliers import config as sup_config
+    from apps.worker import handlers
     queue = build_queue()
     worker = Worker(queue)
-
-    def handler(job):
-        # 占位 handler：真实业务（媒体生成/QC）联调阶段按 job.type 路由
-        return {"produced_keys": ["obj/%d" % job.id]}
-
+    handler = handlers.make_handler(sup_config.load_from_env())
     done = worker.run_until_empty(handler)
     print("processed_jobs=%d" % done)
 
