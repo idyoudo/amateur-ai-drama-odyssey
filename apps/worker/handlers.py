@@ -2,6 +2,7 @@
 from film.audio import generate as audio_gen
 from film.casting import generate as casting_gen
 from film.performance import generate as perf_gen
+from film.photography import generate_shot
 from film.script import generate as script_gen
 from film.suppliers import adapter as sup_adapter
 
@@ -27,7 +28,10 @@ def make_handler(model_config):
         if job_type == "music":
             _, cp = audio_gen.generate_music("cue", adapters.get("music"))
             return cp
-        # 其余 stage：占位（M5 视频/M6 分析等随供应商凭据接入）
+        if job_type in ("keyframe", "shot_video"):
+            _, cp = generate_shot("提示词", adapters.get("video"))
+            return cp
+        # 其余 stage：占位（M6 分析/M11 母版等随供应商凭据/ffmpeg 接入）
         return {"produced_keys": ["obj/%s" % job_type]}
 
     return handler
