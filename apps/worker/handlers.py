@@ -1,4 +1,7 @@
 """worker 业务处理器：按 job.type 路由到模块实现层（无凭据走 Mock）。"""
+from film.audio import generate as audio_gen
+from film.casting import generate as casting_gen
+from film.performance import generate as perf_gen
 from film.script import generate as script_gen
 from film.suppliers import adapter as sup_adapter
 
@@ -15,7 +18,16 @@ def make_handler(model_config):
         if job_type in ("adapt", "script_revise"):
             _, cp = script_gen.generate_outline("默认 logline", adapters.get("text"))
             return cp
-        # 其余 stage：占位（M3/M5/M7 等实现层随供应商凭据接入）
+        if job_type == "casting":
+            _, cp = casting_gen.generate_casting("主角", adapters.get("image"))
+            return cp
+        if job_type == "generate_voice":
+            _, cp = perf_gen.generate_voice("台词", adapters.get("tts"))
+            return cp
+        if job_type == "music":
+            _, cp = audio_gen.generate_music("cue", adapters.get("music"))
+            return cp
+        # 其余 stage：占位（M5 视频/M6 分析等随供应商凭据接入）
         return {"produced_keys": ["obj/%s" % job_type]}
 
     return handler

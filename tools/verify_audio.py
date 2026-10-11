@@ -55,6 +55,13 @@ check("Suno free 不可商用", license.validate_music_license("suno", "free") !
 check("Mureka free 不可商用", license.validate_music_license("mureka", "free") != [])
 check("ACE-Step 可商用", license.validate_music_license("ace_step", "any") == [])
 
+# ---------------- 生成（实现层，Mock） ----------------
+from film.suppliers import adapter as sup_adapter
+from film.audio import generate as audio_gen
+
+ad = sup_adapter.make_adapter("music", {"model": "", "api_key": ""})
+_, cp = audio_gen.generate_music("cue", ad)
+check("生成配乐 checkpoint 有产出", len(cp["produced_keys"]) == 1)
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)

@@ -50,6 +50,14 @@ check("理由码非法违规", gates.validate_casting_gate({**g, "reason_code": 
 check("通过未锁定违规", gates.validate_casting_gate({**g, "locked": False}) != [])
 check("writer 无权签定妆违规", gates.validate_casting_gate({**g, "approver_position": "writer"}) != [])
 
+# ---------------- 生成（实现层，Mock） ----------------
+from film.suppliers import adapter as sup_adapter
+from film.casting import generate as casting_gen
+
+ad = sup_adapter.make_adapter("image", {"model": "", "api_key": ""})
+ch, cp = casting_gen.generate_casting("主角", ad)
+check("生成角色卡合规", character.validate_character(ch) == [])
+check("生成 checkpoint 有产出", len(cp["produced_keys"]) == 1)
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)

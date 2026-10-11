@@ -61,6 +61,13 @@ check("-200ms 超 ITU", sync.validate_av_offset(-200) != [])
 check("电平差 0.5dB 合规", quality.validate_level_diff([-23.0, -23.5, -23.2]) == [])
 check("电平差 1.5dB 违规", quality.validate_level_diff([-23.0, -24.5]) != [])
 
+# ---------------- 生成（实现层，Mock） ----------------
+from film.suppliers import adapter as sup_adapter
+from film.performance import generate as perf_gen
+
+ad = sup_adapter.make_adapter("tts", {"model": "", "api_key": ""})
+_, cp = perf_gen.generate_voice("台词", ad)
+check("生成配音 checkpoint 有产出", len(cp["produced_keys"]) == 1)
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)
