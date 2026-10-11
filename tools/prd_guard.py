@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PRD 治理门禁（强规则一 + 强规则二）——见 GOVERNANCE.md。
+"""PRD 治理门禁（强规则一 + 强规则二 + 强规则三）——见 GOVERNANCE.md。
 
 用法：
   python3 tools/prd_guard.py --all                          # 全量结构体检
@@ -21,6 +21,9 @@ VALID_LEVEL = {'L1', 'L2', '附录', '治理'}
 FP_RE = re.compile(r'^M(\d+)\.(\d+)-F(\d{1,3})$')
 LEDGER_JSONL = PRD / 'changelog.jsonl'
 LEDGER_MD = PRD / 'CHANGELOG.md'
+MODULE_DOCS_DIR = ROOT / 'docs' / 'modules'
+VALID_TASK_STATUS = {'待开发', '进行中', '已完成', '阻塞', '已废弃'}
+TASK_RE = re.compile(r'^M(\d+)-T(\d{2})$')
 errors: list[str] = []
 warns: list[str] = []
 
@@ -127,6 +130,78 @@ def check_stability_b() -> None:
                 err(f'[B] {path.name} {code} 规划中但无依据（内联或模块级）')
         if count == 0:
             err(f'[B] {path.name} 没有任何功能点（M#.#-F##）')
+
+
+# ---------------- 强规则三：开发任务必登记模块文档 ----------------
+def module_doc_files() -> dict[str, Path]:
+    out = {}
+    if not MODULE_DOCS_DIR.exists():
+        return out
+    for p in sorted(MODULE_DOCS_DIR.glob('M*.md')):
+        m = re.match(r'^(M\d+)-.+\.md$', p.name)
+        if m:
+            out[m.group(1)] = p
+        else:
+            err(f'[3] 模块文档文件名不合规：{p.name}（应为 M<编号>-<中文名>.md，与 PRD 模块同名）')
+    return out
+
+
+def check_module_docs() -> None:
+    """强规则三：每个 PRD 模块必须有一份 docs/modules/ 模块文档（总入口），
+    且 PRD 模块文件 ↔ 模块文档 ↔ docs/modules/README.md 索引三方一致、任务行格式合法。"""
+    if not MODULE_DOCS_DIR.exists():
+        err('[3] 缺少 docs/modules/ 目录（强规则三：每个模块必须维护模块级文档）')
+        return
+    prd_mods = module_files()
+    doc_mods = module_doc_files()
+    if set(doc_mods) != set(prd_mods):
+        only_doc = sorted(set(doc_mods) - set(prd_mods))
+        only_prd = sorted(set(prd_mods) - set(doc_mods))
+        if only_prd:
+            err(f'[3] 以下模块缺少 docs/modules/ 模块文档：{only_prd}')
+        if only_doc:
+            err(f'[3] docs/modules/ 存在 PRD 没有的模块文档：{only_doc}')
+    for mid in sorted(set(prd_mods) & set(doc_mods)):
+        if prd_mods[mid].name != doc_mods[mid].name:
+            err(f'[3] {mid} 模块文档文件名与 PRD 不一致：PRD={prd_mods[mid].name} '
+                f'vs docs/modules={doc_mods[mid].name}（须同名）')
+    idx = read(MODULE_DOCS_DIR / 'README.md')
+    if not idx:
+        err('[3] 缺少 docs/modules/README.md（模块文档索引）')
+    else:
+        listed = set(re.findall(r'\((M\d+-[^)]+\.md)\)', idx))
+        actual_names = {p.name for p in doc_mods.values()}
+        if listed != actual_names:
+            err(f'[3] docs/modules/README.md 索引与模块文档不一致：'
+                f'仅索引 {sorted(listed - actual_names)}；仅文件 {sorted(actual_names - listed)}')
+    for mid, path in sorted(doc_mods.items()):
+        text = read(path)
+        if '更新日期' not in text:
+            err(f'[3] {path.name} 缺少「更新日期」')
+        if not re.search(r'^##\s*(?:\d+\.\s*)?任务登记', text, re.M):
+            err(f'[3] {path.name} 缺少 `## 任务登记` 章节')
+        if not re.search(r'^##\s*(?:\d+\.\s*)?变更记录', text, re.M):
+            err(f'[3] {path.name} 缺少 `## 变更记录` 章节')
+        seen = set()
+        for line in text.splitlines():
+            if not re.match(r'^\|\s*M\d+-T\d+\s*\|', line):
+                continue
+            cells = [c.strip() for c in re.split(r'(?<!\\)\|', line)][1:-1]
+            if len(cells) != 6:
+                err(f'[3] {path.name} 任务登记行单元格数 {len(cells)}≠6：{line[:60]}…')
+                continue
+            code, task, status, date, doc, note = cells
+            if not TASK_RE.match(code):
+                err(f'[3] {path.name} 任务编号不合规：{code}（应为 M#-TNN）')
+            elif not code.startswith(mid + '-T'):
+                err(f'[3] {path.name} {code} 归属不符：应属于 {mid}')
+            if code in seen:
+                err(f'[3] {path.name} 任务编号重复：{code}')
+            seen.add(code)
+            if status not in VALID_TASK_STATUS:
+                err(f'[3] {path.name} {code} 状态非法：{status}')
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+                err(f'[3] {path.name} {code} 日期不合规：{date}（应为 YYYY-MM-DD）')
 
 
 # ---------------- 强规则一：变更登记 ----------------
@@ -312,9 +387,9 @@ def new_entry(args: argparse.Namespace) -> int:
 AGENTS_FACTS_START = '```aado-facts'
 REQUIRED_FACT_KEYS = ['python_version', 'venv_python', 'requirements', 'demo_verify',
                       'demo_qc_expected', 'slice_build', 'slice_verify', 'slice_out',
-                      'guard', 'ffmpeg', 'gpu', 'paid_api', 'max_parallel_writers']
+                      'guard', 'module_docs', 'ffmpeg', 'gpu', 'paid_api', 'max_parallel_writers']
 FACT_PATH_KEYS = ['venv_python', 'requirements', 'demo_verify', 'slice_build', 'slice_verify',
-                  'slice_out', 'guard']
+                  'slice_out', 'guard', 'module_docs']
 # 允许「尚未生成」的路径（新克隆/CI 场景）：提示而非 FAIL
 OPTIONAL_PATH_KEYS = {'slice_out', 'venv_python'}
 
@@ -471,7 +546,8 @@ def check_doc_links() -> None:
 
 
 def check_docs_index() -> None:
-    """docs/README.md 的「文档清单」必须与 docs/ 下实际 .md 一一对应（索引一致性，防文档游离）。"""
+    """docs/README.md 的「文档清单」必须与 docs/ 下实际 .md 一一对应（索引一致性，防文档游离）。
+    docs/modules/ 由 docs/modules/README.md 自索引，并由 check_module_docs 与 PRD 三方一致校验，故在此排除。"""
     index = ROOT / 'docs' / 'README.md'
     if not index.exists():
         err('[DOC] 缺少 docs/README.md（权威索引 + 归位约定）')
@@ -495,7 +571,8 @@ def check_docs_index() -> None:
         listed.add(f'{rel_dir}/{f}' if rel_dir else f)
     actual = {p.relative_to(ROOT / 'docs').as_posix()
               for p in (ROOT / 'docs').rglob('*.md')
-              if p.relative_to(ROOT / 'docs').as_posix() != 'README.md'}
+              if p.relative_to(ROOT / 'docs').as_posix() != 'README.md'
+              and not p.relative_to(ROOT / 'docs').as_posix().startswith('modules/')}
     missing = sorted(actual - listed)
     stale = sorted(listed - actual)
     if missing:
@@ -543,6 +620,7 @@ def main() -> int:
     check_file_level_log()
     check_stability_a()
     check_stability_b()
+    check_module_docs()
     if args.staged:
         check_registration('HEAD', staged=True)
     elif args.range:
@@ -565,7 +643,7 @@ def main() -> int:
         for e in errors:
             print(f'  {e}')
         return 1
-    print('✓ PRD 治理门禁通过：强规则一（变更登记）与强规则二（两个稳定）均满足')
+    print('✓ PRD 治理门禁通过：强规则一（变更登记）、强规则二（两个稳定）、强规则三（模块文档登记）均满足')
     return 0
 
 

@@ -45,6 +45,7 @@
 2. [docs/architecture.md](docs/architecture.md) —— 技术选型 + 19 模块→代码包映射 + 宿主基线边界
 3. [docs/plans/P1-实施计划.md](docs/plans/P1-实施计划.md) —— 工单拆分 + 依赖 + 验收命令 + 12 项拍板
 4. [docs/designs/](docs/designs/) —— 数据模型 / API 契约 / 任务编排 / 测试策略（动手前按需）
+5. [docs/modules/](docs/modules/) —— 模块级开发总入口（强规则三：开发前必读、开工登记、完成回写）
 
 ## 收工前必跑（全绿才算完成）
 
@@ -74,3 +75,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism
 |------|--------|----------|
 | 2026-10-11 | Agent | 建立 Claude Code 适配层：指向 AGENTS.md 作为唯一事实来源，只保留 Claude Code 专属注意事项 |
 | 2026-10-11 | Agent | 升级为「开发启动指引」：新增前因（项目从哪来）、后果（已完成到什么程度）、关键决策（技术栈/环境/选举/台账/归位）、从哪开工（第 0 批 + 12 项拍板）、必读文档；保留收工命令与 9 条专属注意 |
+| 2026-10-11 | Agent | 新增强规则三指引：必读文档增补 `docs/modules/`（模块开发总入口，开发前必读、开工登记、完成回写），与 `.agents/rules/module-dev-record.md` 对齐 |

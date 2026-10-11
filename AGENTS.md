@@ -51,6 +51,7 @@ python3 -m venv .venv && . .venv/bin/activate && pip install -r demo/requirement
 | 3 | 追溯登记（`"retroactive": true`）**不构成**对本次改动的登记 | `--staged` / `--range` | 拒绝 |
 | 4 | **项目级文档唯一**：模块地图 / NFR / 路线图只由 `PRD/00-项目背景.md`（L1）定义，且 L1 模块地图 ↔ `PRD/M*.md` ↔ `PRD/README.md` 索引**三者集合完全一致** | `--all` | 拒绝 |
 | 5 | **功能必归模块**：功能点只登记在 `M#` 模块内；编号 `M<模块>.<二级>-F<序号>` 全局唯一；表头固定 7 列；状态取值封闭集合；`已实现` 必须给 `path:行号` 证据；`规划中` 必须有依据 | `--all` | 拒绝 |
+| 6 | **开发任务必登记模块文档**：任何触及 `M#` 模块的实现/改动/排查/文档/迁移，动手前必读 `docs/modules/M#-<中文名>.md` 总入口，开工在 `## 任务登记` 登记一行（编号 `M#-TNN`），完成在 `## 变更记录` 回写；每个模块必须有同名 `docs/modules/M#-<中文名>.md` | `--all` / `--staged` | 拒绝 |
 
 合规改动姿势（唯一正确写法）：
 
@@ -65,6 +66,8 @@ git add PRD/M5-电影摄影与画面生成.md PRD/CHANGELOG.md PRD/changelog.jso
 ```
 
 > 只改 `PRD/` 以外的文件（代码、docs/plans、docs/spec、README、AGENTS.md…）**不需要**台账登记。
+>
+> 但触及 `M#` 模块的实现（`film/`、`apps/`、`docs/designs`、迁移…）须按**强规则三**登记到 `docs/modules/M#-<中文名>.md` 的 `## 任务登记`，完成后回写 `## 变更记录`。规则全文见 [GOVERNANCE.md](GOVERNANCE.md) 强规则三与 `.agents/rules/module-dev-record.md`。
 
 ## 3. 工作方式（已在本项目验证有效，请沿用）
 
@@ -96,6 +99,7 @@ docs/README.md       ← 文档地图 + 归位约定（权威索引，改动必�
 docs/architecture.md ← 系统架构（技术选型 / 进程拓扑 / 模块映射）
 docs/designs/        ← 技术设计（数据模型 / API 契约 / 任务编排 / 宿主基线 / 测试策略）
 docs/plans/          ← 计划与决策（实施计划 / 切片方案 / 选举记录 / 待裁决清单）
+docs/modules/        ← 模块级开发总入口（M1–M19，每模块一份；任务登记 + 变更记录，强规则三）
 docs/spec/           ← 执行记录与验证证据（由脚本生成，禁止手抄）
 docs/guid/           ← 部署 / 运维 / 使用指南（预留）
 docs/agent-prd-method.md ← 八步工作流、关键机制、七类真实踩坑
@@ -155,6 +159,7 @@ slice_build = tools/build_p1_a.py
 slice_verify = tools/verify_p1_a.py
 slice_out = out/p1a
 guard = tools/prd_guard.py
+module_docs = docs/modules
 ffmpeg = false
 gpu = false
 paid_api = false
@@ -217,3 +222,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 建立：跨 harness 统一入口（三条必绿命令、5 条硬约束、6 条工作方式、目录归位铁律、环境事实、收工自检清单、7 条真实踩坑、机器可读事实块） |
 | 2026-10-11 | Agent | 新增第 9 节「产物目录 `out/` 的纪律」：登记 12 个 `out/tmp*/`（1630 文件）被 `git add -A` 误提交的真实事故，明确「临时产物写系统临时目录」「禁用 `git add -A`」「`out/p1a` 与 `demo/out` 是证据链不可清理」三条硬纪律 |
 | 2026-10-11 | Agent | 合并 HANDOFF.md：新增第 10 节「项目资产与进度」（资产表/进度快照/边界），目录地图更新 docs 结构（designs/plans/spec/guid），删除 HANDOFF.md 消除与 AGENTS 的重叠 |
+| 2026-10-11 | Agent | 新增强规则三（开发任务必登记模块文档）：硬约束第 6 条、`docs/modules/` 目录、aado-facts 新增 `module_docs` 键 |
