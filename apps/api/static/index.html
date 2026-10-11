@@ -57,7 +57,8 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--dim)}
   </form>
 
   <h2>项目列表</h2>
-  <table><thead><tr><th>ID</th><th>片名</th><th>状态</th><th>集数×时长</th></tr></thead><tbody id="projs"></tbody></table>
+  <table><thead><tr><th>ID</th><th>片名</th><th>状态</th><th>集数×时长</th><th>操作</th></tr></thead><tbody id="projs"></tbody></table>
+  <div id="result"></div>
 
   <h2>提交任务</h2>
   <form id="job">
@@ -81,7 +82,7 @@ async function loadModels(){
 async function loadProjs(){
   const d=await j("/api/dramas");
   document.getElementById("projs").innerHTML=(d||[]).map(p=>
-    `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td>${p.episodes}×${p.minutes}min</td></tr>`).join("")||"<tr><td colspan=4>暂无项目</td></tr>";
+    `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td>${p.episodes}×${p.minutes}min</td><td><button onclick="run(${p.id})">运行流水线</button></td></tr>`).join("")||"<tr><td colspan=4>暂无项目</td></tr>";
 }
 document.getElementById("proj").onsubmit=async e=>{
   e.preventDefault();const f=new FormData(e.target);
@@ -96,6 +97,16 @@ document.getElementById("job").onsubmit=async e=>{
   const r=await fetch("/api/drama-jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
   log(await r.json());
 };
+async function run(id){
+  document.getElementById("result").innerHTML="<pre>运行中…</pre>";
+  const r=await j("/api/dramas/"+id+"/run",{method:"POST"});
+  const ok=r.summary.deliverable?"✅ 可交付":"❌ 存在失败阶段";
+  document.getElementById("result").innerHTML=
+    `<div class="card"><h3>${r.project} · 流水线成果 <span class="badge ${r.summary.deliverable?'ok':'off'}">${r.summary.passed}/${r.summary.total} 通过</span></h3>`+
+    r.stages.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+      <span>${s.stage}</span><span class="badge ${s.status==='passed'?'ok':'off'}">${s.status}</span></div>`).join("")+
+    `<div style="margin-top:8px;color:var(--dim)">${ok}</div></div>`;
+}
 function log(x){document.getElementById("log").textContent=JSON.stringify(x,null,2)}
 loadModels();loadProjs();
 </script>

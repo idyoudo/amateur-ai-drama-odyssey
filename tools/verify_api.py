@@ -73,6 +73,13 @@ check("立项返回 id", r.status_code == 200 and r.json().get("id") is not None
 r = client.get("/api/dramas")
 check("项目列表含回声", r.status_code == 200 and any(p["title"] == "回声" for p in r.json()))
 
+# 运行流水线
+r = client.post("/api/dramas", json={"title": "回声2", "logline": "一句话", "platform": "p", "rating": "全龄", "genre": "悬疑"})
+pid = r.json()["id"]
+r = client.post("/api/dramas/%d/run" % pid)
+check("run 返回 9 阶段", r.status_code == 200 and len(r.json()["stages"]) == 9)
+check("run 全通过", r.json()["summary"]["deliverable"] is True)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

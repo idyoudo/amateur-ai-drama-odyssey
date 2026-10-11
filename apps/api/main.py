@@ -160,6 +160,16 @@ def resolve_job(job_id: int, body: ResolveJob):
     return {"id": job_id, "status": "completed" if body.approve else "failed"}
 
 
+@app.post("/api/dramas/{project_id}/run")
+def run_project(project_id: int):
+    from film import pipeline
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+    return pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
+
+
 @app.get("/api/dramas/{project_id}/jobs")
 def list_jobs(project_id: str) -> List[dict]:
     with Session() as s:

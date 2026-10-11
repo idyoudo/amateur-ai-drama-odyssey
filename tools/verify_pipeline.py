@@ -72,6 +72,12 @@ check("M18 交付前合规", m18c.validate_delivery_compliance(True, True, True,
 # 跨模块一致性：立项交付规格 → 交付母版规格同源
 check("M1→M12 画幅同源", p["delivery_spec"]["master"] == sheet["spec"])
 
+# 全编排器 run_pipeline
+from film.pipeline import run_pipeline
+res = run_pipeline("回声", "都市悬疑：失忆调音师卷入命案", "短剧平台", "全龄", "悬疑")
+check("run_pipeline 9 阶段", len(res["stages"]) == 9)
+check("run_pipeline 全通过", res["summary"]["deliverable"] is True)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "pipeline-e2e", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
