@@ -96,6 +96,61 @@ check("validate_epoch 合法", fencing.validate_epoch(1) == 1)
 
 
 
+# ---------------- 6) 队列语义（InMemoryQueue） ----------------
+from film.jobs import model, queue as queue_mod, retry as retry_mod
+
+q = queue_mod.InMemoryQueue()
+j1 = q.enqueue(model.make_job("p", 1, 1, "shot_video", "p:1:1:shot_video:fp1", priority=5))
+dup = q.enqueue(model.make_job("p", 1, 1, "shot_video", "p:1:1:shot_video:fp1", priority=5))
+check("幂等入队同一 job", dup["id"] == j1["id"])
+check("幂等不新增", len(q._jobs) == 1)
+
+j2 = q.enqueue(model.make_job("p", 1, 2, "shot_video", "p:1:2:shot_video:fp2", priority=1))
+j3 = q.enqueue(model.make_job("p", 1, 3, "shot_video", "p:1:3:shot_video:fp3", priority=5))
+c = q.claim()
+check("claim 高优先级+FIFO", c["id"] == j1["id"])
+check("claim 置 running", c["status"] == "running")
+check("claim attempts/epoch", c["attempts"] == 1 and c["lease_epoch"] == 1)
+
+try:
+    q.complete(j1["id"], 0)
+    check("旧 epoch 写入被拒", False)
+except queue_mod.QueueError:
+    check("旧 epoch 写入被拒", True)
+
+q.complete(j1["id"], 1, checkpoint={"produced_keys": ["obj/a"]})
+check("complete->completed", q.get(j1["id"])["status"] == "completed")
+
+c = q.claim()
+check("FIFO 同优先级取 j3", c["id"] == j3["id"])
+q.fail(j3["id"], c["lease_epoch"], "network")
+check("fail->failed", q.get(j3["id"])["status"] == "failed")
+check("network 可自动重试", retry_mod.should_auto_retry("network", 1))
+check("content 不自动重试", not retry_mod.should_auto_retry("content_reject", 1))
+check("未知类 terminate", retry_mod.retry_disposition("bogus") == "terminate")
+check("retry failed->queued", q.retry(j3["id"]) is True)
+check("retry 后 queued", q.get(j3["id"])["status"] == "queued")
+
+q2 = queue_mod.InMemoryQueue(lease_sec=10)
+ja = q2.enqueue(model.make_job("p", 2, 1, "shot_video", "p:2:1:shot_video:fpa"))
+q2.claim(now=0)
+q2.get(ja["id"])["checkpoint"] = {"produced_keys": ["obj/x"]}
+q2.get(ja["id"])["locked_until"] = 5
+r = q2.reclaim_stale(now=10)
+check("reclaim 有产出->completed", ja["id"] in r and q2.get(ja["id"])["status"] == "completed")
+
+jb = q2.enqueue(model.make_job("p", 2, 2, "shot_video", "p:2:2:shot_video:fpb"))
+q2.claim(now=0)
+q2.get(jb["id"])["locked_until"] = 5
+r = q2.reclaim_stale(now=10)
+check("reclaim 无产出->requeue", jb["id"] in r and q2.get(jb["id"])["status"] == "queued")
+
+try:
+    q.cancel(j1["id"], 1)
+    check("cancel completed 拒绝", False)
+except state_machine.StateError:
+    check("cancel completed 拒绝", True)
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)
