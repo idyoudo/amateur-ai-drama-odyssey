@@ -117,7 +117,7 @@ docs/designs/        ← 技术设计（数据模型 / API 契约 / 任务编排
 docs/plans/          ← 计划与决策（实施计划 / 切片方案 / 选举记录 / 待裁决清单）
 docs/modules/        ← 模块级开发总入口（M1–M19，每模块一份；任务登记 + 变更记录，强规则三）
 docs/spec/           ← 执行记录与验证证据（由脚本生成，禁止手抄）
-docs/guid/           ← 部署 / 运维 / 使用指南（预留）
+docs/guid/           ← 部署 / 运维 / 使用指南（remote-deploy.md 远端部署规范，与 retail 三方隔离）
 docs/agent-prd-method.md ← 八步工作流、关键机制、七类真实踩坑
 ```
 
@@ -240,3 +240,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 合并 HANDOFF.md：新增第 10 节「项目资产与进度」（资产表/进度快照/边界），目录地图更新 docs 结构（designs/plans/spec/guid），删除 HANDOFF.md 消除与 AGENTS 的重叠 |
 | 2026-10-11 | Agent | 新增强规则三（开发任务必登记模块文档）：硬约束第 6 条、`docs/modules/` 目录、aado-facts 新增 `module_docs` 键 |
 | 2026-10-11 | Agent | 新增「变更档位」（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁）与 `execute-plan`/`review-plan` 两个 skill（Codex `.agents/skills/` + Cursor `.cursor/skills/`） |
+| 2026-10-11 | Agent | 新增远端部署规范与脚手架：`docs/guid/remote-deploy.md`、`docker-compose.prod.yml`（独立 postgres）、`.env.example`、`scripts/deploy-remote.sh`；与 retail 目录/数据卷/数据库三方隔离 |
