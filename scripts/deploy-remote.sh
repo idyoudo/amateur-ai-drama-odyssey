@@ -48,6 +48,8 @@ fi
 chmod 600 .env
 
 docker compose --env-file .env -f docker-compose.prod.yml up -d postgres --wait --wait-timeout 90
+docker compose --env-file .env -f docker-compose.prod.yml build api worker
+docker compose --env-file .env -f docker-compose.prod.yml up -d api worker --wait --wait-timeout 180
 docker compose --env-file .env -f docker-compose.prod.yml ps
 docker exec amateur-ai-drama-odyssey-postgres-1 psql -U aado -d AADO -Atc "SELECT current_database(), current_user"
 REMOTE_DEPLOY

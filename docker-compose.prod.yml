@@ -18,5 +18,30 @@ services:
       retries: 20
     restart: unless-stopped
 
+  api:
+    build:
+      context: /data/next-ai-ws/amateur-ai-drama-odyssey
+      dockerfile: docker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://aado:${POSTGRES_PASSWORD}@postgres:5432/AADO
+    ports:
+      - "${API_PORT:-4000}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: /data/next-ai-ws/amateur-ai-drama-odyssey
+      dockerfile: docker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://aado:${POSTGRES_PASSWORD}@postgres:5432/AADO
+    command: ["python", "-m", "apps.worker.main"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   aado_pgdata:
