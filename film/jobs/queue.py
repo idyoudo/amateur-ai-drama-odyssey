@@ -80,6 +80,28 @@ class InMemoryQueue:
         job["status"] = "cancelled"
         return job
 
+    def wait_human(self, job_id, epoch):
+        """门禁阻塞任务（M13.5-F01）：running → waiting_human，释放租约。"""
+        job = self._get_fenced(job_id, epoch)
+        state_machine.require_transition(job["status"], "waiting_human")
+        job["status"] = "waiting_human"
+        job["locked_until"] = None
+        return job
+
+    def resolve_human(self, job_id, approve, reason_code=None):
+        """人工裁决：通过→completed；驳回→failed(gate_rejected)，可 retry 返工。"""
+        job = self._jobs.get(job_id)
+        if job is None:
+            raise QueueError("任务不存在：%s" % (job_id,))
+        state_machine.require_transition(job["status"], "completed" if approve else "failed")
+        if approve:
+            job["status"] = "completed"
+        else:
+            job["status"] = "failed"
+            job["error_class"] = "gate_rejected"
+            job["error_code"] = reason_code
+        return job
+
     def retry(self, job_id):
         """人工/自动重试：failed → queued（受 attempts 上限约束）。"""
         job = self._jobs.get(job_id)

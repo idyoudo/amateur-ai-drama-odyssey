@@ -6,7 +6,8 @@
 
 TRANSITIONS = {
     "queued": ("running", "cancelled"),
-    "running": ("completed", "failed", "unknown", "cancelled"),
+    "running": ("completed", "failed", "unknown", "cancelled", "waiting_human"),
+    "waiting_human": ("completed", "failed"),   # 人工通过/驳回（驳回→failed→retry 返工）
     "failed": ("queued", "retry_exhausted"),   # 可重试→queued；耗尽→retry_exhausted
     "unknown": ("completed", "queued"),
     "retry_exhausted": (),

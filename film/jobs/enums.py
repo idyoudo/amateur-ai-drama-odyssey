@@ -5,7 +5,7 @@
 """
 
 # 任务级状态机（任务编排设计 §一：禁止字符串码混搭，用 PG enum）
-JOB_STATUS = ("queued", "running", "completed", "failed", "retry_exhausted", "cancelled", "unknown")
+JOB_STATUS = ("queued", "running", "waiting_human", "completed", "failed", "retry_exhausted", "cancelled", "unknown")
 
 # 阶段枚举（Development→Delivery 五段，PRD M13.2）
 SEGMENTS = {

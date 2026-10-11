@@ -158,6 +158,47 @@ try:
 except state_machine.StateError:
     check("cancel completed 拒绝", True)
 
+# ---------------- 7) worker 循环 + 门禁阻塞 ----------------
+from film.jobs.worker import JobError, Worker
+
+q3 = queue_mod.InMemoryQueue()
+jw = q3.enqueue(model.make_job("p", 3, 1, "shot_video", "p:3:1:shot_video:fpw"))
+
+def ok_handler(job):
+    return {"produced_keys": ["obj/done"]}
+
+w = Worker(q3)
+r = w.run_once(ok_handler, now=0)
+check("worker 完成并写 checkpoint", r is not None and q3.get(jw["id"])["status"] == "completed"
+      and q3.get(jw["id"])["checkpoint"]["produced_keys"] == ["obj/done"])
+
+jw2 = q3.enqueue(model.make_job("p", 3, 2, "shot_video", "p:3:2:shot_video:fpw2"))
+
+def fail_handler(job):
+    raise JobError("network", "E_NET")
+
+w.run_once(fail_handler, now=0)
+check("worker 分类失败", q3.get(jw2["id"])["status"] == "failed"
+      and q3.get(jw2["id"])["error_class"] == "network")
+check("空队列 run_once 返回 None", w.run_once(ok_handler, now=0) is None)
+
+q4 = queue_mod.InMemoryQueue()
+jg = q4.enqueue(model.make_job("p", 4, 1, "board", "p:4:1:board:fpg"))
+cg = q4.claim(now=0)
+q4.wait_human(jg["id"], cg["lease_epoch"])
+check("wait_human 置 waiting_human", q4.get(jg["id"])["status"] == "waiting_human")
+check("wait_human 释放租约", q4.get(jg["id"])["locked_until"] is None)
+q4.resolve_human(jg["id"], approve=True)
+check("resolve approve->completed", q4.get(jg["id"])["status"] == "completed")
+
+jg2 = q4.enqueue(model.make_job("p", 4, 2, "board", "p:4:2:board:fpg2"))
+cg2 = q4.claim(now=0)
+q4.wait_human(jg2["id"], cg2["lease_epoch"])
+q4.resolve_human(jg2["id"], approve=False, reason_code="reject_quality")
+check("resolve reject->failed(gate)", q4.get(jg2["id"])["status"] == "failed"
+      and q4.get(jg2["id"])["error_class"] == "gate_rejected")
+check("waiting_human 是合法状态", state_machine.can_transition("running", "waiting_human"))
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)
