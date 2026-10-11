@@ -1,0 +1,7 @@
+interface:
+  display_name: "执行计划"
+  short_description: "实现代码；快/轻直接改，完整档才要工单/设计"
+  default_prompt: "请按 AGENTS.md 变更档位实现。快/轻不要先写 docs/plans 或 docs/spec，但不豁免三条必绿命令与强规则一/三。"
+
+policy:
+  allow_implicit_invocation: true

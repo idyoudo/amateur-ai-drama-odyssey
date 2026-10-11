@@ -69,6 +69,22 @@ git add PRD/M5-电影摄影与画面生成.md PRD/CHANGELOG.md PRD/changelog.jso
 >
 > 但触及 `M#` 模块的实现（`film/`、`apps/`、`docs/designs`、迁移…）须按**强规则三**登记到 `docs/modules/M#-<中文名>.md` 的 `## 任务登记`，完成后回写 `## 变更记录`。规则全文见 [GOVERNANCE.md](GOVERNANCE.md) 强规则三与 `.agents/rules/module-dev-record.md`。
 
+## 变更档位（先判档，不豁免机器门禁）
+
+动手前先判档。**任何档位，三条必绿命令 + 强规则一/二/三的机器门禁都不可豁免**——档位只决定「可选仪式」（计划/规格/选举/红灯测试）做多少。
+
+| 档位 | 判据 | 仪式 |
+|------|------|------|
+| **快路径** | 对**已机器验证**产物做局部修正：文档错字/断链、已复测覆盖的常量、已定位的 bug | 直接改；不写 `docs/plans`/`docs/spec`，不选举，不 TDD 红灯 |
+| **轻量** | **已实现**模块内的局部行为（提示词模板、QC 阈值、局部 bugfix），不新增功能点、不改契约 | 简述决策后实现；按强规则三登记模块文档 §2/§4；跑聚焦验证 |
+| **完整** | 新模块、新增功能点、改数据模型/API/契约、跨模块、需人类拍板 | 走 P1 工单 → `docs/designs`/`docs/plans` → 争议选举 → 领域逻辑红灯 → 全部门禁 |
+
+**反向门禁**：任何档位中途发现要新增功能点、改契约/数据模型、跨模块，或撞上 `P1-实施计划` 第七节的 12 项人类拍板 → **停下，升到完整档**，别在快/轻里顺手做掉。
+
+**默认值（与 audit-worker-platform 相反）**：AADO 是绿地项目，**新模块默认「完整」**；只有改动对象是「已机器验证的产物」时才降档。「别过度流程化」不等于「跳过机器门禁」。
+
+执行/审计工作流见 `.agents/skills/execute-plan` 与 `.agents/skills/review-plan`（Codex 端 `.agents/skills/`，Cursor 端 `.cursor/skills/`）。
+
 ## 3. 工作方式（已在本项目验证有效，请沿用）
 
 1. **争议不问人，走多智能体选举**：5 名独立评估员、背对背、多数决；平票加选。
@@ -223,3 +239,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 新增第 9 节「产物目录 `out/` 的纪律」：登记 12 个 `out/tmp*/`（1630 文件）被 `git add -A` 误提交的真实事故，明确「临时产物写系统临时目录」「禁用 `git add -A`」「`out/p1a` 与 `demo/out` 是证据链不可清理」三条硬纪律 |
 | 2026-10-11 | Agent | 合并 HANDOFF.md：新增第 10 节「项目资产与进度」（资产表/进度快照/边界），目录地图更新 docs 结构（designs/plans/spec/guid），删除 HANDOFF.md 消除与 AGENTS 的重叠 |
 | 2026-10-11 | Agent | 新增强规则三（开发任务必登记模块文档）：硬约束第 6 条、`docs/modules/` 目录、aado-facts 新增 `module_docs` 键 |
+| 2026-10-11 | Agent | 新增「变更档位」（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁）与 `execute-plan`/`review-plan` 两个 skill（Codex `.agents/skills/` + Cursor `.cursor/skills/`） |

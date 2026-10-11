@@ -30,6 +30,7 @@
 3. **争议不问人，走 5 人多智能体选举**（多数决、平票加选），记录落 `docs/plans/*选举记录.md`。需要人类拍板 = 你没先跑选举。
 4. **改 `PRD/` 任何文件必登记三处台账**（CHANGELOG + changelog.jsonl + 文件内变更记录），否则提交被钩子拒绝。
 5. **文档归位约定**（权威索引 `docs/README.md`）：架构→`docs/architecture.md`；技术设计→`docs/designs/`；计划决策→`docs/plans/`；验证证据→`docs/spec/`；部署运维→`docs/guid/`。**断链或索引不一致会被 `prd_guard --all` 拦。**
+6. **变更档位（先判档）**：快路径/轻量/完整三档，只门控「可选仪式」（计划/规格/选举/红灯），**不豁免**三条必绿命令与强规则一/三；新模块默认完整。执行/审计工作流见 `.agents/skills/`（Codex）与 `.cursor/skills/`（Cursor）
 
 ## 从哪里开工
 
@@ -76,3 +77,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism
 | 2026-10-11 | Agent | 建立 Claude Code 适配层：指向 AGENTS.md 作为唯一事实来源，只保留 Claude Code 专属注意事项 |
 | 2026-10-11 | Agent | 升级为「开发启动指引」：新增前因（项目从哪来）、后果（已完成到什么程度）、关键决策（技术栈/环境/选举/台账/归位）、从哪开工（第 0 批 + 12 项拍板）、必读文档；保留收工命令与 9 条专属注意 |
 | 2026-10-11 | Agent | 新增强规则三指引：必读文档增补 `docs/modules/`（模块开发总入口，开发前必读、开工登记、完成回写），与 `.agents/rules/module-dev-record.md` 对齐 |
+| 2026-10-11 | Agent | 新增「变更档位」关键决策（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁），并指向 `execute-plan`/`review-plan` 两个 skill |

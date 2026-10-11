@@ -1,0 +1,7 @@
+interface:
+  display_name: "审计计划执行"
+  short_description: "只读审计实现；缺机器验证证据或强规则登记 = 违规"
+  default_prompt: "请按档位审计当前改动，对照强规则一/三与机器验证证据，缺证据标未验证。"
+
+policy:
+  allow_implicit_invocation: true
