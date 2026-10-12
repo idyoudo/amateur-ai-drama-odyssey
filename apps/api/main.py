@@ -3,11 +3,12 @@ import os
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from apps.api import auth
 from film.jobs import db as jobs_db
 from film.projects import project as proj_mod
 from film.suppliers import config as sup_config
@@ -19,6 +20,22 @@ jobs_db.Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 app = FastAPI(title="AADO API", version="0.1.0")
+
+# 登录鉴权配置（默认 admin + 随机密码，凭据从环境变量注入）
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    path = request.url.path
+    if path.startswith("/api/") and path != "/api/auth/login":
+        token = request.headers.get("authorization", "")
+        token = token[7:] if token.startswith("Bearer ") else ""
+        if not auth.verify_token(token, SECRET_KEY):
+            return JSONResponse({"detail": "未登录或登录已过期"}, status_code=401)
+    return await call_next(request)
 
 
 class CreateJob(BaseModel):
@@ -42,6 +59,18 @@ class CreateProject(BaseModel):
 
 # 模型参数配置（env 为默认，页面/API 可运行时覆盖）
 _model_config = sup_config.load_from_env()
+
+
+class LoginBody(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/auth/login")
+def login(body: LoginBody):
+    if not auth.check_credentials(body.username, body.password, ADMIN_USERNAME, ADMIN_PASSWORD):
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    return {"token": auth.sign_token(body.username, SECRET_KEY), "username": ADMIN_USERNAME}
 
 
 @app.get("/health")

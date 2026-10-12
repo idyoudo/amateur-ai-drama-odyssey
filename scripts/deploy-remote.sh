@@ -36,8 +36,13 @@ ssh "$REMOTE_HOST" "REMOTE_RUNTIME_DIR='$REMOTE_RUNTIME_DIR' sh -s" <<'REMOTE_DE
 set -eu
 cd "$REMOTE_RUNTIME_DIR"
 
-if [ -f .env.from-local ] && [ ! -f .env ]; then
-  cp .env.from-local .env
+# 合并本地 .env 的缺失键（不覆盖远端已有）
+if [ -f .env.from-local ]; then
+  while IFS= read -r line; do
+    case "$line" in \#*|"") continue;; esac
+    key="${line%%=*}"
+    grep -q "^${key}=" .env 2>/dev/null || echo "$line" >> .env
+  done < .env.from-local
 fi
 rm -f .env.from-local
 
@@ -45,6 +50,11 @@ if [ ! -f .env ]; then
   pw="$(openssl rand -hex 24)"
   printf 'POSTGRES_PASSWORD=%s\nDATABASE_URL=postgres://aado:%s@postgres:5432/AADO\n' "$pw" "$pw" > .env
 fi
+
+# 鉴权凭据回退（本地 .env 未提供时随机生成）
+grep -q '^ADMIN_USERNAME=' .env 2>/dev/null || echo 'ADMIN_USERNAME=admin' >> .env
+grep -q '^ADMIN_PASSWORD=' .env 2>/dev/null || printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -hex 12)" >> .env
+grep -q '^SECRET_KEY=' .env 2>/dev/null || printf 'SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
 chmod 600 .env
 
 docker compose --env-file .env -f docker-compose.prod.yml up -d postgres --wait --wait-timeout 90

@@ -91,6 +91,18 @@ pre{background:#0a0e15;border:1px solid var(--line);padding:12px;border-radius:1
   <div class="foot">Amateur AI Drama Odyssey<br>从小说到成片母版</div>
 </aside>
 
+<div id="login" style="position:fixed;inset:0;background:rgba(5,8,13,.97);display:flex;align-items:center;justify-content:center;z-index:99">
+  <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;width:340px">
+    <div class="brand" style="margin-bottom:18px"><div class="logo">🎬</div><div><div class="name">AADO</div><div class="sub">请登录</div></div></div>
+    <form id="loginform" style="display:flex;flex-direction:column;gap:10px">
+      <input name="username" placeholder="用户名" value="admin">
+      <input name="password" type="password" placeholder="密码" autofocus>
+      <button type="submit">登 录</button>
+      <div id="loginerr" style="color:var(--bad);font-size:12px;display:none"></div>
+    </form>
+  </div>
+</div>
+
 <main>
   <header class="top">
     <h1 id="title">概览</h1>
@@ -178,7 +190,22 @@ document.getElementById("nav").addEventListener("click",e=>{
   document.getElementById(a.dataset.sec).classList.add("active");
   document.getElementById("title").textContent=TITLES[a.dataset.sec];
 });
-async function j(url,opt){const r=await fetch(url,opt);return r.json()}
+const TOKEN_KEY="aado_token";
+function authHeader(){const t=localStorage.getItem(TOKEN_KEY);return t?{"Authorization":"Bearer "+t}:{}}
+function showLogin(){document.getElementById("login").style.display="flex"}
+function hideLogin(){document.getElementById("login").style.display="none"}
+async function j(url,opt){opt=opt||{};opt.headers=Object.assign({},opt.headers,authHeader());
+  const r=await fetch(url,opt);
+  if(r.status===401){localStorage.removeItem(TOKEN_KEY);showLogin();throw new Error("未登录")}
+  return r.json()}
+function loadAll(){loadModels();loadProjs();}
+document.getElementById("loginform").onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target);
+  const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:f.get("username"),password:f.get("password")})});
+  if(r.ok){const d=await r.json();localStorage.setItem(TOKEN_KEY,d.token);hideLogin();loadAll();}
+  else{const x=document.getElementById("loginerr");x.style.display="block";x.textContent="用户名或密码错误";}
+};
 async function loadModels(){
   const d=await j("/api/models/config");
   document.getElementById("models-grid").innerHTML=Object.entries(d.config).map(([k,c])=>{
@@ -222,7 +249,7 @@ document.getElementById("job").onsubmit=async e=>{
   const r=await fetch("/api/drama-jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
   const d=await r.json();const log=document.getElementById("log");log.style.display="block";log.textContent=JSON.stringify(d,null,2);
 };
-loadModels();loadProjs();
+if(localStorage.getItem(TOKEN_KEY)){hideLogin();loadAll()}else{showLogin()}
 </script>
 </body>
 </html>

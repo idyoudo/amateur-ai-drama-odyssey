@@ -24,6 +24,9 @@ services:
       dockerfile: docker/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg2://aado:${POSTGRES_PASSWORD}@postgres:5432/AADO
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
     ports:
       - "${API_PORT:-4000}:4000"
     depends_on:
