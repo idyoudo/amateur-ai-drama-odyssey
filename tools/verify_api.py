@@ -76,6 +76,14 @@ r = client.put("/api/models/config", headers=H, json={"config": {"video": {"mode
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])
 
+# 项目详情 + 静态资源
+r = client.get("/api/dramas/%d" % pid, headers=H)
+check("项目详情 200", r.status_code == 200 and r.json()["title"] == "回声")
+check("详情含 last_run", r.json().get("last_run") is not None)
+check("静态 app.css 200", client.get("/static/app.css").status_code == 200)
+check("静态 app.js 200", client.get("/static/app.js").status_code == 200)
+check("首页 shell 含 app.js", "app.js" in client.get("/").text)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

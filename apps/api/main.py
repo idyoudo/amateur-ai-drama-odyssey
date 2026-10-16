@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
@@ -20,6 +21,8 @@ jobs_db.Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 app = FastAPI(title="AADO API", version="0.1.0")
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # 登录鉴权配置（默认 admin + 随机密码，凭据从环境变量注入）
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
@@ -189,6 +192,22 @@ def resolve_job(job_id: int, body: ResolveJob):
     return {"id": job_id, "status": "completed" if body.approve else "failed"}
 
 
+@app.get("/api/dramas/{project_id}")
+def get_project(project_id: int):
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        run = s.scalars(select(jobs_db.Run).where(
+            jobs_db.Run.project_id == project_id).order_by(jobs_db.Run.id.desc())).first()
+        return {"id": p.id, "title": p.title, "logline": p.logline,
+                "platform": p.platform, "rating": p.rating, "genre": p.genre,
+                "style": p.style, "episodes": p.episodes, "minutes": p.minutes,
+                "delivery_spec": p.delivery_spec, "pilot_mode": p.pilot_mode,
+                "status": p.status,
+                "last_run": run.result if run else None}
+
+
 @app.post("/api/dramas/{project_id}/run")
 def run_project(project_id: int):
     from film import pipeline
@@ -196,7 +215,10 @@ def run_project(project_id: int):
         p = s.get(jobs_db.Project, project_id)
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
-    return pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
+        result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
+        s.add(jobs_db.Run(project_id=project_id, result=result))
+        s.commit()
+    return result
 
 
 @app.get("/api/dramas/{project_id}/jobs")

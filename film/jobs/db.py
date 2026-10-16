@@ -68,6 +68,16 @@ class Project(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class Run(Base):
+    """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
+    __tablename__ = "runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Intent(Base):
     __tablename__ = "intents"
 
