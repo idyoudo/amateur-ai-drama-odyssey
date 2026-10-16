@@ -71,8 +71,10 @@ function setMain(html, wide) {
   const m = $("#main");
   m.innerHTML = `<div class="topbar">${html.top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
 }
-function go(route, param) {
-  const [name] = route.split(":");
+function go(route) {
+  const parts = String(route).split(":");
+  const name = parts[0];
+  const param = parts[1];
   shell(name === "project" ? "projects" : name);
   if (name === "overview") return viewOverview();
   if (name === "projects") return viewProjects();
@@ -161,7 +163,7 @@ async function viewProject(id) {
 
   const passed = run ? run.summary.passed : 0, total = 19;
   setMain({
-    top: `<h1><span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目 ›</span> ${esc(p.title)}</h1>
+    top: `<h1><span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目 ›</span> <span class="t">${esc(p.title)}</span></h1>
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
