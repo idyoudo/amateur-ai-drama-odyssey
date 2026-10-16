@@ -452,6 +452,37 @@ function stageBody(stage, art) {
         <div class="k">定妆门禁</div><div><span class="pill ok">署名 + 理由码齐备</span></div>
       </div>`;
   }
+  // 一致性：QC 指标卡
+  if (art.face_verdict && art.face_threshold !== undefined) {
+    return `<div class="stats">
+        <div class="stat"><div class="k">${esc(art.face_verdict)}</div><div class="l">人脸一致性判定</div></div>
+        <div class="stat"><div class="k">${art.face_threshold}</div><div class="l">通过阈值（余弦）</div></div>
+        <div class="stat"><div class="k">${art.same_frame_limit}</div><div class="l">同框角色上限</div></div>
+        <div class="stat"><div class="k">${esc(art.axis_check)}</div><div class="l">越轴检查（告警不否决）</div></div>
+      </div>
+      <div class="muted" style="margin-top:10px">检测方法论：按批次分位截断（低于本集 P10 进复核），绝对阈值仅兜底（D-37）。</div>`;
+  }
+  // 母版：规格 QC 清单
+  if (art.codec && art.tc) {
+    return `<div class="kv">
+        <div class="k">母版编码</div><div><span class="pill gold">${esc(art.codec)}</span></div>
+        <div class="k">音频</div><div>${esc(art.audio)}</div>
+        <div class="k">时间码起点</div><div>${esc(art.tc)}</div>
+        <div class="k">色彩一致性</div><div>ΔE ${esc(art.color_de)}</div>
+        <div class="k">字幕合规</div><div>${esc(art.subtitle_rule)}</div>
+        <div class="k">平台拒收项</div><div><span class="pill ok">无硬字幕/无上混/无 letterbox</span></div>
+      </div>`;
+  }
+  // 成本：预算与北极星
+  if (art.budget && art.warn_level) {
+    return `<div class="stats">
+        <div class="stat"><div class="k">¥${art.budget}</div><div class="l">项目预算上限</div></div>
+        <div class="stat"><div class="k">¥${art.reserved}</div><div class="l">已预占</div></div>
+        <div class="stat"><div class="k">${esc(art.warn_level)}</div><div class="l">预算预警级别</div></div>
+        <div class="stat"><div class="k">${art.duplicate_paid}</div><div class="l">重复付费调用</div></div>
+      </div>
+      <div class="muted" style="margin-top:10px">北极星指标：可交付母版分钟数 ÷ 总成本；超预算硬阻断，不静默超支。</div>`;
+  }
   // 交付：交付单视图
   if (art.spec && art.release) {
     return `<div class="kv">

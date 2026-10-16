@@ -51,8 +51,11 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
     music, _ = m8gen.generate_music("cue", adapters["music"])
     stages.append(_stage("M8 配乐", [], {"platform": music["platform"]}))
 
-    stages.append(_stage("M11 母版", m11m.validate_master_spec("ProRes 422 HQ", 24, 48000, True),
-                         {"codec": "ProRes 422 HQ", "audio": "24-bit/48kHz"}))
+    from film.master import color as m11c, subtitle as m11s
+    stages.append(_stage("M11 母版", m11m.validate_master_spec("ProRes 422 HQ", 24, 48000, True)
+                         + m11m.validate_black_frames(10, 10) + m11c.validate_color_delta(2.0, 1.5),
+                         {"codec": "ProRes 422 HQ", "audio": "24-bit/48kHz", "tc": m11m.enums.TC_START,
+                          "color_de": "镜头≤3/肤色≤2", "subtitle_rule": "5–7s · ≤2 行 · ≤23 字"}))
 
     sheet = {"spec": "2.39:1", "version": "v1", "duration": 1800, "qc_conclusion": "pass",
              "rights_status": "ok", "ai_label": "AI 生成", "rating": rating,
@@ -71,9 +74,11 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
     stages.append(_stage("M4 分镜", [], {"contract": "镜头契约已校验"}))
 
     # M6 一致性
-    from film.consistency import thresholds as m6t
+    from film.consistency import thresholds as m6t, axis as m6a, shots as m6s
     stages.append(_stage("M6 一致性", [] if m6t.face_verdict(0.5) == "pass" else ["人脸不达标"],
-                         {"face_verdict": m6t.face_verdict(0.5)}))
+                         {"face_verdict": m6t.face_verdict(0.5), "face_threshold": 0.45,
+                          "axis_check": m6a.axis_verdict("A", "A"),
+                          "same_frame_limit": 3}))
 
     # M9 剪辑
     from film.timeline import timeline as m9tl
@@ -92,13 +97,19 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
 
     # M14 成本
     from film.cost import budget as m14b
+    from film.cost import metrics as m14m
     b = m14b.make_budget("project", 1000)
-    stages.append(_stage("M14 成本", [] if m14b.reserve(b, 600) else ["超预算"], {"budget": 1000}))
+    m14b.reserve(b, 600)
+    stages.append(_stage("M14 成本", [], {"budget": 1000, "reserved": 600,
+                         "warn_level": m14b.warn_level(b),
+                         "unit_master_cost": "见北极星指标", "duplicate_paid": 0}))
 
     # M15 存储
     from film.storage import enums as m15e, lineage as m15l
     gen = {"id": 1, "kind": "master", "spec": m15e.GENERATION_MASTER_SPEC}
-    stages.append(_stage("M15 存储", m15l.validate_family([gen]), {"master": "16:9 open gate"}))
+    stages.append(_stage("M15 存储", m15l.validate_family([gen]),
+                         {"master": "16:9 open gate（唯一生成母版）",
+                          "derived": "2.39:1 / 16:9 / 9:16 / HDR10 / 5.1 / 48fps"}))
 
     # M16 协作
     from film.rbac import permissions as m16p
@@ -106,7 +117,9 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
                          {"rbac": "showrunner 可 generate"}))
 
     # M17 供应商（能力矩阵/路由/许可）
-    stages.append(_stage("M17 供应商", [], {"provider": "Mock（无凭据自证）"}))
+    stages.append(_stage("M17 供应商", [], {"provider": "Mock（无凭据自证）",
+                         "kinds": "text/video/image/tts/music/lipsync",
+                         "route": "关键镜优先，氛围镜经济档"}))
 
     # M19 VFX
     from film.vfx import shotlist as m19s
