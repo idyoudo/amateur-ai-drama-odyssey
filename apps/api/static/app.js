@@ -284,6 +284,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 成本阶段 → 看板
+  if (/成本/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="costview"><div class="skeleton" style="width:50%"></div><div class="skeleton"></div></div></div>`;
+    return renderCost();
+  }
   // 母版阶段 → 规格 + QC 逐项
   if (/母版/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="qcview"><div class="skeleton" style="width:60%"></div><div class="skeleton"></div><div class="skeleton" style="width:80%"></div></div></div>`;
@@ -418,6 +423,30 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 成本看板（M14.7） */
+async function renderCost() {
+  const box = $("#costview"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/cost-dashboard"); }
+  catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; return; }
+  const bar = (v) => `<div class="progress" style="margin-top:6px"><i style="width:${Math.min(v, 100)}%"></i></div>`;
+  box.innerHTML = `
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><div class="k">${d.north_star.deliverable_minutes}</div><div class="l">可交付母版分钟</div></div>
+      <div class="stat"><div class="k">¥${d.north_star.est_cost_cny}</div><div class="l">预估总成本</div></div>
+      <div class="stat"><div class="k">${d.north_star.minutes_per_yuan}</div><div class="l">每元产出分钟（北极星）</div></div>
+      <div class="stat"><div class="k">${esc(d.budget.level)}</div><div class="l">预算预警</div></div>
+    </div>
+    <h2 style="font-size:13px">过程指标</h2>
+    <div class="card">${d.process.map(x => `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(x.name)}</span><b>${x.value}${x.name.includes("调用") ? "" : "%"}</b></div>
+      ${bar(x.name.includes("重试") || x.name.includes("调用") ? x.value : x.value)}</div>`).join("")}</div>
+    <h2 style="font-size:13px">影视过程指标（与成本并列）</h2>
+    <div class="card">${d.film_process.map(x => `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(x.name)}</span><b>${x.value}%</b></div>
+      ${bar(x.value)}</div>`).join("")}</div>
+    <div class="muted" style="font-size:11px;margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>`;
+}
+
 /* 母版 QC 逐项（M11.5/M11.6） */
 async function renderQC() {
   const box = $("#qcview"); if (!box) return;

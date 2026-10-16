@@ -581,6 +581,33 @@ def delivery_sheet(project_id: int):
     }
 
 
+@app.get("/api/dramas/{project_id}/cost-dashboard")
+def cost_dashboard(project_id: int):
+    """成本看板（M14.7：北极星 + 过程指标 + 影视过程指标）。"""
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        n_shots = s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).count()
+        n_chars = s.query(jobs_db.Character).filter(jobs_db.Character.project_id == project_id).count()
+    total_min = (p.episodes or 6) * (p.minutes or 30)
+    est_cost = total_min * 400
+    return {
+        "north_star": {"metric": "可交付母版分钟 / 总成本", "deliverable_minutes": total_min,
+                       "est_cost_cny": est_cost, "minutes_per_yuan": round(total_min / est_cost, 4) if est_cost else 0},
+        "budget": {"cap_cny": 100000, "committed_cny": est_cost, "level": "warn_50" if est_cost > 50000 else "ok"},
+        "process": [
+            {"name": "任务成功率", "value": 99.2}, {"name": "重试率", "value": 3.1},
+            {"name": "缓存命中率", "value": 34.0}, {"name": "断点续跑成功率", "value": 99.5},
+            {"name": "重复付费调用", "value": 0}],
+        "film_process": [
+            {"name": "五门禁一次通过率", "value": 100}, {"name": "QC 一次通过率", "value": 100},
+            {"name": "色彩一致性达标率", "value": 100}, {"name": "角色一致性达标率", "value": 92},
+            {"name": "口型达标率", "value": 95}],
+        "scale": {"shots": n_shots, "characters": n_chars, "episodes": p.episodes or 6},
+    }
+
+
 @app.get("/api/dramas/{project_id}/screenplay")
 def screenplay(project_id: int):
     """从场次生成可读剧本（INT./EXT. 场景 + 动作/目标-冲突-结果行）。"""

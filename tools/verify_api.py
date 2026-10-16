@@ -216,6 +216,14 @@ e1 = client.get("/api/dramas/%d/script?episode=1" % pid, headers=H).json()
 e2 = client.get("/api/dramas/%d/script?episode=2" % pid, headers=H).json()
 check("每集剧本不同", e1["scenes"][0]["event"] != e2["scenes"][0]["event"])
 
+# 成本看板
+r = client.get("/api/dramas/%d/cost-dashboard" % pid, headers=H)
+d = r.json()
+check("成本看板 200", r.status_code == 200)
+check("看板含北极星", "minutes_per_yuan" in d["north_star"])
+check("看板含过程指标", len(d["process"]) >= 4)
+check("看板含影视指标", len(d["film_process"]) >= 4)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
