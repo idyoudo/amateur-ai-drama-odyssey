@@ -533,23 +533,32 @@ async function runPipeline(id) {
 /* ---------- 资产库 ---------- */
 async function viewAssets() {
   const projs = await api("/api/dramas");
-  let cards = [];
+  const chars = [], shots = [];
   for (const p of projs.slice(0, 12)) {
-    try { const d = await api("/api/dramas/" + p.id); if (d.last_run) {
-      // 从阶段产物里提取「资产类」信息（有 artifact 的阶段）
-      d.last_run.stages.forEach(s => {
-        if (Object.keys(s.artifact || {}).length && /选角|摄影|配音|配乐|剧本|母版/.test(s.stage))
-          cards.push({ project: p.title, stage: s.stage, art: s.artifact });
-      });
-    } } catch (e) {}
+    try { const d = await api("/api/dramas/" + p.id);
+      if (d.last_run) {
+        const c = d.last_run.stages.find(x => x.stage === "M3 选角");
+        if (c && c.artifact && c.artifact.character)
+          chars.push({ project: p.title, name: c.artifact.character, voice: c.artifact.voice, anchors: c.artifact.anchors });
+      }
+      const sh = await api("/api/dramas/" + p.id + "/shots");
+      sh.forEach(x => shots.push({ project: p.title, ...x }));
+    } catch (e) {}
   }
+  const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4", full_body: "全身", expression: "表情" };
   setMain({
-    top: `<h1>资产库 <span class="crumbs">各项目阶段产物</span></h1><div class="right"><span class="pill">${cards.length} 项</span></div>`,
-    body: cards.length ? `<div class="cards">${cards.map(c => `
-      <div class="asset"><div class="thumb">🎞️<span class="tag">${esc(c.stage)}</span></div>
-        <div class="body"><h4>${esc(c.project)}</h4>
-          <div class="meta">${Object.entries(c.art).map(([k, v]) => `<span>${esc(k)}: ${esc(v)}</span>`).join("")}</div></div></div>`).join("")}</div>`
-      : `<div class="card empty">还没有资产。先在项目里运行流水线。</div>`,
+    top: `<h1>资产库 <span class="crumbs">跨项目角色与镜头</span></h1>
+      <div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
+    body: `${chars.length ? `<h2>角色 <span class="hint">定妆锚点 + 音色</span></h2>
+      <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb" style="font-size:34px">🎭<span class="tag">${esc(c.project)}</span></div>
+        <div class="body"><h4>${esc(c.name)}</h4>
+          <div class="meta"><span>音色 ${esc(c.voice)}</span>${(c.anchors||[]).map(a => `<span>${esc(VIEWNAME[a]||a)}</span>`).join("")}</div></div></div>`).join("")}</div>` : ""}
+      ${shots.length ? `<h2>镜头 <span class="hint">按状态</span></h2>
+      <div class="cards">${shots.slice(0, 60).map(s => `<div class="asset"><div class="thumb" style="font-size:28px">${s.status === "已生成" || s.status === "已选定" ? "🖼️" : "🎞️"}
+        <span class="tag">${esc(s.project)} · 镜${s.shot_no}</span></div>
+        <div class="body"><div class="meta"><span>${esc(s.size)}</span><span>${esc(s.move)}</span><span>${s.duration}s</span>
+          <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
+      ${(!chars.length && !shots.length) ? `<div class="card empty">还没有资产。先在项目里运行流水线。</div>` : ""}`,
   }, true);
 }
 
