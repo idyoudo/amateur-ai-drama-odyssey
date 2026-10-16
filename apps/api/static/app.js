@@ -649,7 +649,25 @@ async function viewModels() {
         <div class="body"><h4 style="display:flex;justify-content:space-between">${k}
           <span class="pill ${on ? "ok" : ""}">${on ? "已配置" : "Mock"}</span></h4>
           <div class="desc">${esc(c.model || "未填模型")}</div></div></div>`;
-    }).join("")}</div>`,
+    }).join("")}</div>
+    <h2>电影参数能力矩阵 <span class="hint">M17.1-F04：参数缺失不得默认「支持」</span></h2>
+    <div class="card" style="padding:0"><table>
+      <thead><tr><th>能力维度</th><th>说明</th></tr></thead><tbody>
+      ${(d.capabilities || []).map(c => `<tr><td><code>${esc(c)}</code></td><td>${esc({
+        reference_image: "参考图（r2v 多参考，角色一致性命门）",
+        reference_video: "参考视频", first_last_frame: "首尾帧（衔接镜）",
+        multi_shot: "多镜头一次调用", camera_control: "运镜枚举与相机控制",
+        focal_dof: "焦距与景深模拟", resolution_aspect: "分辨率与画幅",
+        native_audio: "原生音频", duration: "时长上限", cost: "单位成本", latency: "平均耗时",
+      }[c] || c)}</td></tr>`).join("")}
+      </tbody></table></div>
+    <h2>路由与许可</h2>
+    <div class="kv">
+      <div class="k">关键镜路由</div><div>${esc((d.routing || {}).hero || "")}</div>
+      <div class="k">氛围镜路由</div><div>${esc((d.routing || {}).ambient || "")}</div>
+      <div class="k">不得内置分发</div><div>${((d.licenses || {}).bundle_forbidden || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(" ")}</div>
+      <div class="k">非商用模型</div><div>${((d.licenses || {}).non_commercial || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(" ")}</div>
+    </div>`,
   });
 }
 

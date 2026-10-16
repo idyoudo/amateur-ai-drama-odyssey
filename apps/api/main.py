@@ -97,7 +97,11 @@ def models_page():
 
 @app.get("/api/models/config")
 def get_model_config():
-    return {"config": _model_config, "available": sup_config.available_kinds(_model_config)}
+    return {"config": _model_config, "available": sup_config.available_kinds(_model_config),
+            "capabilities": list(sup_config.CAPABILITY_FIELDS),
+            "routing": {"hero": "高质量档（hero/对白正脸镜）", "ambient": "经济档（氛围/过场镜）"},
+            "licenses": {"bundle_forbidden": ["ComfyUI", "HunyuanVideo"],
+                         "non_commercial": ["InsightFace", "ArcFace"]}}
 
 
 @app.put("/api/models/config")
