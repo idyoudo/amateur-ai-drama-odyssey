@@ -29,12 +29,18 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
                          {"title": p["title"], "package": "%d 集×%d 分" % (p["package"]["episodes"], p["package"]["minutes"])}))
 
     outline, _ = m2gen.generate_outline(logline, adapters["text"])
+    scene_brief = [{"no": sc["number"], "event": sc["event"],
+                    "goal": sc["goal"], "conflict": sc["conflict"], "result": sc["result"],
+                    "beats": sc.get("beats", [])} for sc in outline["scenes"]]
     stages.append(_stage("M2 剧本", m2out.validate_outline(outline),
-                         {"scenes": len(outline["scenes"]), "beats": 15, "truby": 4}))
+                         {"scenes": len(outline["scenes"]), "beats": 15, "truby": 4,
+                          "form": outline["form"], "scene_list": scene_brief}))
 
     ch, _ = m3gen.generate_casting("主角", adapters["image"])
     stages.append(_stage("M3 选角", m3ch.validate_character(ch),
-                         {"character": ch["name"], "anchors": len(ch["anchors"])}))
+                         {"character": ch["name"], "voice": ch["voice_key"],
+                          "anchors": [a["view"] for a in ch["anchors"]],
+                          "anchor_count": len(ch["anchors"])}))
 
     shot, _ = m5gen("镜头提示词", adapters["video"])
     stages.append(_stage("M5 摄影", [], {"prompt": shot["prompt"][:24]}))

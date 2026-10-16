@@ -188,12 +188,36 @@ function renderStageDetail(st) {
   if (!st) { el.innerHTML = `<div class="detail empty">该阶段尚无运行结果，点击「运行流水线」生成。</div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
   const art = st.artifact || {};
-  el.innerHTML = `<div class="detail">
-    <div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
-      <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>
-    ${Object.keys(art).length ? `<div class="kv">${Object.entries(art).map(([k, v]) => `<div class="k">${esc(k)}</div><div>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("")}</div>` : `<div class="muted">无附加产物。</div>`}
-    ${(st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : ""}
-  </div>`;
+  const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
+      <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
+  const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}${viol}</div>`;
+}
+/* 阶段专属富展示 */
+function stageBody(stage, art) {
+  // 剧本：场次列表（场次 / 拍 / 目标-冲突-结果）
+  if (art.scene_list) {
+    return `<div class="muted" style="margin-bottom:10px">形态 <b>${esc(art.form)}</b> · ${art.scenes} 场 · 15 拍覆盖 · Truby 四节点</div>
+      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+      ${art.scene_list.map(sc => `<div class="card"><div style="display:flex;justify-content:space-between">
+        <b style="font-size:13px">场 ${sc.no}</b><span class="pill" style="font-size:10px">${esc((sc.beats||[])[0]||"")}</span></div>
+        <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">
+          目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}</div>`;
+  }
+  // 选角：角色卡 + 锚点视角 chip
+  if (art.character && art.anchors) {
+    return `<div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+      <div class="asset"><div class="thumb" style="font-size:40px">🎭<span class="tag">角色</span></div>
+        <div class="body"><h4>${esc(art.character)}</h4>
+          <div class="meta"><span>音色 ${esc(art.voice)}</span><span>${art.anchor_count} 张锚点</span>
+          ${art.anchors.map(a => `<span>${esc(a)}</span>`).join("")}</div></div></div></div>`;
+  }
+  // 通用 KV
+  if (Object.keys(art).length) {
+    return `<div class="kv">${Object.entries(art).map(([k, v]) =>
+      `<div class="k">${esc(k)}</div><div>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("")}</div>`;
+  }
+  return `<div class="muted">无附加产物。</div>`;
 }
 async function runPipeline(id) {
   const b = $("#runbtn"); b.disabled = true; b.textContent = "运行中…";
