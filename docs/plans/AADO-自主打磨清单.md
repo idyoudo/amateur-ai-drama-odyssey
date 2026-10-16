@@ -42,7 +42,7 @@
 ## C. 工程层
 
 - [x] 每模块 README（film/*/README.md，16 个模块）
-- [ ] API 契约文档随代码更新（docs/designs/API契约.md 与实现对齐）
+- [x] API 契约文档随代码更新（42 路由对齐）
 - [ ] 端到端集成测试（真 PG，`tools/verify_pg.py` 在有凭据时自动跑）
 - [x] 覆盖率报告（tools/coverage_report.py，film/ 84%）
 - [ ] CI 提速（分片）

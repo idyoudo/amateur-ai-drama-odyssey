@@ -95,3 +95,69 @@
 | 日期 | 修订人 | 变更内容 |
 |------|--------|----------|
 | 2026-10-11 | Agent | 建立 API 契约：通用错误码封闭集 + 8 组资源端点（项目/剧本/分镜/媒体/任务/成本/合规）+ 实现纪律 |
+
+## 已实现端点（与 apps/api/main.py 对齐 · 42 路由）
+
+> 全部 `/api/*` 除 `POST /api/auth/login` 外均需 `Authorization: Bearer <token>`（HMAC 令牌，24h）。
+> 无供应商凭据时媒体/LLM 调用走 MockProvider（标注 EL-16），流程不变。
+
+### 鉴权与系统
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/auth/login` | 登录（admin + 密码）→ 返回令牌 |
+| GET | `/health` | 健康检查（公开） |
+| GET | `/` · `/models` | Web 工作台 / 模型配置页 |
+
+### 建模（M1）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET/POST | `/api/dramas` | 项目列表（含交付就绪）/ 立项（logline 必填） |
+| GET/PUT | `/api/dramas/{id}` | 项目详情（含最近运行）/ 编辑设置 |
+
+### 制作（M2/M4/M5）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/dramas/{id}/run` | 运行 19 阶段流水线（落 Run/剧本/角色/分镜） |
+| POST | `/api/dramas/{id}/produce` | 一键全流程（流水线 + 分镜 + 抽卡 + 组装） |
+| GET | `/api/dramas/{id}/episodes` | 分集（集数 + 每集镜数） |
+| GET | `/api/dramas/{id}/script` | 剧本场次（`?episode=`，含结构健康度） |
+| PUT | `/api/dramas/{id}/script/scene/{no}` | 编辑场次（自动复校验，`?episode=`） |
+| GET | `/api/dramas/{id}/screenplay` | 剧本文本（INT./EXT.） |
+| GET | `/api/dramas/{id}/shots` | 镜头表（`?episode=`，含连续性字段） |
+| POST | `/api/dramas/{id}/shots/generate` | 派生分镜表 |
+| POST | `/api/dramas/{id}/shots/batch` | 批量生成所选镜头 |
+| GET/POST | `/api/shots/{id}/candidates` | 抽卡候选（生成 4 个） |
+| POST | `/api/candidates/{id}/select` | 选定候选（选择位唯一） |
+
+### 质检与交付（M6/M9/M11/M12）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/dramas/{id}/assemble` | 成片组装（时间线 + 幕结构 + ASL） |
+| GET | `/api/dramas/{id}/continuity` | 连续性表（方向/视线/时间 + 违规） |
+| GET | `/api/dramas/{id}/qc-report` | 影视 QC 报告（逐项阈值/实测/判定） |
+| GET | `/api/dramas/{id}/delivery-sheet` | 交付单（规格/权利/AI标识/可选标注） |
+
+### 治理（M14/M16/M17/M18）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/dramas/{id}/gates` | 五门禁（署名/理由码/二元清单） |
+| GET | `/api/dramas/{id}/characters` | 角色（锚点/音色/定妆） |
+| GET | `/api/dramas/{id}/cost-dashboard` | 成本看板（北极星 + 过程指标） |
+| GET | `/api/dramas/{id}/provider-tasks` | 供应商三段式（提交/查询/下载） |
+| GET/PUT | `/api/models/config` | 模型配置（env 默认，页面/API 覆盖） |
+
+### 任务与生成台（M13 / Playground）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/dramas/{id}/jobs` | 项目任务列表 |
+| POST | `/api/drama-jobs` | 入队（幂等键） |
+| POST | `/api/drama-jobs/{id}/retry·cancel·resolve` | 重试 / 取消 / 门禁裁决 |
+| GET | `/api/playground/kinds` | 生成模式（6 种） |
+| POST | `/api/playground/generate` | 独立生成 |
+| GET | `/api/playground/tasks` | 生成历史 |
+
+## 变更记录
+
+| 日期 | 修订人 | 变更内容 |
+|------|--------|----------|
+| 2026-10-16 | Agent | 新增「已实现端点」章节，与 apps/api/main.py 的 42 路由对齐 |
