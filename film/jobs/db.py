@@ -128,6 +128,19 @@ class PlaygroundTask(Base):
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
+class Character(Base):
+    """角色（M3 选角：锚点图集 + 音色绑定 + 定妆门禁）。"""
+    __tablename__ = "characters"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    voice_key: Mapped[str] = mapped_column(String(64), nullable=True)
+    anchors: Mapped[dict] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(16), default="待定妆")
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

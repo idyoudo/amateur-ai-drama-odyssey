@@ -235,6 +235,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 选角阶段 → 角色工作台（持久化角色）
+  if (/选角/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="castview">加载角色…</div></div>`;
+    return renderCast();
+  }
   // 剧本阶段 → 剧本编辑器（可编辑场次 + 结构健康度）
   if (/剧本/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="scriptview">加载剧本…</div></div>`;
@@ -354,6 +359,26 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 角色工作台（M3：锚点三视图 + 音色 + 定妆门禁） */
+const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4 侧", full_body: "全身", expression: "表情" };
+async function renderCast() {
+  const box = $("#castview"); if (!box) return;
+  const chars = await api("/api/dramas/" + CUR.id + "/characters");
+  if (!chars.length) { box.innerHTML = `<div class="muted">尚无角色，先运行流水线。</div>`; return; }
+  box.innerHTML = `<div class="muted" style="margin-bottom:12px">角色定妆 = 后续所有画面的唯一视觉事实来源；锚点是与一致性检测（M6）共享的基准。</div>
+    ${chars.map(c => `<h2 style="font-size:14px">🎭 ${esc(c.name)} <span class="hint">音色 ${esc(c.voice_key)} · ${c.anchors.length} 张锚点 · ${esc(c.status)}</span></h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:18px">
+        ${c.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4;font-size:28px">🎭<span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
+          <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
+      </div>`).join("")}
+    <div class="card"><b style="font-size:13px">定妆门禁</b>
+      <div class="kv" style="grid-template-columns:120px 1fr;font-size:12px;margin-top:8px">
+        <div class="k">署名</div><div>showrunner（唯一署名审批人）</div>
+        <div class="k">理由码</div><div>pass_with_condition</div>
+        <div class="k">二元清单</div><div>三视图齐备 · 五官一致 · 无真人相似风险 · 嵌入已入库</div>
+      </div></div>`;
+}
+
 /* 剧本编辑器（M2：场次编辑 + 结构健康度） */
 async function renderScript() {
   const box = $("#scriptview"); if (!box) return;
@@ -666,17 +691,13 @@ async function viewAssets() {
   const projs = await api("/api/dramas");
   const chars = [], shots = [];
   for (const p of projs.slice(0, 12)) {
-    try { const d = await api("/api/dramas/" + p.id);
-      if (d.last_run) {
-        const c = d.last_run.stages.find(x => x.stage === "M3 选角");
-        if (c && c.artifact && c.artifact.character)
-          chars.push({ project: p.title, name: c.artifact.character, voice: c.artifact.voice, anchors: c.artifact.anchors });
-      }
+    try {
+      const cs = await api("/api/dramas/" + p.id + "/characters");
+      cs.forEach(c => chars.push({ project: p.title, name: c.name, voice: c.voice_key, anchors: c.anchors }));
       const sh = await api("/api/dramas/" + p.id + "/shots");
       sh.forEach(x => shots.push({ project: p.title, ...x }));
     } catch (e) {}
   }
-  const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4", full_body: "全身", expression: "表情" };
   setMain({
     top: `<h1>资产库 <span class="crumbs">跨项目角色与镜头</span></h1>
       <div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,

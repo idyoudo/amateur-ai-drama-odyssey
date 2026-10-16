@@ -181,6 +181,13 @@ check("更新项目 200", r.status_code == 200)
 d = client.get("/api/dramas/%d" % pid, headers=H).json()
 check("项目已更新", d["platform"] == "新平台" and d["minutes"] == 22)
 
+# 角色
+r = client.get("/api/dramas/%d/characters" % pid, headers=H)
+chars = r.json()
+check("角色列表非空", r.status_code == 200 and len(chars) >= 1)
+check("角色含锚点", len(chars[0]["anchors"]) >= 3)
+check("角色含音色", bool(chars[0]["voice_key"]))
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

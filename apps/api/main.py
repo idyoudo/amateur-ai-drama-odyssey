@@ -272,6 +272,16 @@ def run_project(project_id: int):
                                         "truby": list(m2out.enums.TRUBY_NODES),
                                         "ppi": ol["ppi"], "midpoint": ol["midpoint"], "ppii": ol["ppii"]}))
         shots = make_shotlist(ol, ["主角", "配角"])
+        # 落角色资产（M3）
+        from film.casting import generate as m3gen
+        char_names = sorted({c for sh in shots for c in sh["characters"]}) or ["主角"]
+        s.query(jobs_db.Character).filter(jobs_db.Character.project_id == project_id).delete()
+        cfg_models = sup_config.load_from_env()
+        img_ad = sup_adapter.make_adapter("image", cfg_models.get("image", {}))
+        for cn in char_names:
+            ch, _ = m3gen.generate_casting(cn, img_ad)
+            s.add(jobs_db.Character(project_id=project_id, name=cn, voice_key=ch["voice_key"],
+                                    anchors=[a["view"] for a in ch["anchors"]], status="已定妆"))
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
             s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
@@ -536,6 +546,15 @@ def delivery_sheet(project_id: int):
         "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
         "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
     }
+
+
+@app.get("/api/dramas/{project_id}/characters")
+def list_characters(project_id: int):
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Character).where(
+            jobs_db.Character.project_id == project_id).order_by(jobs_db.Character.id)).all()
+    return [{"id": r.id, "name": r.name, "voice_key": r.voice_key,
+             "anchors": r.anchors or [], "status": r.status} for r in rows]
 
 
 @app.get("/api/dramas/{project_id}/gates")
