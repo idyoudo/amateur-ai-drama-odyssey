@@ -60,6 +60,17 @@ class CreateProject(BaseModel):
     minutes: int = 30
 
 
+class UpdateProject(BaseModel):
+    title: Optional[str] = None
+    logline: Optional[str] = None
+    platform: Optional[str] = None
+    rating: Optional[str] = None
+    genre: Optional[str] = None
+    style: Optional[str] = None
+    episodes: Optional[int] = None
+    minutes: Optional[int] = None
+
+
 # 模型参数配置（env 为默认，页面/API 可运行时覆盖）
 _model_config = sup_config.load_from_env()
 
@@ -219,6 +230,24 @@ def get_project(project_id: int):
                 "delivery_spec": p.delivery_spec, "pilot_mode": p.pilot_mode,
                 "status": p.status,
                 "last_run": run.result if run else None}
+
+
+@app.put("/api/dramas/{project_id}")
+def update_project(project_id: int, body: UpdateProject):
+    """编辑立项（未执行阶段可改设置，M1.4-F03）。"""
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        for f in ("title", "logline", "platform", "rating", "genre", "style"):
+            if getattr(body, f, None):
+                setattr(p, f, getattr(body, f))
+        if body.episodes:
+            p.episodes = body.episodes
+        if body.minutes:
+            p.minutes = body.minutes
+        s.commit()
+    return {"id": project_id, "title": p.title, "platform": p.platform}
 
 
 @app.post("/api/dramas/{project_id}/run")

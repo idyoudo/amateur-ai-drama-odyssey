@@ -175,6 +175,12 @@ check("QC 报告含逐项", len(d["items"]) >= 8)
 check("QC 报告结论通过", d["conclusion"] == "通过")
 check("QC 汇总正确", d["summary"]["passed"] == d["summary"]["total"])
 
+# 项目设置
+r = client.put("/api/dramas/%d" % pid, headers=H, json={"platform": "新平台", "minutes": 22})
+check("更新项目 200", r.status_code == 200)
+d = client.get("/api/dramas/%d" % pid, headers=H).json()
+check("项目已更新", d["platform"] == "新平台" and d["minutes"] == 22)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

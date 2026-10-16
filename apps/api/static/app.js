@@ -205,6 +205,7 @@ async function viewProject(id) {
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
+        <button class="btn ghost sm" id="setbtn">⚙ 设置</button>
         <button class="btn ghost" id="runbtn">▶ 运行流水线</button>
         <button class="btn" id="prodbtn">🎬 一键全流程</button></div>`,
     body: `
@@ -222,6 +223,7 @@ async function viewProject(id) {
   }, true);
   $("#runbtn").onclick = () => runPipeline(id);
   $("#prodbtn").onclick = () => produceAll(id);
+  $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
   window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
 }
@@ -615,6 +617,34 @@ function stageBody(stage, art) {
       `<div class="k">${esc(k)}</div><div>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("")}</div>`;
   }
   return `<div class="muted">无附加产物。</div>`;
+}
+function editProject(p) {
+  const modal = document.createElement("div"); modal.className = "modal"; modal.id = "pmmodal";
+  modal.innerHTML = `<div class="box" style="max-width:560px">
+    <div class="mhead"><h2>项目设置</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="muted" style="font-size:12px;margin-bottom:12px">已产出阶段修改会提示重跑影响（M1.4-F03）。</div>
+    <div class="stack">
+      <label class="muted" style="font-size:11px">片名</label><input id="e_title" value="${esc(p.title)}">
+      <label class="muted" style="font-size:11px">Logline</label><input id="e_logline" value="${esc(p.logline)}">
+      <div class="row2">
+        <div><label class="muted" style="font-size:11px">目标平台</label><input id="e_platform" value="${esc(p.platform || "")}"></div>
+        <div><label class="muted" style="font-size:11px">题材</label><input id="e_genre" value="${esc(p.genre || "")}"></div></div>
+      <div class="row2">
+        <div><label class="muted" style="font-size:11px">分级</label><select id="e_rating">
+          ${["全龄","12+","16+"].map(r => `<option ${r === p.rating ? "selected" : ""}>${r}</option>`).join("")}</select></div>
+        <div><label class="muted" style="font-size:11px">单集时长</label><select id="e_minutes">
+          ${[22,30,45].map(m => `<option value="${m}" ${m === p.minutes ? "selected" : ""}>${m} 分钟/集</option>`).join("")}</select></div></div>
+      <button class="btn" onclick="saveProject(${p.id})">保存</button>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function saveProject(id) {
+  const body = { title: $("#e_title").value, logline: $("#e_logline").value,
+    platform: $("#e_platform").value, genre: $("#e_genre").value,
+    rating: $("#e_rating").value, minutes: parseInt($("#e_minutes").value, 10) };
+  try { await api("/api/dramas/" + id, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    closeModal(); toast("✅ 已保存"); viewProject(id);
+  } catch (e) { toast("❌ " + e.message); }
 }
 async function produceAll(id) {
   const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…（流水线→分镜→抽卡→组装）";
