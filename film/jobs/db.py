@@ -68,6 +68,27 @@ class Project(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class Shot(Base):
+    """镜头（M4 分镜表 + M5 契约字段）。"""
+    __tablename__ = "shots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    episode_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    shot_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    scene_no: Mapped[int] = mapped_column(Integer, nullable=True)
+    size: Mapped[str] = mapped_column(String(8), nullable=True)
+    angle: Mapped[str] = mapped_column(String(16), nullable=True)
+    move: Mapped[str] = mapped_column(String(8), nullable=True)
+    duration: Mapped[int] = mapped_column(Integer, nullable=True)
+    characters: Mapped[dict] = mapped_column(JSON, default=list)
+    dialogue: Mapped[str] = mapped_column(String(512), nullable=True)
+    prompt: Mapped[str] = mapped_column(String(512), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="待生成")
+    image_key: Mapped[str] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

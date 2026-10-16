@@ -185,7 +185,7 @@ async function viewProject(id) {
   renderStageDetail(byName[CUR.stage]);
   window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
 }
-function renderStageDetail(st) {
+async function renderStageDetail(st) {
   const el = $("#stagedetail"); if (!el) return;
   if (!st) { el.innerHTML = `<div class="detail empty">该阶段尚无运行结果，点击「运行流水线」生成。</div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
@@ -193,7 +193,74 @@ function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 分镜/摄影阶段 → 分镜工作台
+  if (/分镜|摄影/.test(st.stage)) {
+    if (SBCUR !== CUR.id) { SBSEL.clear(); SBCUR = CUR.id; }
+    el.innerHTML = `<div class="detail">${head}<div id="sbwork">加载分镜…</div></div>`;
+    return renderStoryboard();
+  }
   el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}${viol}</div>`;
+}
+
+/* ---------- 分镜工作台（参考 LumenX Storyboard / Toonflow 批量网格） ---------- */
+const SBSEL = new Set();
+let SBCUR = null;
+async function renderStoryboard() {
+  const box = $("#sbwork"); if (!box) return;
+  let shots = [];
+  try { shots = await api("/api/dramas/" + CUR.id + "/shots"); } catch (e) {}
+  if (!shots.length) {
+    box.innerHTML = `<div class="muted" style="margin-bottom:12px">尚无分镜表。从剧本派生镜头（每场 1–3 镜）。</div>
+      <button class="btn" onclick="genShots()">📋 生成分镜表</button>`;
+    return;
+  }
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="muted">共 <b>${shots.length}</b> 镜 · 已生成 ${shots.filter(x => x.status === "已生成").length}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="sbSelect('all')">全选</button>
+        <button class="btn ghost sm" onclick="sbSelect('none')">取消</button>
+        <button class="btn ghost sm" onclick="sbSelect('pending')">选未生成</button>
+        <button class="btn sm" onclick="sbBatch()">⚡ 批量生成所选</button>
+      </div>
+    </div>
+    <div class="cards" id="sbshots" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
+      ${shots.map(sbCard).join("")}</div>`;
+  $$(".sbcard").forEach(c => c.onclick = e => { if (e.target.tagName !== "INPUT") sbToggle(c.dataset.id); });
+}
+function sbCard(s) {
+  const sel = SBSEL.has(String(s.id));
+  return `<div class="asset sbcard" data-id="${s.id}" style="cursor:pointer;${sel ? "border-color:var(--gold)" : ""}">
+    <div class="thumb" style="font-size:30px">${s.status === "已生成" ? "🖼️" : "🎞️"}
+      <span class="tag">镜 ${s.shot_no}</span>
+      <input type="checkbox" ${sel ? "checked" : ""} style="position:absolute;top:8px;right:8px;width:auto" onclick="event.stopPropagation();sbToggle('${s.id}')"></div>
+    <div class="body"><h4 style="font-size:13px">场 ${s.scene_no} · ${esc(s.move)}</h4>
+      <div class="meta"><span>${esc(s.size)}</span><span>${esc(s.angle)}</span><span>${s.duration}s</span>
+        ${(s.characters || []).map(c => `<span>${esc(c)}</span>`).join("")}</div>
+      <div style="margin-top:8px"><span class="pill ${s.status === "已生成" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`;
+}
+function sbToggle(id) {
+  id = String(id); if (SBSEL.has(id)) SBSEL.delete(id); else SBSEL.add(id);
+  const c = $(`.sbcard[data-id="${id}"]`);
+  if (c) { c.style.borderColor = SBSEL.has(id) ? "var(--gold)" : ""; const cb = c.querySelector("input"); if (cb) cb.checked = SBSEL.has(id); }
+}
+async function sbSelect(mode) {
+  const shots = await api("/api/dramas/" + CUR.id + "/shots");
+  SBSEL.clear();
+  shots.forEach(s => { if (mode === "all" || (mode === "pending" && s.status !== "已生成")) SBSEL.add(String(s.id)); });
+  renderStoryboard();
+}
+async function sbBatch() {
+  if (!SBSEL.size) return toast("先选择镜头");
+  try { const r = await api("/api/dramas/" + CUR.id + "/shots/batch", { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shot_ids: Array.from(SBSEL).map(Number) }) });
+    toast("✅ 生成 " + r.generated + " 镜"); renderStoryboard();
+  } catch (e) { toast("❌ " + e.message); }
+}
+async function genShots() {
+  try { const r = await api("/api/dramas/" + CUR.id + "/shots/generate", { method: "POST" });
+    toast("✅ 派生 " + r.count + " 镜"); renderStoryboard();
+  } catch (e) { toast("❌ " + e.message); }
 }
 /* 阶段专属富展示 */
 function stageBody(stage, art) {

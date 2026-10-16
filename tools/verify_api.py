@@ -84,6 +84,19 @@ check("静态 app.css 200", client.get("/static/app.css").status_code == 200)
 check("静态 app.js 200", client.get("/static/app.js").status_code == 200)
 check("首页 shell 含 app.js", "app.js" in client.get("/").text)
 
+# 分镜工作台
+r = client.post("/api/dramas/%d/shots/generate" % pid, headers=H)
+check("生成分镜表 200", r.status_code == 200 and r.json()["count"] > 0)
+r = client.get("/api/dramas/%d/shots" % pid, headers=H)
+shots = r.json()
+check("分镜列表非空", r.status_code == 200 and len(shots) > 0)
+check("镜头字段齐备", all(k in shots[0] for k in ("shot_no","size","angle","move","duration","status")))
+ids = [sh["id"] for sh in shots[:3]]
+r = client.post("/api/dramas/%d/shots/batch" % pid, headers=H, json={"shot_ids": ids})
+check("批量生成 3 镜", r.status_code == 200 and r.json()["generated"] == 3)
+r = client.get("/api/dramas/%d/shots" % pid, headers=H)
+check("批量后状态已更新", sum(1 for x in r.json() if x["status"] == "已生成") >= 3)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

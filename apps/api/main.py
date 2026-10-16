@@ -221,6 +221,55 @@ def run_project(project_id: int):
     return result
 
 
+@app.post("/api/dramas/{project_id}/shots/generate")
+def gen_shots(project_id: int):
+    """从剧本派生分镜表（M4）：每个场次 1–3 镜，落库。"""
+    from film.script import generate as m2gen
+    from film.storyboard import make_shotlist, validate_shot
+    from film.suppliers import adapter as sup_adapter
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
+        shots = make_shotlist(ol, ["主角", "配角"])
+        for sh in shots:
+            v = validate_shot(sh)
+            if v:
+                raise HTTPException(status_code=422, detail=v)
+        # 清旧、写新
+        s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
+        for sh in shots:
+            s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
+                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")}))
+        s.commit()
+    return {"count": len(shots)}
+
+
+@app.get("/api/dramas/{project_id}/shots")
+def list_shots(project_id: int):
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id).order_by(jobs_db.Shot.shot_no)).all()
+    return [{"id": r.id, "shot_no": r.shot_no, "scene_no": r.scene_no, "size": r.size,
+             "angle": r.angle, "move": r.move, "duration": r.duration,
+             "characters": r.characters or [], "dialogue": r.dialogue,
+             "prompt": r.prompt, "status": r.status, "image_key": r.image_key} for r in rows]
+
+
+@app.post("/api/dramas/{project_id}/shots/batch")
+def batch_shots(project_id: int, body: dict):
+    """批量生成所选镜头（Mock：标记已生成）。body: {shot_ids:[...]}"""
+    ids = body.get("shot_ids") or []
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Shot).where(jobs_db.Shot.id.in_(ids))).all()
+        for r in rows:
+            r.status = "已生成"
+            r.image_key = "mock/shot_%d.png" % r.shot_no
+        s.commit()
+    return {"generated": len(rows)}
+
+
 @app.get("/api/dramas/{project_id}/jobs")
 def list_jobs(project_id: str) -> List[dict]:
     with Session() as s:
