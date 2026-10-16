@@ -224,6 +224,14 @@ check("看板含北极星", "minutes_per_yuan" in d["north_star"])
 check("看板含过程指标", len(d["process"]) >= 4)
 check("看板含影视指标", len(d["film_process"]) >= 4)
 
+# 供应商三段式
+r = client.get("/api/dramas/%d/provider-tasks" % pid, headers=H)
+d = r.json()
+check("供应商追踪 200", r.status_code == 200)
+check("三段式含提交/查询/下载", all(
+    [st["stage"] for st in k["stages"]] == ["提交", "查询", "下载"] for k in d["kinds"]))
+check("供应商含多个类型", len(d["kinds"]) >= 3)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

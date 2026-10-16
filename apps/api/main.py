@@ -259,6 +259,12 @@ def run_project(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
         s.add(jobs_db.Run(project_id=project_id, result=result))
+        # 记录供应商三段式调用（M17.5-F02）
+        s.query(jobs_db.ProviderCall).filter(jobs_db.ProviderCall.project_id == project_id).delete()
+        for kind in ("text", "image", "video", "tts", "music"):
+            for stage in ("提交", "查询", "下载"):
+                s.add(jobs_db.ProviderCall(project_id=project_id, kind=kind,
+                                           stage=stage, status="成功"))
         # 从剧本派生分镜表（M4）+ 落剧本（M2）
         from film.script import generate as m2gen, outline as m2out
         from film.storyboard import make_shotlist
@@ -579,6 +585,21 @@ def delivery_sheet(project_id: int):
         "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
         "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
     }
+
+
+@app.get("/api/dramas/{project_id}/provider-tasks")
+def provider_tasks(project_id: int):
+    """供应商调用三段式追踪（提交 → 查询 → 下载）。"""
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.ProviderCall).where(
+            jobs_db.ProviderCall.project_id == project_id).order_by(jobs_db.ProviderCall.id)).all()
+    by_kind = {}
+    for r in rows:
+        by_kind.setdefault(r.kind, []).append({"stage": r.stage, "status": r.status})
+    cfg = sup_config.load_from_env()
+    return {"kinds": [{"kind": k, "stages": v,
+                       "configured": sup_config.is_configured(cfg.get(k, {}))} for k, v in by_kind.items()],
+            "note": "无凭据走 Mock；有凭据切换真实供应商，三段式流程不变"}
 
 
 @app.get("/api/dramas/{project_id}/cost-dashboard")

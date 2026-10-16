@@ -142,6 +142,18 @@ class Character(Base):
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
+class ProviderCall(Base):
+    """供应商调用记录（M17.5-F02：提交/查询/下载三段式）。"""
+    __tablename__ = "provider_calls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    stage: Mapped[str] = mapped_column(String(16), nullable=False)  # 提交/查询/下载
+    status: Mapped[str] = mapped_column(String(16), default="成功")
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

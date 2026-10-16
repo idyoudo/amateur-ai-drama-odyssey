@@ -305,6 +305,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 供应商阶段 → 三段式追踪
+  if (/供应商/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="provview"><div class="skeleton" style="width:50%"></div><div class="skeleton"></div></div></div>`;
+    return renderProviders();
+  }
   // 成本阶段 → 看板
   if (/成本/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="costview"><div class="skeleton" style="width:50%"></div><div class="skeleton"></div></div></div>`;
@@ -444,6 +449,23 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 供应商三段式追踪（M17.5-F02） */
+async function renderProviders() {
+  const box = $("#provview"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/provider-tasks"); } catch (e) { return; }
+  if (!d.kinds.length) { box.innerHTML = `<div class="muted">尚无供应商调用记录，先运行流水线。</div>`; return; }
+  const ICON = { text: "📝", image: "🖼️", video: "🎥", tts: "🎙️", music: "🎵", lipsync: "👄" };
+  box.innerHTML = `<div class="muted" style="margin-bottom:12px">${esc(d.note)}</div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+    ${d.kinds.map(k => `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b>${ICON[k.kind] || "🔌"} ${esc(k.kind)}</b>
+        <span class="pill ${k.configured ? "ok" : ""}">${k.configured ? "真实" : "Mock"}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
+        ${k.stages.map((st, i) => `<span class="pill ok" style="font-size:11px">${esc(st.stage)} ✓</span>${i < k.stages.length - 1 ? '<span class="muted">→</span>' : ""}`).join("")}
+      </div></div>`).join("")}</div>`;
+}
+
 /* 成本看板（M14.7） */
 async function renderCost() {
   const box = $("#costview"); if (!box) return;
