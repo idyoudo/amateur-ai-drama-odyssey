@@ -209,6 +209,7 @@ async function viewProject(id) {
         <button class="btn ghost" id="runbtn">▶ 运行流水线</button>
         <button class="btn" id="prodbtn">🎬 一键全流程</button></div>`,
     body: `
+    <div class="stats" id="projstats" style="margin-bottom:16px"></div>
     <div class="card">
       <div class="kv">
         <div class="k">Logline</div><div>${esc(p.logline)}</div>
@@ -225,6 +226,18 @@ async function viewProject(id) {
   $("#prodbtn").onclick = () => produceAll(id);
   $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
+  // 制作统计（异步）
+  api("/api/dramas/" + id + "/shots").then(sh => {
+    const gen = sh.filter(x => x.status === "已生成" || x.status === "已选定").length;
+    const sel = sh.filter(x => x.status === "已选定").length;
+    const pct = sh.length ? Math.round(gen / sh.length * 100) : 0;
+    const el = $("#projstats"); if (el) el.innerHTML = `
+      <div class="stat"><div class="k">${sh.length}</div><div class="l">镜头总数</div></div>
+      <div class="stat"><div class="k">${gen}</div><div class="l">已生成</div></div>
+      <div class="stat"><div class="k">${sel}</div><div class="l">已选定</div></div>
+      <div class="stat"><div class="k">${pct}%</div><div class="l">镜头完成度</div>
+        <div class="progress" style="margin-top:8px"><i style="width:${pct}%"></i></div></div>`;
+  }).catch(() => {});
   window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
 }
 async function renderStageDetail(st) {
