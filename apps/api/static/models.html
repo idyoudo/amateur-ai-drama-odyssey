@@ -45,13 +45,23 @@ document.getElementById("loginform").onsubmit=async e=>{
 async function load(){
   const r=await fetch("/api/models/config",{headers:ah()});
   const d=await r.json();
+  const presets=d.presets||{};
   document.getElementById("rows").innerHTML=KINDS.map(k=>{
     const c=(d.config||{})[k]||{};
-    return `<tr><td>${k}</td>
+    const ps=(presets[k]||[]);
+    return `<tr><td>${k}<br><select onchange="applyPreset('${k}',this.value)" style="margin-top:4px">
+        <option value="">选厂商…</option>
+        ${ps.map((p,i)=>`<option value="${i}">${p.vendor}</option>`).join("")}</select></td>
       <td><input id="${k}_model" value="${c.model||''}"></td>
       <td><input id="${k}_key" value="${c.api_key||''}"></td>
       <td><input id="${k}_url" value="${c.api_url||''}"></td></tr>`;
   }).join("");
+  window._PRESETS=presets;
+}
+function applyPreset(k,i){
+  if(i==="")return; const p=(window._PRESETS[k]||[])[i]; if(!p)return;
+  document.getElementById(k+"_model").value=p.model;
+  document.getElementById(k+"_url").value=p.api_url;
 }
 async function save(){
   const config={};

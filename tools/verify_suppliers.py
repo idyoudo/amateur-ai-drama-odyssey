@@ -72,6 +72,14 @@ check("Mock query done", q["status"] == "done")
 d = p.download(q)
 check("Mock download 标 EL-16", "MOCK" in d["source"])
 
+# 供应商预设
+check("预设含 6 类", set(sup_config.PRESETS.keys()) == set(sup_config.MODEL_KINDS))
+check("文本预设含 dashscope", any("dashscope" in p["api_url"] for p in sup_config.PRESETS["text"]))
+check("视频预设含可灵", any("kling" in p["api_url"] for p in sup_config.PRESETS["video"]))
+check("每个预设含 vendor/model/api_url", all(
+    all(k in p for k in ("vendor", "model", "api_url"))
+    for ps in sup_config.PRESETS.values() for p in ps))
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)

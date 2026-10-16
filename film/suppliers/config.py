@@ -15,6 +15,49 @@ CAPABILITY_FIELDS = ("reference_image", "first_last_frame", "multi_shot",
                      "camera_control", "native_audio", "timestamp")
 
 
+# 供应商预设（选厂商 → 自动填 api_url 与推荐 model，用户只需填 api_key）
+# 依据：PRD/M17.1 模型目录；URL 为各家 OpenAI 兼容/官方端点
+PRESETS = {
+    "text": [
+        {"vendor": "通义千问（DashScope）", "model": "qwen3-max",
+         "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+        {"vendor": "DeepSeek", "model": "deepseek-chat", "api_url": "https://api.deepseek.com/v1"},
+        {"vendor": "OpenAI", "model": "gpt-4o", "api_url": "https://api.openai.com/v1"},
+        {"vendor": "智谱 GLM", "model": "glm-4-plus",
+         "api_url": "https://open.bigmodel.cn/api/paas/v4"},
+    ],
+    "image": [
+        {"vendor": "通义万相（DashScope）", "model": "wanx-v1",
+         "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+        {"vendor": "OpenAI", "model": "gpt-image-1", "api_url": "https://api.openai.com/v1"},
+    ],
+    "video": [
+        {"vendor": "可灵 Kling", "model": "kling-v2", "api_url": "https://api.klingai.com/v1"},
+        {"vendor": "豆包 Seedance", "model": "seedance-1.0",
+         "api_url": "https://ark.cn-beijing.volces.com/api/v3"},
+        {"vendor": "MiniMax 海螺", "model": "video-01", "api_url": "https://api.minimax.chat/v1"},
+        {"vendor": "Vidu", "model": "vidu-1.5", "api_url": "https://api.vidu.cn/v1"},
+    ],
+    "tts": [
+        {"vendor": "CosyVoice（DashScope）", "model": "cosyvoice-v1",
+         "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+        {"vendor": "OpenAI", "model": "tts-1", "api_url": "https://api.openai.com/v1"},
+    ],
+    "music": [
+        {"vendor": "Suno（Pro/Premier 才可商用）", "model": "suno-v4",
+         "api_url": "https://api.suno.ai/v1"},
+        {"vendor": "Mureka（付费档才可商用）", "model": "mureka-v1",
+         "api_url": "https://api.mureka.ai/v1"},
+        {"vendor": "ACE-Step（Apache-2.0，可自托管）", "model": "ace-step",
+         "api_url": "http://localhost:8001/v1"},
+    ],
+    "lipsync": [
+        {"vendor": "可灵 Lip Sync", "model": "kling-lipsync", "api_url": "https://api.klingai.com/v1"},
+        {"vendor": "Sync.so", "model": "sync-1.9", "api_url": "https://api.sync.so/v2"},
+    ],
+}
+
+
 def load_from_env():
     """从环境变量读取模型参数 → {kind: {model, api_key, api_url}}。"""
     cfg = {}
