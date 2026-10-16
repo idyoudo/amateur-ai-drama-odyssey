@@ -585,11 +585,21 @@ function stageBody(stage, art) {
         <div class="k">生成母版口径</div><div>16:9 open gate 唯一生成母版，禁止单画幅重复生成</div>
       </div>`;
   }
-  // 存储：母版唯一 + 派生
+  // 存储：母版唯一 + 派生血缘树
   if (art.master && art.derived) {
-    return `<div class="kv">
-        <div class="k">生成母版</div><div><span class="pill gold">${esc(art.master)}</span></div>
-        <div class="k">派生版本</div><div>${esc(art.derived)}</div>
+    const derived = ["2.39:1 主母版", "16:9 平台版", "9:16 竖屏衍生", "HDR10（可选）", "5.1 环绕（可选）", "48fps（可选）"];
+    return `<div class="muted" style="margin-bottom:12px">一次生成、多端派生：所有版本由同一生成母版派生，禁止单画幅重复生成（EL-01）。</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="border-color:var(--gold);background:linear-gradient(135deg,rgba(212,162,76,.1),transparent)">
+          <b>🎞️ 生成母版</b> <span class="pill gold">${esc(art.master)}</span>
+          <div class="muted" style="font-size:11px;margin-top:4px">唯一 · 16:9 open gate 最高可用分辨率</div></div>
+        <div style="text-align:center;color:var(--dim);font-size:16px">↓ 派生</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+          ${derived.map(d => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(d)}</div>
+            <div class="muted" style="font-size:10px;margin-top:4px">parent → 生成母版</div></div>`).join("")}
+        </div>
+      </div>
+      <div class="kv" style="margin-top:14px">
         <div class="k">血缘规则</div><div>派生必须指向母版，可回溯；母版唯一约束（EL-01）</div>
         <div class="k">内容寻址</div><div>按 sha256 索引，跨镜/跨集/跨项目复用</div>
       </div>`;
