@@ -235,6 +235,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 一致性阶段 → QC 指标 + 连续性表
+  if (/一致性/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}<div id="contview"></div></div>`;
+    return renderContinuity();
+  }
   // 选角阶段 → 角色工作台（持久化角色）
   if (/选角/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="castview">加载角色…</div></div>`;
@@ -359,6 +364,24 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 连续性表（M6.4 剧本监督） */
+async function renderContinuity() {
+  const box = $("#contview"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/continuity"); } catch (e) { return; }
+  if (!d.rows.length) return;
+  box.innerHTML = `<h2 style="font-size:13px;margin-top:20px">连续性表 <span class="hint">${esc(d.axes)}</span></h2>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <span class="pill">${d.shots} 镜</span>
+      <span class="pill ${d.violations.length ? "bad" : "ok"}">${d.violations.length ? d.violations.length + " 处违规" : "无违规"}</span></div>
+    <div class="card" style="padding:0;max-height:340px;overflow:auto"><table>
+      <thead><tr><th>镜</th><th>场</th><th>入</th><th>出</th><th>视线</th><th>时</th></tr></thead><tbody>
+      ${d.rows.slice(0, 60).map(r => `<tr><td>${r.shot_no}</td><td>${r.scene_no}</td>
+        <td>${esc(r.entry_side || "")}</td><td>${esc(r.exit_side || "")}</td>
+        <td>${esc(r.eyeline || "")}</td><td>${esc(r.day_night || "")}</td></tr>`).join("")}
+      </tbody></table></div>
+    ${d.violations.length ? `<div style="color:var(--bad);margin-top:10px;font-size:12px">${d.violations.slice(0,10).map(v => `镜 ${v.shot_no} · ${esc(v.msg)}`).join("<br>")}</div>` : ""}`;
+}
+
 /* 角色工作台（M3：锚点三视图 + 音色 + 定妆门禁） */
 const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4 侧", full_body: "全身", expression: "表情" };
 async function renderCast() {

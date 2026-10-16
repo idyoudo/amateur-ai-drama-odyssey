@@ -26,11 +26,18 @@ def make_shotlist(outline, characters=None):
             dur = _DUR_CYCLE[(sc["number"] + j) % len(_DUR_CYCLE)]
             char = characters[(sc["number"] + j) % len(characters)]
             prompt = "%s, %s, %s，%s镜头" % (size, angle, move, "人物" if char else "空镜")
+            # 连续性字段（剧本监督标准 E-57）：屏幕运动方向 / 视线 / 时间
+            entry = "left" if (sc["number"] + j) % 2 == 0 else "right"
+            exit_side = "right" if entry == "left" else "left"  # 左入右出
             shots.append({
                 "shot_no": no, "scene_no": sc["number"],
                 "size": size, "angle": angle, "move": move,
                 "duration": dur, "characters": [char] if char else [],
                 "dialogue": "", "prompt": prompt, "status": "待生成",
+                "continuity": {"entry_side": entry, "exit_side": exit_side,
+                               "eyeline": "right" if entry == "left" else "left",
+                               "day_night": "day" if sc["number"] % 4 else "night",
+                               "weather": "晴"},
             })
     return shots
 

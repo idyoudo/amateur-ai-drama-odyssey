@@ -285,7 +285,8 @@ def run_project(project_id: int):
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
             s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
-                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")}))
+                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")},
+                  continuity=sh.get("continuity", {})))
         s.commit()
     return result
 
@@ -310,7 +311,8 @@ def gen_shots(project_id: int):
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
             s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
-                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")}))
+                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")},
+                  continuity=sh.get("continuity", {})))
         s.commit()
     return {"count": len(shots)}
 
@@ -323,7 +325,8 @@ def list_shots(project_id: int):
     return [{"id": r.id, "shot_no": r.shot_no, "scene_no": r.scene_no, "size": r.size,
              "angle": r.angle, "move": r.move, "duration": r.duration,
              "characters": r.characters or [], "dialogue": r.dialogue,
-             "prompt": r.prompt, "status": r.status, "image_key": r.image_key} for r in rows]
+             "prompt": r.prompt, "status": r.status, "image_key": r.image_key,
+             "continuity": r.continuity or {}} for r in rows]
 
 
 @app.post("/api/dramas/{project_id}/shots/batch")
@@ -546,6 +549,32 @@ def delivery_sheet(project_id: int):
         "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
         "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
     }
+
+
+@app.get("/api/dramas/{project_id}/continuity")
+def continuity_sheet(project_id: int):
+    """连续性表（M6.4 剧本监督）：方向/视线/时间连续 + 违规清单。"""
+    from film.consistency import continuity as m6c
+    with Session() as s:
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id).order_by(jobs_db.Shot.shot_no)).all()
+    rows = []
+    violations = []
+    prev = None
+    for sh in shots:
+        c = sh.continuity or {}
+        rows.append({"shot_no": sh.shot_no, "scene_no": sh.scene_no,
+                     "entry_side": c.get("entry_side"), "exit_side": c.get("exit_side"),
+                     "eyeline": c.get("eyeline"), "day_night": c.get("day_night"),
+                     "weather": c.get("weather")})
+        if prev and sh.scene_no == prev["scene_no"]:
+            a = m6c.make_take(1, "", prev.get("exit_side"), prev.get("exit_side"), "", "")
+            b = m6c.make_take(1, "", c.get("entry_side"), c.get("exit_side"), "", "")
+            for msg in m6c.validate_screen_direction(a, b):
+                violations.append({"shot_no": sh.shot_no, "type": "方向", "msg": msg})
+        prev = {"scene_no": sh.scene_no, **c}
+    return {"rows": rows, "violations": violations, "shots": len(shots),
+            "axes": "左出右入 / 视线互补 / 时间天气连续（E-57）"}
 
 
 @app.get("/api/dramas/{project_id}/characters")

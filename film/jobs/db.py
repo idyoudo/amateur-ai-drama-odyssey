@@ -86,6 +86,7 @@ class Shot(Base):
     prompt: Mapped[str] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="待生成")
     image_key: Mapped[str] = mapped_column(String(256), nullable=True)
+    continuity: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 

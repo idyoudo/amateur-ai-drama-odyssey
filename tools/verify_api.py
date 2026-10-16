@@ -188,6 +188,13 @@ check("角色列表非空", r.status_code == 200 and len(chars) >= 1)
 check("角色含锚点", len(chars[0]["anchors"]) >= 3)
 check("角色含音色", bool(chars[0]["voice_key"]))
 
+# 连续性表
+r = client.get("/api/dramas/%d/continuity" % pid, headers=H)
+d = r.json()
+check("连续性表 200", r.status_code == 200)
+check("连续性表含行", len(d["rows"]) > 0)
+check("连续性行含方向/视线", all("entry_side" in x and "eyeline" in x for x in d["rows"]))
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
