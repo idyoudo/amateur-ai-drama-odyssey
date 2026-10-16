@@ -226,11 +226,11 @@ async function renderStoryboard() {
     </div>
     <div class="cards" id="sbshots" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
       ${shots.map(sbCard).join("")}</div>`;
-  $$(".sbcard").forEach(c => c.onclick = e => { if (e.target.tagName !== "INPUT") sbToggle(c.dataset.id); });
+  $$(".sbcard").forEach(c => c.onclick = e => { if (e.target.tagName !== "INPUT") sbOpen(c.dataset.id, c.dataset.no); });
 }
 function sbCard(s) {
   const sel = SBSEL.has(String(s.id));
-  return `<div class="asset sbcard" data-id="${s.id}" style="cursor:pointer;${sel ? "border-color:var(--gold)" : ""}">
+  return `<div class="asset sbcard" data-id="${s.id}" data-no="${s.shot_no}" style="cursor:pointer;${sel ? "border-color:var(--gold)" : ""}">
     <div class="thumb" style="font-size:30px">${s.status === "已生成" ? "🖼️" : "🎞️"}
       <span class="tag">镜 ${s.shot_no}</span>
       <input type="checkbox" ${sel ? "checked" : ""} style="position:absolute;top:8px;right:8px;width:auto" onclick="event.stopPropagation();sbToggle('${s.id}')"></div>
@@ -261,6 +261,45 @@ async function genShots() {
   try { const r = await api("/api/dramas/" + CUR.id + "/shots/generate", { method: "POST" });
     toast("✅ 派生 " + r.count + " 镜"); renderStoryboard();
   } catch (e) { toast("❌ " + e.message); }
+}
+
+/* 镜头详情弹窗：字段 + 抽卡候选（参考 LumenX R2V 批量抽卡） */
+async function sbOpen(shotId, shotNo) {
+  const shots = await api("/api/dramas/" + CUR.id + "/shots");
+  const sh = shots.find(x => String(x.id) === String(shotId));
+  if (!sh) return;
+  const cands = await api("/api/shots/" + shotId + "/candidates");
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "sbmodal";
+  modal.innerHTML = `<div class="box">
+    <div class="mhead"><h2>镜 ${sh.shot_no} · 场 ${sh.scene_no} · ${esc(sh.move)}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">
+      <div class="kv" style="margin-bottom:16px">
+        <div class="k">景别 / 角度</div><div>${esc(sh.size)} / ${esc(sh.angle)}</div>
+        <div class="k">时长</div><div>${sh.duration}s</div>
+        <div class="k">角色</div><div>${(sh.characters || []).map(esc).join("、") || "空镜"}</div>
+        <div class="k">提示词</div><div>${esc(sh.prompt)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b style="font-size:13px">候选（抽卡）</b>
+        <button class="btn sm" onclick="genCands('${shotId}')">🎲 生成 4 个候选</button></div>
+      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+        ${cands.length ? cands.map(c => `<div class="cand ${c.selected ? "on" : ""}" onclick="pickCand('${c.id}','${shotId}')">
+          <div class="thumb">🖼️${c.selected ? '<span class="pick">已选</span>' : ""}<span class="score">${c.score}</span></div></div>`).join("")
+          : `<div class="muted" style="padding:20px">尚无候选，点击「生成 4 个候选」抽卡。</div>`}
+      </div>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+function closeModal() { const m = $("#sbmodal"); if (m) m.remove(); }
+async function genCands(shotId) {
+  try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
+  catch (e) { toast("❌ " + e.message); }
+}
+async function pickCand(cid, shotId) {
+  try { await api("/api/candidates/" + cid + "/select", { method: "POST" }); toast("✅ 已选定"); closeModal(); await sbOpen(shotId); }
+  catch (e) { toast("❌ " + e.message); }
 }
 /* 阶段专属富展示 */
 function stageBody(stage, art) {

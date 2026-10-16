@@ -280,6 +280,50 @@ def batch_shots(project_id: int, body: dict):
     return {"generated": len(rows)}
 
 
+
+@app.get("/api/shots/{shot_id}/candidates")
+def list_candidates(shot_id: int):
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Candidate).where(
+            jobs_db.Candidate.shot_id == shot_id).order_by(jobs_db.Candidate.idx)).all()
+    return [{"id": r.id, "idx": r.idx, "image_key": r.image_key,
+             "score": r.score, "selected": r.selected} for r in rows]
+
+
+@app.post("/api/shots/{shot_id}/candidates")
+def gen_candidates(shot_id: int):
+    """为镜头生成 N=4 个候选（抽卡，Mock）。"""
+    import random
+    with Session() as s:
+        sh = s.get(jobs_db.Shot, shot_id)
+        if sh is None:
+            raise HTTPException(status_code=404, detail="镜头不存在")
+        s.query(jobs_db.Candidate).filter(jobs_db.Candidate.shot_id == shot_id).delete()
+        rnd = random.Random(shot_id)
+        for i in range(1, 5):
+            s.add(jobs_db.Candidate(shot_id=shot_id, idx=i,
+                  image_key="mock/shot%d_cand%d.png" % (sh.shot_no, i),
+                  score=rnd.randint(70, 96), selected=False))
+        s.commit()
+    return {"count": 4}
+
+
+@app.post("/api/candidates/{cid}/select")
+def select_candidate(cid: int):
+    """选定候选（选择位唯一，其余取消，M5.1-F02）。"""
+    with Session() as s:
+        c = s.get(jobs_db.Candidate, cid)
+        if c is None:
+            raise HTTPException(status_code=404, detail="候选不存在")
+        s.query(jobs_db.Candidate).filter(jobs_db.Candidate.shot_id == c.shot_id).update({"selected": False})
+        c.selected = True
+        sh = s.get(jobs_db.Shot, c.shot_id)
+        if sh is not None:
+            sh.status = "已选定"
+            sh.image_key = c.image_key
+        s.commit()
+    return {"selected": cid}
+
 @app.get("/api/dramas/{project_id}/jobs")
 def list_jobs(project_id: str) -> List[dict]:
     with Session() as s:

@@ -89,6 +89,19 @@ class Shot(Base):
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
+class Candidate(Base):
+    """镜头生成候选（抽卡，M5.1/F02 多候选 + 选择位）。"""
+    __tablename__ = "candidates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    shot_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    image_key: Mapped[str] = mapped_column(String(256), nullable=True)
+    score: Mapped[int] = mapped_column(Integer, nullable=True)
+    selected: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

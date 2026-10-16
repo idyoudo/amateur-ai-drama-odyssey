@@ -97,6 +97,19 @@ check("批量生成 3 镜", r.status_code == 200 and r.json()["generated"] == 3)
 r = client.get("/api/dramas/%d/shots" % pid, headers=H)
 check("批量后状态已更新", sum(1 for x in r.json() if x["status"] == "已生成") >= 3)
 
+# 抽卡候选
+sh_id = shots[0]["id"]
+r = client.post("/api/shots/%d/candidates" % sh_id, headers=H)
+check("生成 4 候选", r.status_code == 200 and r.json()["count"] == 4)
+r = client.get("/api/shots/%d/candidates" % sh_id, headers=H)
+cands = r.json()
+check("候选列表 4 个", len(cands) == 4)
+check("候选含分数", all("score" in c for c in cands))
+r = client.post("/api/candidates/%d/select" % cands[0]["id"], headers=H)
+check("选定候选 200", r.status_code == 200)
+r = client.get("/api/shots/%d/candidates" % sh_id, headers=H)
+check("选择位唯一", sum(1 for c in r.json() if c["selected"]) == 1)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
