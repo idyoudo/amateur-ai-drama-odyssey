@@ -41,7 +41,7 @@ jobs:
                verify_casting verify_consistency verify_performance verify_audio \
                verify_timeline verify_master verify_delivery verify_cost \
                verify_suppliers verify_legal verify_vfx verify_api verify_db \
-               verify_pipeline verify_worker verify_photo verify_storyboard"
+               verify_pipeline verify_worker verify_photo verify_storyboard verify_adapters"
           i=0
           for v in $ALL; do
             i=$((i+1))

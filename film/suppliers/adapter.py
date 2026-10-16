@@ -36,9 +36,23 @@ class MockProvider(ProviderAdapter):
 
 
 def make_adapter(kind, kind_cfg):
-    """按配置返回真实/Mock 适配器。未配置（缺 model/api_key）则返回 Mock。"""
+    """按配置返回真实/Mock 适配器。未配置（缺 model/api_key）则返回 Mock。
+
+    已配置时按 kind 返回对应真实适配器（OpenAI 兼容 / 异步视频三类协议）；
+    未覆盖的 kind（music/lipsync）暂回 Mock，待供应商确定后补。
+    """
     from .config import is_configured
-    if is_configured(kind_cfg):
-        # 真实供应商适配在凭据到位后按 kind 实现（视频/图/TTS/音乐/口型各自三段式）
-        return MockProvider(kind)  # 占位：当前无真实供应商实现
+    from . import adapters
+    if not is_configured(kind_cfg):
+        return MockProvider(kind)
+    key, url, model = kind_cfg.get("api_key"), kind_cfg.get("api_url"), kind_cfg.get("model")
+    if kind == "text":
+        return adapters.OpenAICompatText(key, url, model)
+    if kind == "image":
+        return adapters.OpenAICompatImage(key, url, model)
+    if kind == "tts":
+        return adapters.OpenAICompatTTS(key, url, model)
+    if kind == "video":
+        return adapters.AsyncVideoProvider(key, url, model)
+    # music / lipsync：协议未定，暂 Mock
     return MockProvider(kind)
