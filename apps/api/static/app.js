@@ -34,6 +34,27 @@ async function api(path, opt) {
   if (!r.ok) throw new Error((d && d.detail) ? JSON.stringify(d.detail) : ("HTTP " + r.status));
   return d;
 }
+function skeleton(n) {
+  const m = $("#main");
+  if (!m) return;
+  m.innerHTML = `<div class="topbar"><div class="skeleton" style="width:180px;height:20px"></div></div>
+    <div class="view"><div class="skeleton" style="width:120px;height:16px"></div>
+    <div class="cards">${Array.from({length: n || 6}, () => '<div class="skeleton card"></div>').join("")}</div></div>`;
+}
+function applyTheme() {
+  const t = localStorage.getItem("aado_theme") || "dark";
+  document.body.classList.toggle("light", t === "light");
+}
+function toggleTheme() {
+  const t = (localStorage.getItem("aado_theme") === "light") ? "dark" : "light";
+  localStorage.setItem("aado_theme", t); applyTheme(); toast("主题：" + (t === "light" ? "浅色" : "深色"));
+}
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { const m = document.querySelector(".modal"); if (m) m.remove(); }
+  if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "")) {
+    const s = $("#psearch"); if (s) { e.preventDefault(); s.focus(); }
+  }
+});
 function toast(msg) {
   let t = $("#toast"); if (t) t.remove();
   t = document.createElement("div"); t.id = "toast"; t.className = "toast"; t.textContent = msg;
@@ -79,11 +100,17 @@ function setMain(html, wide) {
   const m = $("#main");
   m.innerHTML = `<div class="topbar">${html.top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
 }
-function go(route) {
+async function go(route) {
   const parts = String(route).split(":");
   const name = parts[0];
   const param = parts[1];
   shell(name === "project" ? "projects" : name);
+  try { return await routeView(name, param); }
+  catch (e) {
+    setMain({ top: `<h1>出错了</h1>`, body: `<div class="card empty">该视图加载失败：${esc(e.message)}<br><br><button class="btn" onclick="go('${name}')">重试</button></div>` });
+  }
+}
+async function routeView(name, param) {
   if (name === "overview") return viewOverview();
   if (name === "projects") return viewProjects();
   if (name === "project") return viewProject(param);
@@ -259,7 +286,7 @@ async function renderStageDetail(st) {
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
   // 母版阶段 → 规格 + QC 逐项
   if (/母版/.test(st.stage)) {
-    el.innerHTML = `<div class="detail">${head}<div id="qcview"></div></div>`;
+    el.innerHTML = `<div class="detail">${head}<div id="qcview"><div class="skeleton" style="width:60%"></div><div class="skeleton"></div><div class="skeleton" style="width:80%"></div></div></div>`;
     return renderQC();
   }
   // 一致性阶段 → QC 指标 + 连续性表
@@ -269,12 +296,12 @@ async function renderStageDetail(st) {
   }
   // 选角阶段 → 角色工作台（持久化角色）
   if (/选角/.test(st.stage)) {
-    el.innerHTML = `<div class="detail">${head}<div id="castview">加载角色…</div></div>`;
+    el.innerHTML = `<div class="detail">${head}<div id="castview"><div class="skeleton" style="width:40%"></div><div class="skeleton"></div></div></div>`;
     return renderCast();
   }
   // 剧本阶段 → 剧本编辑器（可编辑场次 + 结构健康度）
   if (/剧本/.test(st.stage)) {
-    el.innerHTML = `<div class="detail">${head}<div id="scriptview">加载剧本…</div></div>`;
+    el.innerHTML = `<div class="detail">${head}<div id="scriptview"><div class="skeleton" style="width:40%"></div><div class="skeleton"></div></div></div>`;
     return renderScript();
   }
   // 门禁阶段 → 门禁工作台（AADO 好莱坞级：五门禁署名）
@@ -290,7 +317,7 @@ async function renderStageDetail(st) {
   // 分镜/摄影阶段 → 分镜工作台
   if (/分镜|摄影/.test(st.stage)) {
     if (SBCUR !== CUR.id) { SBSEL.clear(); SBCUR = CUR.id; }
-    el.innerHTML = `<div class="detail">${head}<div id="sbwork">加载分镜…</div></div>`;
+    el.innerHTML = `<div class="detail">${head}<div id="sbwork"><div class="skeleton" style="width:40%"></div><div class="skeleton"></div></div></div>`;
     return renderStoryboard();
   }
   el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}${viol}</div>`;
@@ -949,10 +976,11 @@ function viewSettings() {
         <div class="k">登录账户</div><div>admin</div>
         <div class="k">API 文档</div><div><a href="/docs" target="_blank">/docs</a></div>
         <div class="k">健康检查</div><div><a href="/health" target="_blank">/health</a></div>
-      </div><div style="margin-top:18px"><button class="btn ghost" onclick="logout()">退出登录</button></div></div>`,
+      </div><div style="margin-top:18px"><button class="btn ghost" onclick="toggleTheme()">切换深色/浅色主题</button>
+        <button class="btn ghost" onclick="logout()">退出登录</button></div></div>`,
   });
 }
 
 /* ---------- 启动 ---------- */
-function boot() { if (!hasToken()) return renderLogin(); go("overview"); }
+function boot() { applyTheme(); if (!hasToken()) return renderLogin(); go("overview"); }
 boot();
