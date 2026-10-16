@@ -55,6 +55,16 @@ document.addEventListener("keydown", e => {
     const s = $("#psearch"); if (s) { e.preventDefault(); s.focus(); }
   }
 });
+function confirmDialog(title, desc, onOk, okLabel) {
+  const m = document.createElement("div"); m.className = "modal"; m.id = "cfm";
+  m.innerHTML = `<div class="box" style="max-width:420px">
+    <div class="mhead"><h2>${esc(title)}</h2></div>
+    <div class="mbody"><div class="muted" style="margin-bottom:16px">${esc(desc)}</div>
+      <div style="display:flex;gap:10px"><button class="btn" id="cfm_ok">${esc(okLabel || "确认")}</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector("#cfm_ok").onclick = () => { closeModal(); onOk(); };
+}
 function toast(msg) {
   let t = $("#toast"); if (t) t.remove();
   t = document.createElement("div"); t.id = "toast"; t.className = "toast"; t.textContent = msg;
@@ -146,7 +156,7 @@ async function viewOverview() {
     </div>
     <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
-      : `<div class="card empty">还没有项目。到「项目」页创建第一部剧。</div>`}`,
+      : `<div class="card empty">🎬 还没有项目。<br>到「项目」页创建第一部剧，然后点「一键全流程」看 19 阶段成果。</div>`}`,
   });
 }
 function projectCard(p) {
@@ -252,7 +262,9 @@ async function viewProject(id) {
     <div id="stagedetail"></div>`,
   }, true);
   $("#runbtn").onclick = () => runPipeline(id);
-  $("#prodbtn").onclick = () => produceAll(id);
+  $("#prodbtn").onclick = () => confirmDialog("运行全流程？",
+    "将执行：19 阶段流水线 → 派生分镜 → 每镜 4 候选抽卡 → 成片组装。会覆盖现有分镜与候选。",
+    () => produceAll(id), "开始制作");
   $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
   // 分集看板（每集卡片：镜数 + 集内剧本场数）
@@ -901,7 +913,7 @@ async function viewJobs() {
       ${jobs.map(j => `<tr><td>${j.id}</td><td>${esc(j.project)}</td><td>${esc(j.type)}</td>
         <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(j.status)}</span></td>
         <td>${j.status === "failed" ? `<button class="btn ghost sm" onclick="jobRetry(${j.id})">重试</button>` : "—"}</td></tr>`).join("")}
-      </tbody></table></div>` : `<div class="card empty">还没有任务。先提交一个，或运行流水线。</div>`}`,
+      </tbody></table></div>` : `<div class="card empty">📋 队列为空。<br>填项目 ID + 选择任务类型入队，worker 会自动领取执行。</div>`}`,
   }, true);
 }
 async function submitJob() {
@@ -960,7 +972,7 @@ async function viewPlayground() {
         <span class="tag">${esc(t.kind)}</span></div>
         <div class="body"><div class="desc">${esc(t.prompt)}</div>
           <div class="meta"><span>${esc(t.model)}</span><span class="pill ok" style="font-size:10px">${esc(t.status)}</span></div></div></div>`).join("")}</div>`
-      : `<div class="card empty">还没有生成记录。选一个模式，输入提示词试试。</div>`}`,
+      : `<div class="card empty">🧪 还没有生成记录。<br>选一个模式（图像/视频/配音/配乐），输入提示词即可生成。</div>`}`,
   }, true);
 }
 async function pgGenerate() {
