@@ -48,6 +48,7 @@
 | `docs/plans/` | `P1-开发范式与自主决策协议.md` | 开发范式六步流水线 + 选举自主决策 |
 | `docs/plans/` | `P1-拍板项选举记录.md` | 6 项可选举拍板 5 人多数决 |
 | `docs/plans/` | `AADO-自主打磨清单.md` | 自驱动迭代的判定清单 |
+| `docs/plans/` | `开源调研报告-短剧漫剧视频.md` | 开源短剧/漫剧/视频项目调研 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
