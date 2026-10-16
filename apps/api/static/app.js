@@ -169,14 +169,18 @@ async function viewProject(id) {
   const byName = {}; stages.forEach(s => byName[s.stage] = s);
   if (!CUR.stage) CUR.stage = STAGES[0][0];
 
-  const stepper = STAGES.map(([name, label, ic]) => {
+  const stepCard = (name) => {
+    const meta = STAGES.find(x => x[0] === name) || ["", name, ""];
     const st = byName[name];
     const cls = st ? (st.status === "passed" ? "ok" : "bad") : "";
     const txt = st ? (st.status === "passed" ? "通过" : "失败") : (run ? "—" : "待运行");
     return `<div class="step ${CUR.stage === name ? "on" : ""}" onclick="pickStage('${name}')">
-      <div class="n">${ic} ${label}</div><div class="t">${name.replace(/^M\d+ /, "")}</div>
+      <div class="n">${meta[2]} ${meta[1]}</div><div class="t">${name.replace(/^M\d+ /, "")}</div>
       <div class="s">${st ? `<i class="dot ${cls}"></i> ${txt}` : txt}</div></div>`;
-  }).join("");
+  };
+  const stepper = SEGMENTS.map(([seg, mods]) => `<div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gold2);letter-spacing:.5px;margin-bottom:6px">${seg}</div>
+      <div class="stepper">${mods.map(stepCard).join("")}</div></div>`).join("");
 
   const passed = run ? run.summary.passed : 0, total = 19;
   setMain({
@@ -195,8 +199,8 @@ async function viewProject(id) {
         <div class="k">流水线</div><div>${run ? `<span class="pill ${run.summary.deliverable ? "ok" : "bad"}">${passed}/${total} 阶段通过 ${run.summary.deliverable ? "· 可交付" : ""}</span>` : `<span class="pill">尚未运行</span>`}</div>
       </div>
     </div>
-    <h2>制作流程 <span class="hint">点击阶段查看成果</span></h2>
-    <div class="stepper">${stepper}</div>
+    <h2>制作流程 <span class="hint">按 Development → Delivery 五段 · 点击阶段查看成果</span></h2>
+    ${stepper}
     <div id="stagedetail"></div>`,
   }, true);
   $("#runbtn").onclick = () => runPipeline(id);
