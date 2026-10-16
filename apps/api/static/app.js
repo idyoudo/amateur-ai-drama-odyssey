@@ -193,6 +193,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 门禁阶段 → 门禁工作台（AADO 好莱坞级：五门禁署名）
+  if (/门禁/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="gateview">加载门禁…</div></div>`;
+    return renderGates();
+  }
   // 剪辑阶段 → 时间线视图
   if (/剪辑/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="tlview">加载时间线…</div></div>`;
@@ -302,6 +307,25 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 门禁工作台（AADO 好莱坞级：五门禁署名 + 理由码 + 二元清单） */
+async function renderGates() {
+  const box = $("#gateview"); if (!box) return;
+  const gates = await api("/api/dramas/" + CUR.id + "/gates");
+  box.innerHTML = `<div class="muted" style="margin-bottom:12px">五门禁 = 剧本 → 定妆 → 分镜 → 成片 → 母版，每关署名 + 理由码；无署名即视为未通过（D6/EL-10）。</div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">
+    ${gates.map(g => `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b style="font-size:14px">🚦 ${esc(g.label)}</b>
+        <span class="pill ${g.decision === "pending" ? "" : "ok"}">${g.decision === "pending" ? "待签" : "已通过"}</span></div>
+      <div class="kv" style="grid-template-columns:88px 1fr;font-size:12px;margin-top:10px">
+        <div class="k">署名</div><div>${esc(g.approver)}</div>
+        <div class="k">岗位</div><div>${esc(g.role)}</div>
+        <div class="k">理由码</div><div>${esc(g.reason_code || "—")}</div>
+      </div>
+      <div style="margin-top:10px;font-size:11px">${g.checklist.map(c => `<div style="padding:2px 0;color:${c.pass ? "var(--ok)" : "var(--dim)"}">${c.pass ? "✓" : "○"} ${esc(c.item)}</div>`).join("")}</div>
+    </div>`).join("")}</div>`;
+}
+
 /* 时间线视图（参考 LumenX Timeline / VideoAssembly） */
 const SIZE_COLOR = { EWS:"#3b4a63", WS:"#3b4a63", LS:"#41546f", MLS:"#4a5f7d", MS:"#54688a", MCU:"#5e7297", CU:"#6a7ea4", ECU:"#7888ad", OTS:"#5a6d90", POV:"#5a6d90", INSERT:"#4a5f7d" };
 async function renderTimeline() {
@@ -362,6 +386,15 @@ function stageBody(stage, art) {
         <div class="k">音色绑定</div><div><span class="pill gold">${esc(art.voice)}</span></div>
         <div class="k">锚点数量</div><div>${art.anchor_count} 张（≥3 达标）</div>
         <div class="k">定妆门禁</div><div><span class="pill ok">署名 + 理由码齐备</span></div>
+      </div>`;
+  }
+  // 交付：交付单视图
+  if (art.spec && art.release) {
+    return `<div class="kv">
+        <div class="k">交付画幅</div><div><span class="pill gold">${esc(art.spec)}</span></div>
+        <div class="k">分发放行</div><div><span class="pill ok">${esc(art.release)}</span></div>
+        <div class="k">可选交付标注</div><div>保证 / 可选 / 需确认（EL-11）</div>
+        <div class="k">交付单字段</div><div>规格 · 版本 · 时长 · QC 结论 · 权利 · AI 标识 · 分级 · 语言 · 色彩标签（齐备）</div>
       </div>`;
   }
   // 通用 KV

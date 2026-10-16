@@ -120,6 +120,14 @@ check("ASL 在 2-4s 带内", d["asl_in_band"] is True)
 check("幕结构 4 段", len(d["acts"]) == 4)
 check("时间线无违规", d["violations"] == [])
 
+# 五门禁
+r = client.get("/api/dramas/%d/gates" % pid, headers=H)
+gates = r.json()
+check("门禁 5 个", r.status_code == 200 and len(gates) == 5)
+check("门禁节点齐备", [g["node"] for g in gates] == ["script","casting","board","picture","master"])
+check("门禁含署名+理由码", all("approver" in g and "reason_code" in g for g in gates))
+check("门禁含二元清单", all(len(g["checklist"]) > 0 for g in gates))
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

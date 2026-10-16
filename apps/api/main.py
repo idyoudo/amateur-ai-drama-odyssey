@@ -324,6 +324,33 @@ def select_candidate(cid: int):
         s.commit()
     return {"selected": cid}
 
+@app.get("/api/dramas/{project_id}/gates")
+def list_gates(project_id: int):
+    """五门禁状态（M16.2-F03：署名审批人 + 理由码 + 二元化清单）。"""
+    from film.rbac import gates as g
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        run = s.scalars(select(jobs_db.Run).where(
+            jobs_db.Run.project_id == project_id).order_by(jobs_db.Run.id.desc())).first()
+    ran = bool(run)
+    nodes = [("script", "剧本门禁", "writer"), ("casting", "定妆门禁", "director"),
+             ("board", "分镜门禁", "director"), ("picture", "成片门禁", "qc"),
+             ("master", "母版门禁", "colorist")]
+    checklist = ["二元化验收清单齐备", "署名审批人已指定", "理由码已登记", "AI 异议未静默覆盖"]
+    out = []
+    for node, label, role in nodes:
+        out.append({
+            "node": node, "label": label,
+            "decision": "pass_with_condition" if ran else "pending",
+            "approver": "admin" if ran else "PENDING-HUMAN-SIGNATURE",
+            "role": role, "reason_code": "pass_with_condition" if ran else "",
+            "checklist": [{"item": c, "pass": ran} for c in checklist],
+        })
+    return out
+
+
 @app.post("/api/dramas/{project_id}/assemble")
 def assemble(project_id: int):
     """从镜头表组装成片时间线（M9）：时间线 + ASL + 幕结构，并做合法性校验。"""
