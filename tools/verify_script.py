@@ -71,6 +71,16 @@ ol, cp = script_gen.generate_outline("一句话", ad)
 check("生成 outline 结构合规", outline.validate_outline(ol) == [])
 check("生成 checkpoint 有产出", len(cp["produced_keys"]) == 1)
 
+# LLM 输出解析
+from film.script.generate import _parse_llm_outline
+fake = '{"scenes":[{"number":1,"event":"开场","goal":"g","conflict":"c","result":"r","beats":["Opening Image"]}]}'
+ol_llm = _parse_llm_outline(fake)
+check("解析 LLM JSON 成功", ol_llm is not None and len(ol_llm["scenes"]) == 1)
+check("解析后结构合法", outline.validate_outline(ol_llm) == [])
+check("垃圾输入回退 None", _parse_llm_outline("not json") is None)
+check("空输入回退 None", _parse_llm_outline("") is None)
+check("code fence 中的 JSON 可解析", _parse_llm_outline("```json\n" + fake + "\n```") is not None)
+
 # ---------------- 汇总 ----------------
 total = _total[0]
 passed = total - len(_failed)
