@@ -6,6 +6,14 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&am
 const hasToken = () => !!localStorage.getItem(TK);
 
 /* 19 个模块阶段的展示元数据（与后端 pipeline 的 stage 名对应） */
+/* AADO 五段流程（Development→Delivery） */
+const SEGMENTS = [
+  ["Development 开发", ["M1 立项", "M2 剧本"]],
+  ["Pre-production 前期", ["M3 选角", "M4 分镜"]],
+  ["Production 制作", ["M5 摄影", "M6 一致性", "M7 配音", "M8 配乐"]],
+  ["Post 后期", ["M9 剪辑", "M11 母版", "M19 VFX"]],
+  ["Delivery 交付", ["M10 门禁", "M12 交付", "M14 成本", "M15 存储", "M16 协作", "M17 供应商", "M18 合规", "M13 任务"]],
+];
 const STAGES = [
   ["M1 立项", "立项", "📋"], ["M2 剧本", "剧本", "✍️"], ["M3 选角", "选角", "🎭"],
   ["M4 分镜", "分镜", "🎬"], ["M5 摄影", "摄影", "🎥"], ["M6 一致性", "一致性", "👤"],
@@ -99,8 +107,14 @@ async function viewOverview() {
       <div class="stat"><div class="k">${projs.length}</div><div class="l">项目</div></div>
       <div class="stat"><div class="k">端到端</div><div class="l">小说 → 成片母版</div></div>
     </div>
-    <h2>流程覆盖 <span class="hint">19 个模块 · 端到端</span></h2>
-    <div class="card" style="line-height:2">${STAGES.map(s => `<span class="pill" style="margin:3px">${s[2]} ${s[1]}</span>`).join("")}</div>
+    <h2>制作流程 <span class="hint">19 模块 · Development → Delivery</span></h2>
+    <div class="card">
+      ${SEGMENTS.map(([seg, mods]) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:0 0 150px;font-size:12px;color:var(--gold2)">${seg}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${mods.map(m => {
+          const meta = STAGES.find(x => x[0] === m) || ["", m, ""];
+          return `<span class="pill" style="font-size:11px">${meta[2]} ${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
+    </div>
     <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
       : `<div class="card empty">还没有项目。到「项目」页创建第一部剧。</div>`}`,
