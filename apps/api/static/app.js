@@ -167,7 +167,8 @@ async function viewProject(id) {
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
-        <button class="btn" id="runbtn">▶ 运行流水线</button></div>`,
+        <button class="btn ghost" id="runbtn">▶ 运行流水线</button>
+        <button class="btn" id="prodbtn">🎬 一键全流程</button></div>`,
     body: `
     <div class="card">
       <div class="kv">
@@ -182,6 +183,7 @@ async function viewProject(id) {
     <div id="stagedetail"></div>`,
   }, true);
   $("#runbtn").onclick = () => runPipeline(id);
+  $("#prodbtn").onclick = () => produceAll(id);
   renderStageDetail(byName[CUR.stage]);
   window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
 }
@@ -498,6 +500,14 @@ function stageBody(stage, art) {
       `<div class="k">${esc(k)}</div><div>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("")}</div>`;
   }
   return `<div class="muted">无附加产物。</div>`;
+}
+async function produceAll(id) {
+  const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…（流水线→分镜→抽卡→组装）";
+  try { const r = await api("/api/dramas/" + id + "/produce", { method: "POST" });
+    toast("🎬 完成：" + r.stages_passed + "/" + r.stages_total + " 阶段 · " + r.shots + " 镜 · 成片 " + r.total_duration + "s");
+    CUR.stage = null; viewProject(id);
+  } catch (e) { toast("❌ " + e.message); }
+  b.disabled = false; b.textContent = "🎬 一键全流程";
 }
 async function runPipeline(id) {
   const b = $("#runbtn"); b.disabled = true; b.textContent = "运行中…";

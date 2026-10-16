@@ -138,6 +138,17 @@ check("编辑后结构合规", r.json()["violations"] == [])
 r = client.get("/api/dramas/%d/script" % pid, headers=H)
 check("编辑已持久化", r.json()["scenes"][0]["goal"] == "新目标")
 
+# 一键全流程
+r = client.post("/api/dramas", headers=H, json={"title":"全流程","logline":"测试","platform":"p","rating":"全龄","genre":"悬疑"})
+p2 = r.json()["id"]
+r = client.post("/api/dramas/%d/produce" % p2, headers=H)
+d = r.json()
+check("全流程 200", r.status_code == 200)
+check("全流程阶段全通过", d["stages_passed"] == d["stages_total"])
+check("全流程含分镜数", d["shots"] > 0)
+check("全流程可交付", d["deliverable"] is True)
+check("全流程含成片时长", d["total_duration"] > 0)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

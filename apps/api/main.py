@@ -372,6 +372,35 @@ def update_scene(project_id: int, scene_no: int, body: dict):
     return {"scene_no": scene_no, "violations": viol, "scenes": scenes}
 
 
+@app.post("/api/dramas/{project_id}/produce")
+def produce(project_id: int):
+    """一键全流程：流水线 + 分镜派生 + 抽卡候选 + 成片组装，返回汇总。"""
+    import random
+    # 1) 流水线（内部已派生分镜表）+ 剧本落库
+    run = run_project(project_id)
+    with Session() as s:
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id).order_by(jobs_db.Shot.shot_no)).all()
+        # 2) 抽卡：每镜 4 候选
+        for sh in shots:
+            s.query(jobs_db.Candidate).filter(jobs_db.Candidate.shot_id == sh.id).delete()
+            rnd = random.Random(sh.id)
+            for i in range(1, 5):
+                s.add(jobs_db.Candidate(shot_id=sh.id, idx=i,
+                      image_key="mock/shot%d_c%d.png" % (sh.shot_no, i), score=rnd.randint(70, 96)))
+        # 3) 标记镜头已生成
+        for sh in shots:
+            sh.status = "已生成"
+        s.commit()
+        n_shots = len(shots)
+    # 4) 成片组装
+    tl = assemble(project_id)
+    return {"stages_passed": run["summary"]["passed"], "stages_total": run["summary"]["total"],
+            "shots": n_shots, "candidates_per_shot": 4,
+            "total_duration": tl["total_duration"], "asl": tl["asl"],
+            "deliverable": run["summary"]["deliverable"]}
+
+
 @app.get("/api/dramas/{project_id}/gates")
 def list_gates(project_id: int):
     """五门禁状态（M16.2-F03：署名审批人 + 理由码 + 二元化清单）。"""
