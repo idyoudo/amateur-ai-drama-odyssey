@@ -149,6 +149,15 @@ check("全流程含分镜数", d["shots"] > 0)
 check("全流程可交付", d["deliverable"] is True)
 check("全流程含成片时长", d["total_duration"] > 0)
 
+# Playground
+r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
+check("Playground 生成 200", r.status_code == 200)
+check("非法类型 422", client.post("/api/playground/generate", headers=H, json={"kind": "乱写", "prompt": "x"}).status_code == 422)
+check("空提示词 422", client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": ""}).status_code == 422)
+r = client.get("/api/playground/tasks", headers=H)
+check("生成历史非空", r.status_code == 200 and len(r.json()) >= 1)
+check("kinds 6 种", len(client.get("/api/playground/kinds", headers=H).json()["kinds"]) == 6)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

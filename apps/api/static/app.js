@@ -64,7 +64,7 @@ function renderLogin() {
 /* ---------- 外壳 ---------- */
 const RAIL = [
   ["overview", "概览", "🏠"], ["projects", "项目", "🎬"], ["assets", "资产库", "🎨"],
-  ["models", "模型", "🎛️"], ["settings", "设置", "⚙️"],
+  ["playground", "生成台", "🧪"], ["models", "模型", "🎛️"], ["settings", "设置", "⚙️"],
 ];
 function shell(active) {
   document.body.innerHTML = `<aside class="rail" id="rail">
@@ -88,6 +88,7 @@ function go(route) {
   if (name === "projects") return viewProjects();
   if (name === "project") return viewProject(param);
   if (name === "assets") return viewAssets();
+  if (name === "playground") return viewPlayground();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
 }
@@ -560,6 +561,40 @@ async function viewAssets() {
           <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
       ${(!chars.length && !shots.length) ? `<div class="card empty">还没有资产。先在项目里运行流水线。</div>` : ""}`,
   }, true);
+}
+
+/* ---------- 生成台 Playground（参考 LumenX Playground） ---------- */
+let PG_KIND = "图像生成";
+async function viewPlayground() {
+  const d = await api("/api/playground/kinds");
+  const tasks = await api("/api/playground/tasks");
+  setMain({
+    top: `<h1>生成台 <span class="crumbs">独立生成工具台 · 即开即用</span></h1><div class="right"><span class="pill">${tasks.length} 次生成</span></div>`,
+    body: `
+    <div class="card">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        ${d.kinds.map(k => `<span class="pill ${k === PG_KIND ? "gold" : ""}" style="cursor:pointer" onclick="PG_KIND='${k}';viewPlayground()">${k}</span>`).join("")}</div>
+      <div class="stack">
+        <textarea id="pg_prompt" rows="3" placeholder="输入提示词（无凭据时走 Mock，仍会记录任务）"></textarea>
+        <div><button class="btn" onclick="pgGenerate()">生成「${PG_KIND}」</button></div>
+      </div>
+    </div>
+    <h2>生成历史 <span class="hint">最近 50 次</span></h2>
+    ${tasks.length ? `<div class="cards">${tasks.map(t => `
+      <div class="asset"><div class="thumb" style="font-size:28px">${({ "图像生成":"🖼️","文生视频":"🎬","图生视频":"🎞️","参考生视频":"🎥","配音":"🎙️","配乐":"🎵" }[t.kind] || "🧪")}
+        <span class="tag">${esc(t.kind)}</span></div>
+        <div class="body"><div class="desc">${esc(t.prompt)}</div>
+          <div class="meta"><span>${esc(t.model)}</span><span class="pill ok" style="font-size:10px">${esc(t.status)}</span></div></div></div>`).join("")}</div>`
+      : `<div class="card empty">还没有生成记录。选一个模式，输入提示词试试。</div>`}`,
+  }, true);
+}
+async function pgGenerate() {
+  const prompt = ($("#pg_prompt") || {}).value || "";
+  if (!prompt.trim()) return toast("请输入提示词");
+  try { await api("/api/playground/generate", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: PG_KIND, prompt }) });
+    toast("✅ 已生成"); viewPlayground();
+  } catch (e) { toast("❌ " + e.message); }
 }
 
 /* ---------- 模型 ---------- */

@@ -115,6 +115,19 @@ class Script(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class PlaygroundTask(Base):
+    """Playground 独立生成任务（图像/视频/音频，无需项目上下文）。"""
+    __tablename__ = "playground_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    prompt: Mapped[str] = mapped_column(String(1024), nullable=False)
+    model: Mapped[str] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="已完成")
+    result_key: Mapped[str] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

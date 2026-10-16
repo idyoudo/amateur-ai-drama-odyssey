@@ -372,6 +372,43 @@ def update_scene(project_id: int, scene_no: int, body: dict):
     return {"scene_no": scene_no, "violations": viol, "scenes": scenes}
 
 
+PLAYGROUND_KINDS = ("图像生成", "文生视频", "图生视频", "参考生视频", "配音", "配乐")
+
+
+@app.get("/api/playground/kinds")
+def playground_kinds():
+    return {"kinds": list(PLAYGROUND_KINDS)}
+
+
+@app.post("/api/playground/generate")
+def playground_generate(body: dict):
+    kind = body.get("kind", "图像生成")
+    prompt = (body.get("prompt") or "").strip()
+    if kind not in PLAYGROUND_KINDS:
+        raise HTTPException(status_code=422, detail="非法生成类型")
+    if not prompt:
+        raise HTTPException(status_code=422, detail="提示词必填")
+    import hashlib
+    key = "mock/pg_%s.png" % hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:10]
+    with Session() as s:
+        t = jobs_db.PlaygroundTask(kind=kind, prompt=prompt,
+                                   model=body.get("model") or "Mock",
+                                   status="已完成", result_key=key)
+        s.add(t); s.commit()
+        tid = t.id
+    return {"id": tid, "status": "已完成"}
+
+
+@app.get("/api/playground/tasks")
+def playground_tasks():
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.PlaygroundTask).order_by(
+            jobs_db.PlaygroundTask.id.desc()).limit(50)).all()
+    return [{"id": r.id, "kind": r.kind, "prompt": r.prompt, "model": r.model,
+             "status": r.status, "result_key": r.result_key,
+             "created_at": r.created_at.isoformat() if r.created_at else ""} for r in rows]
+
+
 @app.post("/api/dramas/{project_id}/produce")
 def produce(project_id: int):
     """一键全流程：流水线 + 分镜派生 + 抽卡候选 + 成片组装，返回汇总。"""
