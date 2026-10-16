@@ -492,6 +492,51 @@ function stageBody(stage, art) {
         <div class="k">定妆门禁</div><div><span class="pill ok">署名 + 理由码齐备</span></div>
       </div>`;
   }
+  // 立项：包型 + 交付规格
+  if (art.package !== undefined && art.title !== undefined) {
+    return `<div class="kv">
+        <div class="k">片名</div><div>${esc(art.title)}</div>
+        <div class="k">包型</div><div><span class="pill gold">${esc(art.package)}</span></div>
+        <div class="k">交付目标</div><div>2.39:1 主母版 · 16:9 平台版 · 9:16 竖屏衍生（EL-01）</div>
+        <div class="k">生成母版口径</div><div>16:9 open gate 唯一生成母版，禁止单画幅重复生成</div>
+      </div>`;
+  }
+  // 存储：母版唯一 + 派生
+  if (art.master && art.derived) {
+    return `<div class="kv">
+        <div class="k">生成母版</div><div><span class="pill gold">${esc(art.master)}</span></div>
+        <div class="k">派生版本</div><div>${esc(art.derived)}</div>
+        <div class="k">血缘规则</div><div>派生必须指向母版，可回溯；母版唯一约束（EL-01）</div>
+        <div class="k">内容寻址</div><div>按 sha256 索引，跨镜/跨集/跨项目复用</div>
+      </div>`;
+  }
+  // 协作：RBAC
+  if (art.rbac) {
+    return `<div class="kv">
+        <div class="k">权限矩阵</div><div>${esc(art.rbac)}</div>
+        <div class="k">岗位</div><div>showrunner · 导演 · 编剧 · 剪辑 · 声音 · 调色 · QC · 法务</div>
+        <div class="k">门禁署名</div><div>岗位绑定 + 自审自批禁令 + 理由码</div>
+        <div class="k">审计</div><div>谁/何时/何操作/为何（可追溯）</div>
+      </div>`;
+  }
+  // 供应商：能力矩阵 + 路由
+  if (art.kinds && art.route) {
+    return `<div class="kv">
+        <div class="k">接入类型</div><div>${esc(art.kinds)}</div>
+        <div class="k">路由</div><div>${esc(art.route)}</div>
+        <div class="k">能力矩阵</div><div>参考图/首尾帧/多镜头/运镜/焦距景深/原生音频…</div>
+        <div class="k">许可</div><div><span class="pill bad">GPL 不内置</span> <span class="pill bad">InsightFace 非商用</span></div>
+      </div>`;
+  }
+  // VFX：物理骨架 + 修复优先级
+  if (art.skeleton !== undefined) {
+    return `<div class="kv">
+        <div class="k">物理骨架</div><div>${esc(art.skeleton)}</div>
+        <div class="k">修复优先级</div><div>局部修复 → 局部重生成 → 整镜重抽（E-35）</div>
+        <div class="k">VFX 门禁</div><div>未完成 VFX 不进成片</div>
+        <div class="k">工具许可</div><div>GPL 传染风险不得内置分发</div>
+      </div>`;
+  }
   // 配音：音画同步 + 电平
   if (art.offset_ms !== undefined) {
     return `<div class="stats">
