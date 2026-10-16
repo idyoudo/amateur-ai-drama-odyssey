@@ -64,7 +64,7 @@ function renderLogin() {
 /* ---------- 外壳 ---------- */
 const RAIL = [
   ["overview", "概览", "🏠"], ["projects", "项目", "🎬"], ["assets", "资产库", "🎨"],
-  ["playground", "生成台", "🧪"], ["models", "模型", "🎛️"], ["settings", "设置", "⚙️"],
+  ["playground", "生成台", "🧪"], ["jobs", "任务", "📋"], ["models", "模型", "🎛️"], ["settings", "设置", "⚙️"],
 ];
 function shell(active) {
   document.body.innerHTML = `<aside class="rail" id="rail">
@@ -89,6 +89,7 @@ function go(route) {
   if (name === "project") return viewProject(param);
   if (name === "assets") return viewAssets();
   if (name === "playground") return viewPlayground();
+  if (name === "jobs") return viewJobs();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
 }
@@ -561,6 +562,45 @@ async function viewAssets() {
           <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
       ${(!chars.length && !shots.length) ? `<div class="card empty">还没有资产。先在项目里运行流水线。</div>` : ""}`,
   }, true);
+}
+
+/* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */
+const JOB_STATUS_COLOR = { queued: "muted", running: "gold", completed: "ok", failed: "bad", waiting_human: "gold", retry_exhausted: "bad", cancelled: "muted" };
+async function viewJobs() {
+  const projs = await api("/api/dramas");
+  let jobs = [];
+  for (const p of projs.slice(0, 10)) {
+    try { const js = await api("/api/dramas/" + p.id + "/jobs"); js.forEach(j => jobs.push({ project: p.title, ...j })); } catch (e) {}
+  }
+  jobs.sort((a, b) => b.id - a.id);
+  setMain({
+    top: `<h1>任务 <span class="crumbs">PG 队列 · 幂等 + 租约 + checkpoint</span></h1><div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
+    body: `<div class="card">
+      <div class="stack" style="max-width:520px">
+        <div class="row2"><input id="job_pid" placeholder="项目 ID"><select id="job_type">
+          <option value="adapt">剧本开发</option><option value="casting">选角定妆</option>
+          <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select></div>
+        <div><button class="btn" onclick="submitJob()">入队任务</button></div>
+      </div></div>
+    <h2>任务列表</h2>
+    ${jobs.length ? `<div class="card"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>
+      ${jobs.map(j => `<tr><td>${j.id}</td><td>${esc(j.project)}</td><td>${esc(j.type)}</td>
+        <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(j.status)}</span></td>
+        <td>${j.status === "failed" ? `<button class="btn ghost sm" onclick="jobRetry(${j.id})">重试</button>` : "—"}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="card empty">还没有任务。先提交一个，或运行流水线。</div>`}`,
+  }, true);
+}
+async function submitJob() {
+  const pid = ($("#job_pid") || {}).value, type = ($("#job_type") || {}).value;
+  if (!pid) return toast("填项目 ID");
+  try { await api("/api/drama-jobs", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: pid, type: type, idempotency_key: pid + ":" + type + ":" + Date.now() }) });
+    toast("✅ 已入队"); viewJobs();
+  } catch (e) { toast("❌ " + e.message); }
+}
+async function jobRetry(id) {
+  try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("✅ 已重试"); viewJobs(); }
+  catch (e) { toast("❌ " + e.message); }
 }
 
 /* ---------- 生成台 Playground（参考 LumenX Playground） ---------- */
