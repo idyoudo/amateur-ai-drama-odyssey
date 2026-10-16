@@ -123,12 +123,13 @@ async function viewOverview() {
   });
 }
 function projectCard(p) {
+  const badge = p.deliverable ? `<span class="pill ok"><i class="dot ok"></i>可交付</span>`
+    : (p.stages_passed ? `<span class="pill gold">${p.stages_passed}/19 阶段</span>` : `<span class="pill">未制作</span>`);
   return `<div class="card click" onclick="go('project:${p.id}')">
-    <div style="display:flex;justify-content:space-between;align-items:start">
-      <h4 style="margin:0 0 6px;font-size:15px">${esc(p.title)}</h4>
-      <span class="pill ${p.status === "draft" ? "" : "gold"}">${esc(p.status || "draft")}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+      <h4 style="margin:0 0 6px;font-size:15px">${esc(p.title)}</h4>${badge}</div>
     <div class="muted" style="font-size:12px;min-height:32px">${esc(p.logline || "")}</div>
-    <div class="muted" style="font-size:11px;margin-top:8px">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟</div></div>`;
+    <div class="muted" style="font-size:11px;margin-top:8px">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div></div>`;
 }
 
 /* ---------- 项目列表 ---------- */

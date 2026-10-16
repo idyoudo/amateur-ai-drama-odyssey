@@ -138,10 +138,19 @@ def create_project(body: CreateProject):
 
 @app.get("/api/dramas")
 def list_projects():
+    out = []
     with Session() as s:
         rows = s.scalars(select(jobs_db.Project).order_by(jobs_db.Project.id.desc())).all()
-    return [{"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
-             "episodes": r.episodes, "minutes": r.minutes} for r in rows]
+        for r in rows:
+            run = s.scalars(select(jobs_db.Run).where(
+                jobs_db.Run.project_id == r.id).order_by(jobs_db.Run.id.desc())).first()
+            n_shots = s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == r.id).count()
+            out.append({"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
+                        "episodes": r.episodes, "minutes": r.minutes,
+                        "deliverable": bool(run and run.result.get("summary", {}).get("deliverable")),
+                        "stages_passed": (run.result.get("summary", {}).get("passed") if run else 0) or 0,
+                        "shots": n_shots})
+    return out
 
 
 @app.post("/api/drama-jobs")
