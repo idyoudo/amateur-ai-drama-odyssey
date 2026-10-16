@@ -158,6 +158,15 @@ r = client.get("/api/playground/tasks", headers=H)
 check("生成历史非空", r.status_code == 200 and len(r.json()) >= 1)
 check("kinds 6 种", len(client.get("/api/playground/kinds", headers=H).json()["kinds"]) == 6)
 
+# 交付单
+r = client.get("/api/dramas/%d/delivery-sheet" % pid, headers=H)
+d = r.json()
+check("交付单 200", r.status_code == 200)
+check("交付单含规格", d["spec"]["master"] == "2.39:1")
+check("交付单含内容统计", d["content"]["shots"] > 0)
+check("交付单含 AI 标识", "AI" in d["ai_label"])
+check("交付单含可选交付标注", set(d["optional_delivery"].keys()) == {"HDR10", "5.1", "48fps"})
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

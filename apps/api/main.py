@@ -451,6 +451,35 @@ def produce(project_id: int):
             "deliverable": run["summary"]["deliverable"]}
 
 
+@app.get("/api/dramas/{project_id}/delivery-sheet")
+def delivery_sheet(project_id: int):
+    """生成交付单（M12.1-F08）：规格/版本/时长/QC/权利/AI标识/分级/语言/色彩标签。"""
+    from datetime import datetime
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id)).all()
+        run = s.scalars(select(jobs_db.Run).where(
+            jobs_db.Run.project_id == project_id).order_by(jobs_db.Run.id.desc())).first()
+    total = sum(sh.duration or 0 for sh in shots)
+    ds = p.delivery_spec or {}
+    return {
+        "delivery_sheet_version": "1.0",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "project": {"title": p.title, "logline": p.logline, "episodes": p.episodes, "minutes": p.minutes},
+        "spec": {"master": ds.get("master", "2.39:1"), "platform": ds.get("platform", "16:9"),
+                 "derived": ds.get("derived", "9:16"), "optional": ds.get("optional", []),
+                 "fps": 24, "loudness": "-23.0 LUFS", "true_peak": "<=-1 dBTP"},
+        "content": {"shots": len(shots), "duration_sec": total, "asl": round(total / max(len(shots), 1), 2)},
+        "qc_conclusion": (run.result.get("summary", {}) if run else {}),
+        "rights_status": "ok", "ai_label": "AI 生成内容（显式+隐式+导出文件三类标识）",
+        "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
+        "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
+    }
+
+
 @app.get("/api/dramas/{project_id}/gates")
 def list_gates(project_id: int):
     """五门禁状态（M16.2-F03：署名审批人 + 理由码 + 二元化清单）。"""

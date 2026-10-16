@@ -508,7 +508,8 @@ function stageBody(stage, art) {
   }
   // 交付：交付单视图
   if (art.spec && art.release) {
-    return `<div class="kv">
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">⬇ 下载交付单（JSON）</button></div>
+      <div class="kv">
         <div class="k">交付画幅</div><div><span class="pill gold">${esc(art.spec)}</span></div>
         <div class="k">分发放行</div><div><span class="pill ok">${esc(art.release)}</span></div>
         <div class="k">可选交付标注</div><div>保证 / 可选 / 需确认（EL-11）</div>
@@ -606,6 +607,17 @@ async function submitJob() {
 async function jobRetry(id) {
   try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("✅ 已重试"); viewJobs(); }
   catch (e) { toast("❌ " + e.message); }
+}
+
+async function downloadSheet() {
+  try {
+    const d = await api("/api/dramas/" + CUR.id + "/delivery-sheet");
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = (d.project.title || "project") + "_delivery_sheet.json"; a.click();
+    URL.revokeObjectURL(url); toast("✅ 交付单已下载");
+  } catch (e) { toast("❌ " + e.message); }
 }
 
 /* ---------- 生成台 Playground（参考 LumenX Playground） ---------- */
