@@ -492,6 +492,36 @@ function stageBody(stage, art) {
         <div class="k">定妆门禁</div><div><span class="pill ok">署名 + 理由码齐备</span></div>
       </div>`;
   }
+  // 配音：音画同步 + 电平
+  if (art.offset_ms !== undefined) {
+    return `<div class="stats">
+        <div class="stat"><div class="k">${art.offset_ms}ms</div><div class="l">音画偏移（目标 ≤±25ms）</div></div>
+        <div class="stat"><div class="k">✓</div><div class="l">ITU 容差 +90/−185ms</div></div>
+        <div class="stat"><div class="k">≤1dB</div><div class="l">角色间对白电平差</div></div>
+        <div class="stat"><div class="k">独立轨</div><div class="l">旁白与对白分离</div></div>
+      </div>
+      <div class="muted" style="margin-top:10px">音色全剧显式绑定，未绑定即阻断出片；口型仅做近景正脸镜。</div>`;
+  }
+  // 配乐：Cue + 授权
+  if (art.platform && art.cue !== undefined) {
+    return `<div class="kv">
+        <div class="k">配乐平台</div><div><span class="pill gold">${esc(art.platform)}</span></div>
+        <div class="k">授权状态</div><div><span class="pill ok">可商用（档位合规）</span></div>
+        <div class="k">总线</div><div>四层 stem：对白 D / 音乐 M / 音效 E / 环境 Amb（逐帧等长）</div>
+        <div class="k">响度</div><div>归档母版 −23.0 LUFS / ≤−1 dBTP</div>
+        <div class="k">可懂度</div><div>对白高于稳态掩蔽 ≥15 dB</div>
+      </div>`;
+  }
+  // 合规：权利链 + AI 标识
+  if (art.ai_label) {
+    return `<div class="kv">
+        <div class="k">AI 标识</div><div><span class="pill ok">${esc(art.ai_label)}</span></div>
+        <div class="k">交付前合规</div><div><span class="pill ok">${esc(art.compliance)}</span></div>
+        <div class="k">权利链</div><div>作品 → 改编 → 素材 → 成片（可追溯）</div>
+        <div class="k">工会边界</div><div>AI 不得署名 writer；AI 材料不计入 source material</div>
+        <div class="k">数字替身</div><div>书面同意 + 补偿 + 范围（缺一禁止生成）</div>
+      </div>`;
+  }
   // 一致性：QC 指标卡
   if (art.face_verdict && art.face_threshold !== undefined) {
     return `<div class="stats">
