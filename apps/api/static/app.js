@@ -257,6 +257,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 母版阶段 → 规格 + QC 逐项
+  if (/母版/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="qcview"></div></div>`;
+    return renderQC();
+  }
   // 一致性阶段 → QC 指标 + 连续性表
   if (/一致性/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}<div id="contview"></div></div>`;
@@ -386,6 +391,24 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 母版 QC 逐项（M11.5/M11.6） */
+async function renderQC() {
+  const box = $("#qcview"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/qc-report"); }
+  catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; return; }
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="muted">影视 QC 清单 · 逐项阈值 / 实测 / 判定</div>
+      <div><span class="pill ${d.summary.failed ? "bad" : "ok"}">${d.summary.passed}/${d.summary.total} 通过</span>
+        <button class="btn sm" style="margin-left:8px" onclick="downloadQC()">⬇ 下载报告</button></div></div>
+    <div class="card" style="padding:0"><table>
+      <thead><tr><th>检查项</th><th>阈值</th><th>实测</th><th>判定</th></tr></thead><tbody>
+      ${d.items.map(it => `<tr><td>${esc(it.item)}</td><td class="muted">${esc(it.threshold)}</td>
+        <td>${esc(it.measured)}</td>
+        <td><span class="pill ${it.verdict === "pass" ? "ok" : "bad"}">${it.verdict === "pass" ? "通过" : "失败"}</span></td></tr>`).join("")}
+      </tbody></table></div>
+    <div style="margin-top:12px"><span class="pill ${d.summary.failed ? "bad" : "ok"}">结论：${esc(d.conclusion)}</span></div>`;
+}
+
 /* 连续性表（M6.4 剧本监督） */
 async function renderContinuity() {
   const box = $("#contview"); if (!box) return;
