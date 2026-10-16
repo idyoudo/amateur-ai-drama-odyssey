@@ -695,7 +695,15 @@ function stageBody(stage, art) {
   }
   // 交付：交付单视图
   if (art.spec && art.release) {
+    const versions = [
+      { n: "2.39:1 主母版", s: "保证" }, { n: "16:9 平台版", s: "保证" }, { n: "9:16 竖屏衍生", s: "保证" },
+      { n: "HDR10", s: "可选" }, { n: "5.1 环绕", s: "可选" }, { n: "48fps", s: "可选" }];
     return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">⬇ 下载交付单（JSON）</button></div>
+      <div class="muted" style="margin-bottom:10px">交付版本清单（标注保证 / 可选 / 需确认，EL-11）</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+        ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(v.n)}</div>
+          <span class="pill ${v.s === "保证" ? "ok" : "gold"}" style="font-size:10px;margin-top:6px">${esc(v.s)}</span></div>`).join("")}
+      </div>
       <div class="kv">
         <div class="k">交付画幅</div><div><span class="pill gold">${esc(art.spec)}</span></div>
         <div class="k">分发放行</div><div><span class="pill ok">${esc(art.release)}</span></div>
