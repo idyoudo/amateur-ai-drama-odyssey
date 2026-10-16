@@ -11,7 +11,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - name: 全量结构体检（强规则二）
+      - name: 全量结构体检（强规则二/三）
         run: python3 tools/prd_guard.py --all
       - name: 变更登记校验（强规则一）
         run: |
@@ -21,25 +21,69 @@ jobs:
           else
             echo "无可用基线，跳过登记校验"
           fi
+
+  # 契约层 + API 复测分片（并行提速）
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - name: 安装依赖
         run: python3 -m pip install -q -r requirements.txt -r demo/requirements.txt
-      - name: 19 模块契约层 + API 复测
+      - name: 复测（分片 ${{ matrix.shard }}）
         run: |
-          for v in verify_jobs verify_storage verify_rbac verify_projects verify_script \
-                   verify_casting verify_consistency verify_performance verify_audio \
-                   verify_timeline verify_master verify_delivery verify_cost \
-                   verify_suppliers verify_legal verify_vfx verify_api verify_db verify_pipeline verify_worker verify_photo; do
-            python3 tools/$v.py || exit 1
+          ALL="verify_jobs verify_storage verify_rbac verify_projects verify_script \
+               verify_casting verify_consistency verify_performance verify_audio \
+               verify_timeline verify_master verify_delivery verify_cost \
+               verify_suppliers verify_legal verify_vfx verify_api verify_db \
+               verify_pipeline verify_worker verify_photo verify_storyboard"
+          i=0
+          for v in $ALL; do
+            i=$((i+1))
+            if [ $((i % 2)) -eq $(( ${{ matrix.shard }} % 2 )) ]; then
+              echo "== $v =="; python3 tools/$v.py || exit 1
+            fi
           done
+
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 -m pip install -q -r demo/requirements.txt
       - name: demo 复测
         run: (cd demo && python3 verify.py && python3 report.py)
       - name: P1-A 复测
         run: |
           python3 tools/build_p1_a.py --out out/p1a
           python3 tools/verify_p1_a.py --out out/p1a --determinism
+
+  # 真 PG 端到端（有 postgres 服务时跑 SKIP LOCKED 并发）
+  pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: AADO
+          POSTGRES_USER: aado
+          POSTGRES_PASSWORD: ci-test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U aado -d AADO"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 -m pip install -q -r requirements.txt
+      - name: PG 集成（SKIP LOCKED 并发）
+        env:
+          DATABASE_URL: postgresql+psycopg2://aado:ci-test@localhost:5432/AADO
+        run: python3 tools/verify_pg.py

@@ -43,9 +43,9 @@
 
 - [x] 每模块 README（film/*/README.md，16 个模块）
 - [x] API 契约文档随代码更新（42 路由对齐）
-- [ ] 端到端集成测试（真 PG，`tools/verify_pg.py` 在有凭据时自动跑）
+- [x] 端到端集成测试（CI 加 postgres 服务跑 verify_pg.py）
 - [x] 覆盖率报告（tools/coverage_report.py，film/ 84%）
-- [ ] CI 提速（分片）
+- [x] CI 提速（复测分片并行 + demo/pg 独立 job）
 
 ## 执行记录
 
@@ -57,3 +57,4 @@
 | 2026-10-16 | B·体验层 | 骨架屏 + 错误边界 + 快捷键 + 主题切换 |
 | 2026-10-16 | A·成本看板 + 供应商三段式 | 看板 + 三段式追踪；verify_api 84→87 |
 | 2026-10-16 | B·模块 README + 覆盖率 | 16 README；film/ 覆盖率 84% |
+| 2026-10-16 | C·CI 分片 + 真 PG | CI 4 job（guard/tests×2/demo/pg）|
