@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
@@ -271,7 +271,11 @@ def run_project(project_id: int):
                              structure={"violations": viol, "beats_covered": 15,
                                         "truby": list(m2out.enums.TRUBY_NODES),
                                         "ppi": ol["ppi"], "midpoint": ol["midpoint"], "ppii": ol["ppii"]}))
-        shots = make_shotlist(ol, ["主角", "配角"])
+        shots_all = []
+        for _ep in range(1, (p.episodes or 6) + 1):
+            for _sh in make_shotlist(ol, ["主角", "配角"]):
+                _sh = dict(_sh); _sh["episode_id"] = _ep; shots_all.append(_sh)
+        shots = shots_all
         # 落角色资产（M3）
         from film.casting import generate as m3gen
         char_names = sorted({c for sh in shots for c in sh["characters"]}) or ["主角"]
@@ -284,7 +288,8 @@ def run_project(project_id: int):
                                     anchors=[a["view"] for a in ch["anchors"]], status="已定妆"))
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
-            s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
+            s.add(jobs_db.Shot(project_id=project_id, episode_id=sh.get("episode_id", 1),
+                  **{k: sh[k] for k in
                   ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")},
                   continuity=sh.get("continuity", {})))
         s.commit()
@@ -302,7 +307,11 @@ def gen_shots(project_id: int):
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
         ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
-        shots = make_shotlist(ol, ["主角", "配角"])
+        shots_all = []
+        for _ep in range(1, (p.episodes or 6) + 1):
+            for _sh in make_shotlist(ol, ["主角", "配角"]):
+                _sh = dict(_sh); _sh["episode_id"] = _ep; shots_all.append(_sh)
+        shots = shots_all
         for sh in shots:
             v = validate_shot(sh)
             if v:
@@ -310,19 +319,34 @@ def gen_shots(project_id: int):
         # 清旧、写新
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
-            s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
+            s.add(jobs_db.Shot(project_id=project_id, episode_id=sh.get("episode_id", 1),
+                  **{k: sh[k] for k in
                   ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")},
                   continuity=sh.get("continuity", {})))
         s.commit()
     return {"count": len(shots)}
 
 
-@app.get("/api/dramas/{project_id}/shots")
-def list_shots(project_id: int):
+@app.get("/api/dramas/{project_id}/episodes")
+def list_episodes(project_id: int):
     with Session() as s:
-        rows = s.scalars(select(jobs_db.Shot).where(
-            jobs_db.Shot.project_id == project_id).order_by(jobs_db.Shot.shot_no)).all()
-    return [{"id": r.id, "shot_no": r.shot_no, "scene_no": r.scene_no, "size": r.size,
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        rows = s.query(jobs_db.Shot.episode_id, func.count(jobs_db.Shot.id)).filter(
+            jobs_db.Shot.project_id == project_id).group_by(jobs_db.Shot.episode_id).all()
+    return {"episodes": p.episodes or 6, "minutes": p.minutes or 30,
+            "breakdown": {str(r[0] or 1): r[1] for r in rows}}
+
+
+@app.get("/api/dramas/{project_id}/shots")
+def list_shots(project_id: int, episode: int = None):
+    with Session() as s:
+        q = select(jobs_db.Shot).where(jobs_db.Shot.project_id == project_id)
+        if episode:
+            q = q.where(jobs_db.Shot.episode_id == episode)
+        rows = s.scalars(q.order_by(jobs_db.Shot.episode_id, jobs_db.Shot.shot_no)).all()
+    return [{"id": r.id, "episode_id": r.episode_id, "shot_no": r.shot_no, "scene_no": r.scene_no, "size": r.size,
              "angle": r.angle, "move": r.move, "duration": r.duration,
              "characters": r.characters or [], "dialogue": r.dialogue,
              "prompt": r.prompt, "status": r.status, "image_key": r.image_key,

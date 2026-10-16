@@ -178,6 +178,7 @@ function filterProjs() {
 
 /* ---------- 项目工作台 ---------- */
 let CUR = { id: null, stage: null };
+let CUR_EP = 1;
 async function viewProject(id) {
   CUR.id = id;
   let p; try { p = await api("/api/dramas/" + id); } catch (e) { toast("项目不存在"); return go("projects"); }
@@ -209,6 +210,7 @@ async function viewProject(id) {
         <button class="btn ghost" id="runbtn">▶ 运行流水线</button>
         <button class="btn" id="prodbtn">🎬 一键全流程</button></div>`,
     body: `
+    <div id="epbar" style="margin-bottom:12px"></div>
     <div class="stats" id="projstats" style="margin-bottom:16px"></div>
     <div class="card">
       <div class="kv">
@@ -226,8 +228,15 @@ async function viewProject(id) {
   $("#prodbtn").onclick = () => produceAll(id);
   $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
-  // 制作统计（异步）
-  api("/api/dramas/" + id + "/shots").then(sh => {
+  // 集选择器
+  api("/api/dramas/" + id + "/episodes").then(ep => {
+    const bar = $("#epbar"); if (!bar) return;
+    bar.innerHTML = `<span class="muted" style="font-size:12px;margin-right:8px">分集</span>` +
+      Array.from({length: ep.episodes}, (_, i) => i + 1).map(n =>
+        `<span class="pill ${n === CUR_EP ? "gold" : ""}" style="cursor:pointer;margin-right:4px" onclick="pickEp(${id},${n})">第 ${n} 集</span>`).join("");
+  }).catch(() => {});
+  // 制作统计（异步，按当前集）
+  api("/api/dramas/" + id + "/shots?episode=" + CUR_EP).then(sh => {
     const gen = sh.filter(x => x.status === "已生成" || x.status === "已选定").length;
     const sel = sh.filter(x => x.status === "已选定").length;
     const pct = sh.length ? Math.round(gen / sh.length * 100) : 0;
@@ -288,7 +297,7 @@ let SBCUR = null;
 async function renderStoryboard() {
   const box = $("#sbwork"); if (!box) return;
   let shots = [];
-  try { shots = await api("/api/dramas/" + CUR.id + "/shots"); } catch (e) {}
+  try { shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP); } catch (e) {}
   if (!shots.length) {
     box.innerHTML = `<div class="muted" style="margin-bottom:12px">尚无分镜表。从剧本派生镜头（每场 1–3 镜）。</div>
       <button class="btn" onclick="genShots()">📋 生成分镜表</button>`;
@@ -296,7 +305,7 @@ async function renderStoryboard() {
   }
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="muted">共 <b>${shots.length}</b> 镜 · 已生成 ${shots.filter(x => x.status === "已生成").length}</div>
+      <div class="muted">第 ${CUR_EP} 集 · 共 <b>${shots.length}</b> 镜 · 已生成 ${shots.filter(x => x.status === "已生成").length}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="sbSelect('all')">全选</button>
         <button class="btn ghost sm" onclick="sbSelect('none')">取消</button>
@@ -325,7 +334,7 @@ function sbToggle(id) {
   if (c) { c.style.borderColor = SBSEL.has(id) ? "var(--gold)" : ""; const cb = c.querySelector("input"); if (cb) cb.checked = SBSEL.has(id); }
 }
 async function sbSelect(mode) {
-  const shots = await api("/api/dramas/" + CUR.id + "/shots");
+  const shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP);
   SBSEL.clear();
   shots.forEach(s => { if (mode === "all" || (mode === "pending" && s.status !== "已生成")) SBSEL.add(String(s.id)); });
   renderStoryboard();
@@ -345,7 +354,7 @@ async function genShots() {
 
 /* 镜头详情弹窗：字段 + 抽卡候选（参考 LumenX R2V 批量抽卡） */
 async function sbOpen(shotId, shotNo) {
-  const shots = await api("/api/dramas/" + CUR.id + "/shots");
+  const shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP);
   const sh = shots.find(x => String(x.id) === String(shotId));
   if (!sh) return;
   const cands = await api("/api/shots/" + shotId + "/candidates");
@@ -719,6 +728,7 @@ async function saveProject(id) {
     closeModal(); toast("✅ 已保存"); viewProject(id);
   } catch (e) { toast("❌ " + e.message); }
 }
+function pickEp(id, n) { CUR_EP = n; viewProject(id); }
 async function produceAll(id) {
   const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…（流水线→分镜→抽卡→组装）";
   try { const r = await api("/api/dramas/" + id + "/produce", { method: "POST" });

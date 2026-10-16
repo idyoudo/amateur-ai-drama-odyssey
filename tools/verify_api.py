@@ -201,6 +201,16 @@ check("剧本原文 200", r.status_code == 200)
 check("剧本原文含场景", "INT." in r.json()["text"] or "EXT." in r.json()["text"])
 check("剧本原文含场次数", r.json()["scene_count"] > 0)
 
+# 分集
+r = client.get("/api/dramas/%d/episodes" % pid, headers=H)
+d = r.json()
+check("集列表 200", r.status_code == 200 and d["episodes"] >= 1)
+check("集分镜明细", len(d["breakdown"]) >= 1)
+ep1 = client.get("/api/dramas/%d/shots?episode=1" % pid, headers=H).json()
+allsh = client.get("/api/dramas/%d/shots" % pid, headers=H).json()
+check("按集过滤生效", len(ep1) <= len(allsh))
+check("镜头带集号", all("episode_id" in x for x in allsh))
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
