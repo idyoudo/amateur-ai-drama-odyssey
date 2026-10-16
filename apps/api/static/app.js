@@ -149,9 +149,26 @@ async function viewProjects() {
         <select name="minutes"><option value="30">30 分钟/集</option><option value="22">22 分钟/集</option><option value="45">45 分钟/集</option></select></div>
       <div><button class="btn" type="submit">创建立项</button></div>
     </form>
-    <h2>全部项目</h2>
-    ${projs.length ? `<div class="cards">${projs.map(projectCard).join("")}</div>` : `<div class="card empty">暂无项目</div>`}`,
+    <h2>全部项目 <span class="hint">${projs.length} 个</span></h2>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:280px" oninput="filterProjs()">
+      <select id="psort" style="max-width:180px" onchange="filterProjs()">
+        <option value="id">按创建时间</option><option value="title">按片名</option>
+        <option value="deliverable">可交付优先</option></select>
+    </div>
+    <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
+    ${projs.length ? "" : `<div class="card empty">暂无项目</div>`}`,
   });
+  window._PROJS = projs;
+}
+function filterProjs() {
+  const q = (($("#psearch") || {}).value || "").toLowerCase();
+  const sort = ($("#psort") || {}).value || "id";
+  let list = (window._PROJS || []).filter(p =>
+    !q || (p.title || "").toLowerCase().includes(q) || (p.logline || "").toLowerCase().includes(q));
+  if (sort === "title") list = list.slice().sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+  else if (sort === "deliverable") list = list.slice().sort((a, b) => (b.deliverable ? 1 : 0) - (a.deliverable ? 1 : 0));
+  $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">无匹配项目</div>`;
   $("#pf").onsubmit = async e => {
     e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); b.episodes = 6;
     try { const d = await api("/api/dramas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
