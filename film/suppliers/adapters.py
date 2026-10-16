@@ -151,3 +151,56 @@ class AsyncVideoProvider:
                 return q
             time.sleep(self.poll_sec)
         raise ProviderError("视频任务 %s 轮询超时" % task_id, retryable=True)
+
+
+class AsyncTaskProvider:
+    """通用异步任务供应商（音乐 Suno/Mureka、口型 Sync.so 等：创建 → 轮询 → 下载）。
+
+    create_path / query_path 可按供应商调整；默认 `/generations` 与 `/generations/{id}`。
+    """
+
+    def __init__(self, api_key, api_url, model, kind="async",
+                 create_path="/generations", timeout=60, poll_sec=10, max_polls=60):
+        self.api_key, self.api_url, self.model = api_key, api_url, model
+        self.kind, self.create_path = kind, create_path
+        self.timeout, self.poll_sec, self.max_polls = timeout, poll_sec, max_polls
+
+    def submit(self, payload):
+        import httpx
+        url = _join(self.api_url, self.create_path)
+        body = {"model": self.model, "prompt": payload.get("prompt", "")}
+        if payload.get("fingerprint"):
+            body["idempotency_key"] = payload["fingerprint"]
+        try:
+            r = httpx.post(url, json=body, timeout=self.timeout,
+                           headers={"Authorization": "Bearer " + self.api_key})
+        except Exception as e:  # noqa: BLE001
+            raise ProviderError("%s 提交失败：%s" % (self.kind, e), retryable=True)
+        if r.status_code >= 500 or r.status_code == 429:
+            raise ProviderError("%s 供应商 %d" % (self.kind, r.status_code), retryable=True)
+        if r.status_code >= 400:
+            raise ProviderError("%s 供应商 %d：%s" % (self.kind, r.status_code, r.text[:200]), retryable=False)
+        d = r.json()
+        return {"task_id": d.get("id") or d.get("task_id"), "status": "submitted"}
+
+    def query(self, task_id):
+        import httpx
+        url = _join(self.api_url, self.create_path + "/%s" % task_id)
+        r = httpx.get(url, timeout=self.timeout, headers={"Authorization": "Bearer " + self.api_key})
+        d = r.json()
+        status = d.get("status", "running")
+        done = status in ("succeeded", "done", "complete", "completed")
+        out = d.get("output") or d.get("result") or {}
+        url_out = out.get("url") if isinstance(out, dict) else d.get("url")
+        return {"task_id": task_id, "status": "done" if done else status, "url": url_out}
+
+    def download(self, result):
+        return {"object_key": "%s/out.bin" % self.kind, "url": result.get("url")}
+
+    def wait(self, task_id):
+        for _ in range(self.max_polls):
+            q = self.query(task_id)
+            if q["status"] == "done":
+                return q
+            time.sleep(self.poll_sec)
+        raise ProviderError("%s 任务 %s 轮询超时" % (self.kind, task_id), retryable=True)

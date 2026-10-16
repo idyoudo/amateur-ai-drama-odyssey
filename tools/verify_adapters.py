@@ -97,6 +97,24 @@ q = vp.query("task-1")
 check("视频 query done", q["status"] == "done" and q["url"] == "https://v/1.mp4")
 check("视频 download 有 object_key", "object_key" in vp.download(q))
 
+# 通用异步（音乐/口型）
+with_httpx(FakeHttpx(
+    post_map={"music/generations": FakeResp(200, {"id": "m1"})},
+    get_map={"music/generations/m1": FakeResp(200, {"status": "complete", "output": {"url": "https://m/1.mp3"}})}))
+mp = adapters.AsyncTaskProvider("k", "https://api.x/v1", "m", kind="music", create_path="/music/generations")
+sub = mp.submit({"prompt": "cue", "fingerprint": "fp1"})
+check("音乐 submit task_id", sub["task_id"] == "m1")
+q = mp.query("m1")
+check("音乐 query done", q["status"] == "done" and q["url"] == "https://m/1.mp3")
+
+# make_adapter 分发（import 需在 mock 之外）
+from film.suppliers.adapter import make_adapter
+cfg = {"model": "m", "api_key": "k", "api_url": "https://x/v1"}
+check("text 分发真实", type(make_adapter("text", cfg)).__name__ == "OpenAICompatText")
+check("video 分发真实", type(make_adapter("video", cfg)).__name__ == "AsyncVideoProvider")
+check("music 分发真实", type(make_adapter("music", cfg)).__name__ == "AsyncTaskProvider")
+check("未配置回 Mock", type(make_adapter("text", {"model": "", "api_key": ""})).__name__ == "MockProvider")
+
 total = _t[0]; passed = total - len(_f)
 print(json.dumps({"module": "M17-real-adapters", "total": total, "pass": passed, "fail": len(_f)}, ensure_ascii=False))
 sys.exit(1 if _f else 0)

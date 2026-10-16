@@ -54,5 +54,9 @@ def make_adapter(kind, kind_cfg):
         return adapters.OpenAICompatTTS(key, url, model)
     if kind == "video":
         return adapters.AsyncVideoProvider(key, url, model)
-    # music / lipsync：协议未定，暂 Mock
+    if kind == "music":
+        return adapters.AsyncTaskProvider(key, url, model, kind="music", create_path="/music/generations")
+    if kind == "lipsync":
+        return adapters.AsyncTaskProvider(key, url, model, kind="lipsync", create_path="/lipsync/jobs")
+    # 未覆盖 kind：Mock
     return MockProvider(kind)
