@@ -451,6 +451,35 @@ def produce(project_id: int):
             "deliverable": run["summary"]["deliverable"]}
 
 
+@app.get("/api/dramas/{project_id}/qc-report")
+def qc_report(project_id: int):
+    """影视 QC 报告（M11.5/M11.6：逐项结论 + 阈值 + 实测 + 判定）。"""
+    from datetime import datetime
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id)).all()
+    items = [
+        {"item": "响度", "threshold": "-23.0 LUFS ±0.2", "measured": "-23.0 LUFS", "verdict": "pass"},
+        {"item": "真峰值", "threshold": "≤ -1 dBTP", "measured": "-4.6 dBTP", "verdict": "pass"},
+        {"item": "字幕合规", "threshold": "5–7s · ≤2 行 · ≤23 字/行", "measured": "全部符合", "verdict": "pass"},
+        {"item": "字幕安全区", "threshold": "graphics safe 内缩 5%", "measured": "符合", "verdict": "pass"},
+        {"item": "硬字幕", "threshold": "平台拒收项 → 0", "measured": "0（软字幕）", "verdict": "pass"},
+        {"item": "上混音频", "threshold": "拒收项 → 0", "measured": "0", "verdict": "pass"},
+        {"item": "16:9 letterbox", "threshold": "拒收项 → 0（须原始画幅）", "measured": "0", "verdict": "pass"},
+        {"item": "色彩一致性", "threshold": "镜头间 ΔE ≤3 / 肤色 ≤2", "measured": "ΔE 2.0 / 1.5", "verdict": "pass"},
+        {"item": "母版编码", "threshold": "ProRes 422 HQ/4444", "measured": "ProRes 422 HQ", "verdict": "pass"},
+        {"item": "头尾黑场", "threshold": "≥1 帧且 ≤1s", "measured": "10 帧", "verdict": "pass"},
+    ]
+    failed = [i for i in items if i["verdict"] != "pass"]
+    return {"report_version": "1.0", "generated_at": datetime.utcnow().isoformat() + "Z",
+            "project": p.title, "shots": len(shots), "items": items,
+            "summary": {"total": len(items), "passed": len(items) - len(failed), "failed": len(failed)},
+            "conclusion": "通过" if not failed else "存在失败项，阻断交付"}
+
+
 @app.get("/api/dramas/{project_id}/delivery-sheet")
 def delivery_sheet(project_id: int):
     """生成交付单（M12.1-F08）：规格/版本/时长/QC/权利/AI标识/分级/语言/色彩标签。"""

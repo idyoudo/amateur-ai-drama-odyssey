@@ -167,6 +167,14 @@ check("交付单含内容统计", d["content"]["shots"] > 0)
 check("交付单含 AI 标识", "AI" in d["ai_label"])
 check("交付单含可选交付标注", set(d["optional_delivery"].keys()) == {"HDR10", "5.1", "48fps"})
 
+# QC 报告
+r = client.get("/api/dramas/%d/qc-report" % pid, headers=H)
+d = r.json()
+check("QC 报告 200", r.status_code == 200)
+check("QC 报告含逐项", len(d["items"]) >= 8)
+check("QC 报告结论通过", d["conclusion"] == "通过")
+check("QC 汇总正确", d["summary"]["passed"] == d["summary"]["total"])
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

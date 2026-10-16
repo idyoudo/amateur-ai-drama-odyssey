@@ -579,7 +579,8 @@ function stageBody(stage, art) {
   }
   // 母版：规格 QC 清单
   if (art.codec && art.tc) {
-    return `<div class="kv">
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadQC()">⬇ 下载 QC 报告（JSON）</button></div>
+      <div class="kv">
         <div class="k">母版编码</div><div><span class="pill gold">${esc(art.codec)}</span></div>
         <div class="k">音频</div><div>${esc(art.audio)}</div>
         <div class="k">时间码起点</div><div>${esc(art.tc)}</div>
@@ -701,6 +702,16 @@ async function jobRetry(id) {
   catch (e) { toast("❌ " + e.message); }
 }
 
+async function downloadQC() {
+  try {
+    const d = await api("/api/dramas/" + CUR.id + "/qc-report");
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = (d.project || "project") + "_qc_report.json"; a.click();
+    URL.revokeObjectURL(url); toast("✅ QC 报告已下载（" + d.summary.passed + "/" + d.summary.total + " 通过）");
+  } catch (e) { toast("❌ " + e.message); }
+}
 async function downloadSheet() {
   try {
     const d = await api("/api/dramas/" + CUR.id + "/delivery-sheet");
