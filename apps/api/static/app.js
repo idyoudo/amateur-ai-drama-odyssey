@@ -427,13 +427,13 @@ async function renderCast() {
 /* 剧本编辑器（M2：场次编辑 + 结构健康度） */
 async function renderScript() {
   const box = $("#scriptview"); if (!box) return;
-  const d = await api("/api/dramas/" + CUR.id + "/script");
+  const d = await api("/api/dramas/" + CUR.id + "/script?episode=" + CUR_EP);
   if (!d.scenes || !d.scenes.length) { box.innerHTML = `<div class="muted">尚无剧本，先运行流水线。</div>`; return; }
   const st = d.structure || {}, viol = st.violations || [];
   const beatWindow = (v) => (v >= 0.22 && v <= 0.25) || (v >= 0.48 && v <= 0.52) || (v >= 0.78 && v <= 0.82);
   box.innerHTML = `
     <div class="stats" style="margin-bottom:16px">
-      <div class="stat"><div class="k">${d.scenes.length}</div><div class="l">场次</div></div>
+      <div class="stat"><div class="k">${d.scenes.length}</div><div class="l">第 ${CUR_EP} 集场次</div></div>
       <div class="stat"><div class="k">${esc(d.form)}</div><div class="l">剧集形态</div></div>
       <div class="stat"><div class="k">15/15</div><div class="l">Save the Cat 拍</div></div>
       <div class="stat"><div class="k">${viol.length ? "⚠ " + viol.length : "✓ 0"}</div><div class="l">结构问题</div></div>
@@ -468,7 +468,7 @@ async function showScreenplay() {
   } catch (e) { toast("❌ " + e.message); }
 }
 async function editScene(no) {
-  const d = await api("/api/dramas/" + CUR.id + "/script");
+  const d = await api("/api/dramas/" + CUR.id + "/script?episode=" + CUR_EP);
   const sc = d.scenes.find(x => x.number === no); if (!sc) return;
   const modal = document.createElement("div"); modal.className = "modal"; modal.id = "scmodal";
   modal.innerHTML = `<div class="box" style="max-width:560px">
@@ -487,7 +487,7 @@ async function editScene(no) {
 async function saveScene(no) {
   const body = { event: $("#s_event").value, goal: $("#s_goal").value,
                  conflict: $("#s_conflict").value, result: $("#s_result").value };
-  try { const r = await api("/api/dramas/" + CUR.id + "/script/scene/" + no, { method: "PUT",
+  try { const r = await api("/api/dramas/" + CUR.id + "/script/scene/" + no + "?episode=" + CUR_EP, { method: "PUT",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     closeModal();
     toast(r.violations.length ? "⚠ 保存成功，但结构有 " + r.violations.length + " 处问题" : "✅ 已保存，结构合规");

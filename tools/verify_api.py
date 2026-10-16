@@ -211,6 +211,11 @@ allsh = client.get("/api/dramas/%d/shots" % pid, headers=H).json()
 check("按集过滤生效", len(ep1) <= len(allsh))
 check("镜头带集号", all("episode_id" in x for x in allsh))
 
+# 每集独立剧本
+e1 = client.get("/api/dramas/%d/script?episode=1" % pid, headers=H).json()
+e2 = client.get("/api/dramas/%d/script?episode=2" % pid, headers=H).json()
+check("每集剧本不同", e1["scenes"][0]["event"] != e2["scenes"][0]["event"])
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

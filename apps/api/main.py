@@ -263,19 +263,22 @@ def run_project(project_id: int):
         from film.script import generate as m2gen, outline as m2out
         from film.storyboard import make_shotlist
         from film.suppliers import adapter as sup_adapter
-        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
-        viol = m2out.validate_outline(ol)
+        text_ad = sup_adapter.make_adapter("text", {})
         s.query(jobs_db.Script).filter(jobs_db.Script.project_id == project_id).delete()
-        s.add(jobs_db.Script(project_id=project_id, episode_id=1, form=ol["form"],
-                             scenes=ol["scenes"],
-                             structure={"violations": viol, "beats_covered": 15,
-                                        "truby": list(m2out.enums.TRUBY_NODES),
-                                        "ppi": ol["ppi"], "midpoint": ol["midpoint"], "ppii": ol["ppii"]}))
         shots_all = []
         for _ep in range(1, (p.episodes or 6) + 1):
+            ol, _ = m2gen.generate_outline(p.logline, text_ad, episode=_ep)
+            viol = m2out.validate_outline(ol)
+            s.add(jobs_db.Script(project_id=project_id, episode_id=_ep, form=ol["form"],
+                                 scenes=ol["scenes"],
+                                 structure={"violations": viol, "beats_covered": 15,
+                                            "truby": list(m2out.enums.TRUBY_NODES),
+                                            "ppi": ol["ppi"], "midpoint": ol["midpoint"], "ppii": ol["ppii"]}))
             for _sh in make_shotlist(ol, ["主角", "配角"]):
                 _sh = dict(_sh); _sh["episode_id"] = _ep; shots_all.append(_sh)
         shots = shots_all
+        # 首集 outline 供下游流水线步骤复用
+        ol, _ = m2gen.generate_outline(p.logline, text_ad, episode=1)
         # 落角色资产（M3）
         from film.casting import generate as m3gen
         char_names = sorted({c for sh in shots for c in sh["characters"]}) or ["主角"]
@@ -411,22 +414,25 @@ def select_candidate(cid: int):
     return {"selected": cid}
 
 @app.get("/api/dramas/{project_id}/script")
-def get_script(project_id: int):
+def get_script(project_id: int, episode: int = 1):
     with Session() as s:
         sc = s.scalars(select(jobs_db.Script).where(
-            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.id.desc())).first()
+            jobs_db.Script.project_id == project_id,
+            jobs_db.Script.episode_id == episode).order_by(jobs_db.Script.id.desc())).first()
     if sc is None:
         return {"scenes": [], "structure": {}, "form": None}
     return {"form": sc.form, "scenes": sc.scenes, "structure": sc.structure}
 
 
 @app.put("/api/dramas/{project_id}/script/scene/{scene_no}")
-def update_scene(project_id: int, scene_no: int, body: dict):
+def update_scene(project_id: int, scene_no: int, body: dict, episode: int = None):
     """编辑某场次字段（M2.5 rewrite），校验结构后回写。"""
     from film.script import outline as m2out
+    ep = episode if episode is not None else body.get("episode", 1)
     with Session() as s:
         sc = s.scalars(select(jobs_db.Script).where(
-            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.id.desc())).first()
+            jobs_db.Script.project_id == project_id,
+            jobs_db.Script.episode_id == ep).order_by(jobs_db.Script.id.desc())).first()
         if sc is None:
             raise HTTPException(status_code=404, detail="无剧本")
         import copy as _copy
