@@ -217,6 +217,16 @@ def run_project(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
         s.add(jobs_db.Run(project_id=project_id, result=result))
+        # 顺带从剧本派生分镜表（M4），供分镜工作台使用
+        from film.script import generate as m2gen
+        from film.storyboard import make_shotlist
+        from film.suppliers import adapter as sup_adapter
+        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
+        shots = make_shotlist(ol, ["主角", "配角"])
+        s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
+        for sh in shots:
+            s.add(jobs_db.Shot(project_id=project_id, episode_id=1, **{k: sh[k] for k in
+                  ("shot_no","scene_no","size","angle","move","duration","characters","dialogue","prompt","status")}))
         s.commit()
     return result
 

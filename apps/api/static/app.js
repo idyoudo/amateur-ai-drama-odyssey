@@ -273,13 +273,21 @@ function stageBody(stage, art) {
         <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">
           目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}</div>`;
   }
-  // 选角：角色卡 + 锚点视角 chip
+  // 选角：角色工作台（参考 LumenX CharacterWorkbench / Cast）
   if (art.character && art.anchors) {
-    return `<div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
-      <div class="asset"><div class="thumb" style="font-size:40px">🎭<span class="tag">角色</span></div>
-        <div class="body"><h4>${esc(art.character)}</h4>
-          <div class="meta"><span>音色 ${esc(art.voice)}</span><span>${art.anchor_count} 张锚点</span>
-          ${art.anchors.map(a => `<span>${esc(a)}</span>`).join("")}</div></div></div></div>`;
+    const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4 侧", full_body: "全身", expression: "表情" };
+    return `<div class="muted" style="margin-bottom:10px">角色定妆 = 后续所有画面的唯一视觉事实来源。锚点图集是与一致性检测（M6）共享的基准。</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
+        ${art.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4;font-size:30px">🎭
+          <span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
+          <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
+      </div>
+      <div class="kv" style="margin-top:16px">
+        <div class="k">角色</div><div>${esc(art.character)}</div>
+        <div class="k">音色绑定</div><div><span class="pill gold">${esc(art.voice)}</span></div>
+        <div class="k">锚点数量</div><div>${art.anchor_count} 张（≥3 达标）</div>
+        <div class="k">定妆门禁</div><div><span class="pill ok">署名 + 理由码齐备</span></div>
+      </div>`;
   }
   // 通用 KV
   if (Object.keys(art).length) {
