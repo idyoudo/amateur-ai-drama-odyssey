@@ -232,6 +232,22 @@ check("三段式含提交/查询/下载", all(
     [st["stage"] for st in k["stages"]] == ["提交", "查询", "下载"] for k in d["kinds"]))
 check("供应商含多个类型", len(d["kinds"]) >= 3)
 
+# 开源吸纳功能
+r = client.get("/api/dramas/%d/memory" % pid, headers=H)
+d = r.json()
+check("记忆 200", r.status_code == 200)
+check("记忆四层合规", d["violations"] == [])
+check("上下文非空", len(d["context"]) > 0)
+check("含因果链记录", len(d["change_records"]) > 0)
+r = client.post("/api/dramas/%d/cost-preview" % pid, headers=H, json={"items": [{"kind": "video", "seconds": 60}]})
+check("成本预估 200", r.status_code == 200 and r.json()["preview"]["total_cny"] > 0)
+check("超阈值未确认被拦", len(r.json()["blocked"]) > 0)
+r = client.post("/api/dramas/%d/cost-preview" % pid, headers=H, json={"items": [{"kind": "video", "seconds": 60}], "confirmed": True})
+check("确认后放行", r.json()["blocked"] == [])
+r = client.post("/api/dramas/%d/receipt" % pid, headers=H)
+check("收据 200", r.status_code == 200 and r.json()["release_lock"] is True)
+check("收据含签名", "signature" in r.json())
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

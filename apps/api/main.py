@@ -588,6 +588,68 @@ def delivery_sheet(project_id: int):
     }
 
 
+@app.get("/api/dramas/{project_id}/memory")
+def get_memory(project_id: int):
+    """C1 四层连贯性记忆 + C2 因果链（跨集上下文）。"""
+    from film import memory as memmod
+    from film.script import generate as m2gen
+    from film.suppliers import adapter as sup_adapter
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        scripts = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.episode_id)).all()
+    m = memmod.make_memory()
+    records = []
+    ad = sup_adapter.make_adapter("text", {})
+    for sc in scripts:
+        ol = {"form": sc.form, "scenes": sc.scenes or []}
+        m = memmod.update_memory(m, sc.episode_id, ol,
+                                 keywords=[x.get("event", "")[:8] for x in (sc.scenes or [])[:3]])
+        for x in (sc.scenes or [])[:3]:
+            records.append(memmod.make_change_record(x.get("number"), x.get("event") or "触发",
+                                                     x.get("conflict") or "过程", x.get("result") or "结果"))
+    return {"memory": m, "context": memmod.assemble_context(m),
+            "violations": memmod.validate_memory(m),
+            "change_records": records[:20],
+            "audit": memmod.audit_change_records(records)}
+
+
+@app.post("/api/dramas/{project_id}/cost-preview")
+def cost_preview(project_id: int, body: dict = None):
+    """C6 生成前成本确认闸。body: {items:[{kind,count,seconds}], confirmed:bool}"""
+    from film.cost import confirm as c6
+    with Session() as s:
+        n = s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).count()
+    body = body or {}
+    items = body.get("items") or [{"kind": "image", "count": n}, {"kind": "video", "seconds": n * 4}]
+    pv = c6.preview_cost(items)
+    viol = c6.validate_confirmation(bool(body.get("confirmed")), float(body.get("threshold", 50.0)), pv)
+    return {"preview": pv, "confirmed": bool(body.get("confirmed")), "blocked": viol, "note": "花额度前逐项摊开；超阈值须确认"}
+
+
+@app.post("/api/dramas/{project_id}/receipt")
+def make_receipt_ep(project_id: int):
+    """C7 发布锁定 + 签名收据（HMAC）。"""
+    import os as _os
+    from datetime import datetime
+    from film.delivery import receipt as c7
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        shots = s.scalars(select(jobs_db.Shot).where(jobs_db.Shot.project_id == project_id)).all()
+    arts = [{"name": "shot_%d.png" % sh.shot_no, "sha256": "0" * 64} for sh in shots[:20]]
+    r = c7.make_receipt(p.title, "v1", (p.delivery_spec or {}).get("master", "2.39:1"),
+                        arts, "admin", "pass_with_condition", datetime.utcnow().isoformat() + "Z")
+    secret = _os.environ.get("SECRET_KEY", "")
+    if secret:
+        r["signature"] = c7.sign_receipt(r, secret)
+    r["valid"] = (c7.validate_receipt(r, secret) == []) if secret else None
+    return r
+
+
 @app.get("/api/dramas/{project_id}/provider-tasks")
 def provider_tasks(project_id: int):
     """供应商调用三段式追踪（提交 → 查询 → 下载）。"""

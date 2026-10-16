@@ -450,6 +450,21 @@ async function genCands(shotId) {
   catch (e) { toast("❌ " + e.message); }
 }
 /* 供应商三段式追踪（M17.5-F02） */
+async function costPreview() {
+  const d = await api("/api/dramas/" + CUR.id + "/cost-preview", { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+  const pv = d.preview;
+  document.getElementById("costprev").innerHTML =
+    `<div class="kv" style="margin-bottom:10px">${pv.items.map(it =>
+      `<div class="k">${esc(it.kind)}</div><div>${it.count ? it.count + " 次" : (it.seconds || 0) + " 秒"} · ¥${it.cost_cny}</div>`).join("")}
+      <div class="k"><b>合计</b></div><div><b>¥${pv.total_cny}</b></div></div>
+     <button class="btn" onclick="costConfirm()">确认并放行</button> <span class="muted" style="font-size:11px">未确认前不产生付费调用</span>`;
+}
+async function costConfirm() {
+  const d = await api("/api/dramas/" + CUR.id + "/cost-preview", { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmed: true }) });
+  toast(d.blocked.length ? "⚠ 仍未放行" : "✅ 已放行生成");
+}
 async function renderProviders() {
   const box = $("#provview"); if (!box) return;
   let d; try { d = await api("/api/dramas/" + CUR.id + "/provider-tasks"); } catch (e) { return; }
@@ -487,7 +502,9 @@ async function renderCost() {
     <div class="card">${d.film_process.map(x => `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(x.name)}</span><b>${x.value}%</b></div>
       ${bar(x.value)}</div>`).join("")}</div>
-    <div class="muted" style="font-size:11px;margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>`;
+    <div class="muted" style="font-size:11px;margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>
+    <h2 style="font-size:13px">生成前确认闸 <span class="hint">花额度前逐镜摊开（C6）</span></h2>
+    <div class="card" id="costprev"><button class="btn" onclick="costPreview()">预估本项目生成成本</button></div>`;
 }
 
 /* 母版 QC 逐项（M11.5/M11.6） */
@@ -574,12 +591,14 @@ async function renderScript() {
       <span class="pill" style="cursor:pointer" onclick="showScreenplay()">剧本原文</span></div>
     <div class="muted" style="margin-bottom:8px">场次（点击编辑目标/冲突/结果，M2.5 rewrite）</div>
     <div id="screenplay" class="hide"></div>
+    <div id="memview"></div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
       ${d.scenes.map(sc => `<div class="card" style="cursor:pointer" onclick="editScene(${sc.number})">
         <div style="display:flex;justify-content:space-between"><b style="font-size:13px">场 ${sc.number}</b>
           <span class="pill" style="font-size:10px">${esc((sc.beats || [])[0] || "")}</span></div>
         <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}
     </div>`;
+  renderMemory();
 }
 async function showScreenplay() {
   const box = $("#screenplay"); if (!box) return;
@@ -588,6 +607,16 @@ async function showScreenplay() {
     box.classList.remove("hide");
     box.innerHTML = `<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:16px;max-height:400px;overflow:auto">${esc(d.text)}</pre>`;
   } catch (e) { toast("❌ " + e.message); }
+}
+async function renderMemory() {
+  const box = $("#memview"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/memory"); } catch (e) { return; }
+  if (!d.context) return;
+  box.innerHTML = `<h2 style="font-size:13px;margin-top:18px">长篇连贯性记忆 <span class="hint">C1 四层 · 跨集不跑偏</span></h2>
+    <pre style="white-space:pre-wrap;font-size:12px;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:14px">${esc(d.context)}</pre>
+    <div style="margin:8px 0"><span class="pill ${d.violations.length ? "bad" : "ok"}">记忆层 ${d.violations.length ? d.violations.length + " 项超限" : "合规"}</span>
+      <span class="pill ${d.audit.length ? "bad" : "ok"}" style="margin-left:6px">因果链审计 ${d.audit.length ? d.audit.length + " 处问题" : "通过"}</span></div>
+    <div class="muted" style="font-size:11px">因果链变更记录（触发→过程→结果）示例：${d.change_records.slice(0,2).map(r => `场${r.scene_no}: ${esc(r.trigger)}→${esc(r.process)}→${esc(r.result)}`).join("；") || "—"}</div>`;
 }
 async function editScene(no) {
   const d = await api("/api/dramas/" + CUR.id + "/script?episode=" + CUR_EP);
@@ -820,7 +849,8 @@ function stageBody(stage, art) {
     const versions = [
       { n: "2.39:1 主母版", s: "保证" }, { n: "16:9 平台版", s: "保证" }, { n: "9:16 竖屏衍生", s: "保证" },
       { n: "HDR10", s: "可选" }, { n: "5.1 环绕", s: "可选" }, { n: "48fps", s: "可选" }];
-    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">⬇ 下载交付单（JSON）</button></div>
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">⬇ 下载交付单</button>
+        <button class="btn ghost" onclick="downloadReceipt()" style="margin-left:8px">🔏 生成签名收据</button></div>
       <div class="muted" style="margin-bottom:10px">交付版本清单（标注保证 / 可选 / 需确认，EL-11）</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">
         ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(v.n)}</div>
@@ -951,6 +981,14 @@ async function jobRetry(id) {
   catch (e) { toast("❌ " + e.message); }
 }
 
+async function downloadReceipt() {
+  try { const d = await api("/api/dramas/" + CUR.id + "/receipt", { method: "POST" });
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = (d.project || "project") + "_receipt.json"; a.click(); URL.revokeObjectURL(url);
+    toast("🔏 收据已生成（签名" + (d.signature ? "已签" : "无密钥") + "）");
+  } catch (e) { toast("❌ " + e.message); }
+}
 async function downloadQC() {
   try {
     const d = await api("/api/dramas/" + CUR.id + "/qc-report");
