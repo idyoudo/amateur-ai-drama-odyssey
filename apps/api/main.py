@@ -551,6 +551,27 @@ def delivery_sheet(project_id: int):
     }
 
 
+@app.get("/api/dramas/{project_id}/screenplay")
+def screenplay(project_id: int):
+    """从场次生成可读剧本（INT./EXT. 场景 + 动作/目标-冲突-结果行）。"""
+    with Session() as s:
+        sc = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.id.desc())).first()
+        p = s.get(jobs_db.Project, project_id)
+    if sc is None or not sc.scenes:
+        raise HTTPException(status_code=404, detail="无剧本")
+    lines = ["《%s》 剧本" % (p.title if p else ""), ""]
+    for i, x in enumerate(sc.scenes, 1):
+        loc = "INT." if x.get("number", 0) % 2 else "EXT."
+        lines.append("%s 场景 %d — %s" % (loc, x.get("number", i), x.get("event", "")))
+        lines.append("")
+        lines.append("    目标：%s" % x.get("goal", ""))
+        lines.append("    冲突：%s" % x.get("conflict", ""))
+        lines.append("    结果：%s" % x.get("result", ""))
+        lines.append("")
+    return {"form": sc.form, "scene_count": len(sc.scenes), "text": "\n".join(lines)}
+
+
 @app.get("/api/dramas/{project_id}/continuity")
 def continuity_sheet(project_id: int):
     """连续性表（M6.4 剧本监督）：方向/视线/时间连续 + 违规清单。"""

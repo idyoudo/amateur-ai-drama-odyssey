@@ -438,13 +438,25 @@ async function renderScript() {
       </div>
       ${viol.length ? `<div style="color:var(--bad);margin-top:8px;font-size:12px">${viol.map(esc).join("；")}</div>` : ""}
     </div>
+    <div style="display:flex;gap:8px;margin:14px 0 10px">
+      <span class="pill gold">分镜表</span>
+      <span class="pill" style="cursor:pointer" onclick="showScreenplay()">剧本原文</span></div>
     <div class="muted" style="margin-bottom:8px">场次（点击编辑目标/冲突/结果，M2.5 rewrite）</div>
+    <div id="screenplay" class="hide"></div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
       ${d.scenes.map(sc => `<div class="card" style="cursor:pointer" onclick="editScene(${sc.number})">
         <div style="display:flex;justify-content:space-between"><b style="font-size:13px">场 ${sc.number}</b>
           <span class="pill" style="font-size:10px">${esc((sc.beats || [])[0] || "")}</span></div>
         <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}
     </div>`;
+}
+async function showScreenplay() {
+  const box = $("#screenplay"); if (!box) return;
+  if (!box.classList.contains("hide")) { box.classList.add("hide"); return; }
+  try { const d = await api("/api/dramas/" + CUR.id + "/screenplay");
+    box.classList.remove("hide");
+    box.innerHTML = `<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:16px;max-height:400px;overflow:auto">${esc(d.text)}</pre>`;
+  } catch (e) { toast("❌ " + e.message); }
 }
 async function editScene(no) {
   const d = await api("/api/dramas/" + CUR.id + "/script");
