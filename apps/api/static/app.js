@@ -255,12 +255,21 @@ async function viewProject(id) {
   $("#prodbtn").onclick = () => produceAll(id);
   $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
-  // 集选择器
-  api("/api/dramas/" + id + "/episodes").then(ep => {
+  // 分集看板（每集卡片：镜数 + 集内剧本场数）
+  api("/api/dramas/" + id + "/episodes").then(async ep => {
     const bar = $("#epbar"); if (!bar) return;
-    bar.innerHTML = `<span class="muted" style="font-size:12px;margin-right:8px">分集</span>` +
-      Array.from({length: ep.episodes}, (_, i) => i + 1).map(n =>
-        `<span class="pill ${n === CUR_EP ? "gold" : ""}" style="cursor:pointer;margin-right:4px" onclick="pickEp(${id},${n})">第 ${n} 集</span>`).join("");
+    const cards = [];
+    for (let n = 1; n <= ep.episodes; n++) {
+      let sc = 0; try { sc = (await api("/api/dramas/" + id + "/script?episode=" + n)).scenes.length; } catch (e) {}
+      const cnt = ep.breakdown[String(n)] || 0;
+      cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--gold)" : ""}" onclick="pickEp(${id},${n})">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:13px">第 ${n} 集</b>
+          ${n === CUR_EP ? '<span class="pill gold" style="font-size:10px">当前</span>' : ""}</div>
+        <div class="muted" style="font-size:11px;margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
+    }
+    bar.innerHTML = `<div style="font-size:12px;color:var(--gold2);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
+      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
   }).catch(() => {});
   // 制作统计（异步，按当前集）
   api("/api/dramas/" + id + "/shots?episode=" + CUR_EP).then(sh => {
