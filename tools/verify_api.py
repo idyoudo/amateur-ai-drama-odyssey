@@ -110,6 +110,16 @@ check("选定候选 200", r.status_code == 200)
 r = client.get("/api/shots/%d/candidates" % sh_id, headers=H)
 check("选择位唯一", sum(1 for c in r.json() if c["selected"]) == 1)
 
+# 成片组装（M9 时间线）
+r = client.post("/api/dramas/%d/assemble" % pid, headers=H)
+d = r.json()
+check("组装 200", r.status_code == 200)
+check("组装含时间线", len(d["timeline"]) > 0)
+check("时长 = 镜头时长之和", abs(d["total_duration"] - sum(x["duration"] for x in d["timeline"])) < 0.01)
+check("ASL 在 2-4s 带内", d["asl_in_band"] is True)
+check("幕结构 4 段", len(d["acts"]) == 4)
+check("时间线无违规", d["violations"] == [])
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

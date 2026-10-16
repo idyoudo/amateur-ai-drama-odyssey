@@ -324,6 +324,41 @@ def select_candidate(cid: int):
         s.commit()
     return {"selected": cid}
 
+@app.post("/api/dramas/{project_id}/assemble")
+def assemble(project_id: int):
+    """从镜头表组装成片时间线（M9）：时间线 + ASL + 幕结构，并做合法性校验。"""
+    from film.timeline import timeline as m9tl, rhythm as m9rh
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id).order_by(jobs_db.Shot.shot_no)).all()
+    if not shots:
+        raise HTTPException(status_code=422, detail="无镜头，先派生分镜表")
+    t = 0.0
+    tl = []
+    for sh in shots:
+        tl.append({"shot_no": sh.shot_no, "scene_no": sh.scene_no, "start": t,
+                   "duration": sh.duration, "size": sh.size, "move": sh.move,
+                   "status": sh.status})
+        t += sh.duration
+    clips = [m9tl.make_clip("shot%d" % sh.shot_no, c["start"], c["duration"]) for sh, c in zip(shots, tl)]
+    violations = m9tl.validate_timeline(clips, {"shot%d" % sh.shot_no for sh in shots})
+    durations = [sh.duration for sh in shots]
+    asl = m9rh.asl(durations)
+    total = t
+    # 30 分钟单集结构：cold open(0–6%) + 3 幕（按比例标记 act break）
+    acts = [{"name": "Cold Open", "at": round(total * 0.06, 1)},
+            {"name": "Act I→II", "at": round(total * 0.30, 1)},
+            {"name": "Act II→III", "at": round(total * 0.62, 1)},
+            {"name": "Act III→End", "at": round(total * 0.90, 1)}]
+    return {"project": p.title, "total_duration": round(total, 1), "shot_count": len(shots),
+            "asl": round(asl, 2), "asl_in_band": m9rh.validate_asl_band(asl) == [],
+            "timeline": tl, "acts": acts, "violations": violations,
+            "deliverable_spec": p.delivery_spec}
+
+
 @app.get("/api/dramas/{project_id}/jobs")
 def list_jobs(project_id: str) -> List[dict]:
     with Session() as s:

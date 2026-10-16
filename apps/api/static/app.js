@@ -193,6 +193,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 剪辑阶段 → 时间线视图
+  if (/剪辑/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="tlview">加载时间线…</div></div>`;
+    return renderTimeline();
+  }
   // 分镜/摄影阶段 → 分镜工作台
   if (/分镜|摄影/.test(st.stage)) {
     if (SBCUR !== CUR.id) { SBSEL.clear(); SBCUR = CUR.id; }
@@ -297,6 +302,37 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 时间线视图（参考 LumenX Timeline / VideoAssembly） */
+const SIZE_COLOR = { EWS:"#3b4a63", WS:"#3b4a63", LS:"#41546f", MLS:"#4a5f7d", MS:"#54688a", MCU:"#5e7297", CU:"#6a7ea4", ECU:"#7888ad", OTS:"#5a6d90", POV:"#5a6d90", INSERT:"#4a5f7d" };
+async function renderTimeline() {
+  const box = $("#tlview"); if (!box) return;
+  let d;
+  try { d = await api("/api/dramas/" + CUR.id + "/assemble", { method: "POST" }); }
+  catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)} · 先在分镜阶段派生镜头表。</div>`; return; }
+  const total = d.total_duration;
+  const bar = d.timeline.map(sh => {
+    const w = (sh.duration / total * 100);
+    return `<div title="镜${sh.shot_no} ${sh.size} ${sh.move} ${sh.duration}s" style="flex:0 0 ${w}%;height:44px;background:${SIZE_COLOR[sh.size]||"#4a5f7d"};border-right:1px solid #0a0c10;display:flex;align-items:center;justify-content:center;font-size:9px;color:#cdd7e5;overflow:hidden">${sh.shot_no}</div>`;
+  }).join("");
+  const markers = d.acts.map(a => `<div style="position:absolute;left:${a.at / total * 100}%;top:-6px;bottom:-20px;border-left:1px dashed var(--gold);font-size:9px;color:var(--gold2);padding-left:3px;white-space:nowrap">${esc(a.name)}</div>`).join("");
+  box.innerHTML = `
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><div class="k">${total}s</div><div class="l">成片时长</div></div>
+      <div class="stat"><div class="k">${d.shot_count}</div><div class="l">镜头数</div></div>
+      <div class="stat"><div class="k">${d.asl}s</div><div class="l">平均镜头长度 ASL</div></div>
+      <div class="stat"><div class="k">${d.asl_in_band ? "✓" : "⚠"}</div><div class="l">ASL 在 2–4s 参考带</div></div>
+    </div>
+    <h2 style="font-size:13px">时间线 <span class="hint">按镜头时长比例 · 虚线为幕结构标记</span></h2>
+    <div style="position:relative;margin-top:18px;margin-bottom:26px">
+      <div style="display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">${bar}</div>
+      ${markers}</div>
+    <div class="kv">
+      <div class="k">幕结构</div><div>${d.acts.map(a => `${esc(a.name)} @ ${a.at}s`).join(" · ")}</div>
+      <div class="k">时间线校验</div><div>${d.violations.length ? `<span style="color:var(--bad)">${d.violations.map(esc).join("；")}</span>` : '<span class="pill ok">无重叠/无空洞 · 通过</span>'}</div>
+      <div class="k">交付规格</div><div>${d.deliverable_spec && d.deliverable_spec.master ? `主母版 ${esc(d.deliverable_spec.master)}` : "—"}</div>
+    </div>`;
+}
+
 async function pickCand(cid, shotId) {
   try { await api("/api/candidates/" + cid + "/select", { method: "POST" }); toast("✅ 已选定"); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
