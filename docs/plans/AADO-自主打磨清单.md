@@ -41,7 +41,7 @@
 
 ## C. 工程层
 
-- [ ] 每模块 README（film/*/README.md，接口说明）
+- [x] 每模块 README（film/*/README.md，16 个模块）
 - [ ] API 契约文档随代码更新（docs/designs/API契约.md 与实现对齐）
 - [ ] 端到端集成测试（真 PG，`tools/verify_pg.py` 在有凭据时自动跑）
 - [ ] 覆盖率报告
