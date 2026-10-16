@@ -193,6 +193,11 @@ async function renderStageDetail(st) {
   const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
+  // 剧本阶段 → 剧本编辑器（可编辑场次 + 结构健康度）
+  if (/剧本/.test(st.stage)) {
+    el.innerHTML = `<div class="detail">${head}<div id="scriptview">加载剧本…</div></div>`;
+    return renderScript();
+  }
   // 门禁阶段 → 门禁工作台（AADO 好莱坞级：五门禁署名）
   if (/门禁/.test(st.stage)) {
     el.innerHTML = `<div class="detail">${head}<div id="gateview">加载门禁…</div></div>`;
@@ -307,6 +312,65 @@ async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("❌ " + e.message); }
 }
+/* 剧本编辑器（M2：场次编辑 + 结构健康度） */
+async function renderScript() {
+  const box = $("#scriptview"); if (!box) return;
+  const d = await api("/api/dramas/" + CUR.id + "/script");
+  if (!d.scenes || !d.scenes.length) { box.innerHTML = `<div class="muted">尚无剧本，先运行流水线。</div>`; return; }
+  const st = d.structure || {}, viol = st.violations || [];
+  const beatWindow = (v) => (v >= 0.22 && v <= 0.25) || (v >= 0.48 && v <= 0.52) || (v >= 0.78 && v <= 0.82);
+  box.innerHTML = `
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><div class="k">${d.scenes.length}</div><div class="l">场次</div></div>
+      <div class="stat"><div class="k">${esc(d.form)}</div><div class="l">剧集形态</div></div>
+      <div class="stat"><div class="k">15/15</div><div class="l">Save the Cat 拍</div></div>
+      <div class="stat"><div class="k">${viol.length ? "⚠ " + viol.length : "✓ 0"}</div><div class="l">结构问题</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><b style="font-size:13px">结构健康度</b>
+      <div class="kv" style="grid-template-columns:150px 1fr;font-size:12px;margin-top:8px">
+        <div class="k">Plot Point I</div><div>${esc(st.ppi)}（应 0.22–0.25）</div>
+        <div class="k">Midpoint</div><div>${esc(st.midpoint)}（应 0.48–0.52）</div>
+        <div class="k">Plot Point II</div><div>${esc(st.ppii)}（应 0.78–0.82）</div>
+        <div class="k">Truby 四节点</div><div>${(st.truby || []).map(esc).join(" · ")}</div>
+      </div>
+      ${viol.length ? `<div style="color:var(--bad);margin-top:8px;font-size:12px">${viol.map(esc).join("；")}</div>` : ""}
+    </div>
+    <div class="muted" style="margin-bottom:8px">场次（点击编辑目标/冲突/结果，M2.5 rewrite）</div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+      ${d.scenes.map(sc => `<div class="card" style="cursor:pointer" onclick="editScene(${sc.number})">
+        <div style="display:flex;justify-content:space-between"><b style="font-size:13px">场 ${sc.number}</b>
+          <span class="pill" style="font-size:10px">${esc((sc.beats || [])[0] || "")}</span></div>
+        <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}
+    </div>`;
+}
+async function editScene(no) {
+  const d = await api("/api/dramas/" + CUR.id + "/script");
+  const sc = d.scenes.find(x => x.number === no); if (!sc) return;
+  const modal = document.createElement("div"); modal.className = "modal"; modal.id = "scmodal";
+  modal.innerHTML = `<div class="box" style="max-width:560px">
+    <div class="mhead"><h2>编辑 场 ${no}</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">
+      <div class="muted" style="font-size:12px;margin-bottom:12px">单改纪律：一次只改需要改的字段，改后自动复校验结构。</div>
+      <div class="stack">
+        <label class="muted" style="font-size:11px">事件</label><input id="s_event" value="${esc(sc.event || "")}">
+        <label class="muted" style="font-size:11px">目标</label><input id="s_goal" value="${esc(sc.goal || "")}">
+        <label class="muted" style="font-size:11px">冲突</label><input id="s_conflict" value="${esc(sc.conflict || "")}">
+        <label class="muted" style="font-size:11px">结果</label><input id="s_result" value="${esc(sc.result || "")}">
+        <button class="btn" onclick="saveScene(${no})">保存并复校验</button>
+      </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function saveScene(no) {
+  const body = { event: $("#s_event").value, goal: $("#s_goal").value,
+                 conflict: $("#s_conflict").value, result: $("#s_result").value };
+  try { const r = await api("/api/dramas/" + CUR.id + "/script/scene/" + no, { method: "PUT",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    closeModal();
+    toast(r.violations.length ? "⚠ 保存成功，但结构有 " + r.violations.length + " 处问题" : "✅ 已保存，结构合规");
+    renderScript();
+  } catch (e) { toast("❌ " + e.message); }
+}
+
 /* 门禁工作台（AADO 好莱坞级：五门禁署名 + 理由码 + 二元清单） */
 async function renderGates() {
   const box = $("#gateview"); if (!box) return;

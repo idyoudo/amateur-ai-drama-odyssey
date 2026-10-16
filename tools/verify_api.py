@@ -128,6 +128,16 @@ check("门禁节点齐备", [g["node"] for g in gates] == ["script","casting","b
 check("门禁含署名+理由码", all("approver" in g and "reason_code" in g for g in gates))
 check("门禁含二元清单", all(len(g["checklist"]) > 0 for g in gates))
 
+# 剧本编辑
+r = client.get("/api/dramas/%d/script" % pid, headers=H)
+check("剧本含场次", r.status_code == 200 and len(r.json()["scenes"]) > 0)
+check("剧本含结构", "violations" in r.json()["structure"])
+r = client.put("/api/dramas/%d/script/scene/1" % pid, headers=H, json={"goal": "新目标", "conflict": "新冲突", "result": "新结果"})
+check("编辑场次 200", r.status_code == 200)
+check("编辑后结构合规", r.json()["violations"] == [])
+r = client.get("/api/dramas/%d/script" % pid, headers=H)
+check("编辑已持久化", r.json()["scenes"][0]["goal"] == "新目标")
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

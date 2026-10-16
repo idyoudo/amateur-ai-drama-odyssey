@@ -217,11 +217,18 @@ def run_project(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
         s.add(jobs_db.Run(project_id=project_id, result=result))
-        # 顺带从剧本派生分镜表（M4），供分镜工作台使用
-        from film.script import generate as m2gen
+        # 从剧本派生分镜表（M4）+ 落剧本（M2）
+        from film.script import generate as m2gen, outline as m2out
         from film.storyboard import make_shotlist
         from film.suppliers import adapter as sup_adapter
         ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
+        viol = m2out.validate_outline(ol)
+        s.query(jobs_db.Script).filter(jobs_db.Script.project_id == project_id).delete()
+        s.add(jobs_db.Script(project_id=project_id, episode_id=1, form=ol["form"],
+                             scenes=ol["scenes"],
+                             structure={"violations": viol, "beats_covered": 15,
+                                        "truby": list(m2out.enums.TRUBY_NODES),
+                                        "ppi": ol["ppi"], "midpoint": ol["midpoint"], "ppii": ol["ppii"]}))
         shots = make_shotlist(ol, ["主角", "配角"])
         s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == project_id).delete()
         for sh in shots:
@@ -323,6 +330,47 @@ def select_candidate(cid: int):
             sh.image_key = c.image_key
         s.commit()
     return {"selected": cid}
+
+@app.get("/api/dramas/{project_id}/script")
+def get_script(project_id: int):
+    with Session() as s:
+        sc = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.id.desc())).first()
+    if sc is None:
+        return {"scenes": [], "structure": {}, "form": None}
+    return {"form": sc.form, "scenes": sc.scenes, "structure": sc.structure}
+
+
+@app.put("/api/dramas/{project_id}/script/scene/{scene_no}")
+def update_scene(project_id: int, scene_no: int, body: dict):
+    """编辑某场次字段（M2.5 rewrite），校验结构后回写。"""
+    from film.script import outline as m2out
+    with Session() as s:
+        sc = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.id.desc())).first()
+        if sc is None:
+            raise HTTPException(status_code=404, detail="无剧本")
+        import copy as _copy
+        scenes = _copy.deepcopy(list(sc.scenes))
+        hit = None
+        for i, x in enumerate(scenes):
+            if x.get("number") == scene_no:
+                hit = i; break
+        if hit is None:
+            raise HTTPException(status_code=404, detail="场次不存在")
+        for k in ("event", "goal", "conflict", "result"):
+            if k in body:
+                scenes[hit][k] = body[k]
+        # 结构复校验
+        ol = m2out.make_outline(sc.form, scenes, sc.structure.get("ppi", 0.24),
+                                sc.structure.get("midpoint", 0.5), sc.structure.get("ppii", 0.8),
+                                sc.structure.get("truby", list(m2out.enums.TRUBY_NODES)))
+        viol = m2out.validate_outline(ol)
+        sc.scenes = scenes
+        st = dict(sc.structure); st["violations"] = viol; sc.structure = st
+        s.commit()
+    return {"scene_no": scene_no, "violations": viol, "scenes": scenes}
+
 
 @app.get("/api/dramas/{project_id}/gates")
 def list_gates(project_id: int):

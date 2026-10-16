@@ -102,6 +102,19 @@ class Candidate(Base):
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
+class Script(Base):
+    """剧本（M2）：Step Outline 场次 + 结构校验状态。"""
+    __tablename__ = "scripts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    episode_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    form: Mapped[str] = mapped_column(String(16), nullable=True)
+    scenes: Mapped[dict] = mapped_column(JSON, default=list)
+    structure: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"
