@@ -18,6 +18,22 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=_connect_args)
 jobs_db.Base.metadata.create_all(engine)
+
+# create_all 不会给已存在的表补索引；这里幂等补齐（SQLite/PG 均支持 IF NOT EXISTS）
+_INDEX_DDL = [
+    "CREATE INDEX IF NOT EXISTS ix_shots_project_episode ON shots (project_id, episode_id, shot_no)",
+    "CREATE INDEX IF NOT EXISTS ix_candidates_shot ON candidates (shot_id)",
+    "CREATE INDEX IF NOT EXISTS ix_jobs_project ON jobs (project_id)",
+    "CREATE INDEX IF NOT EXISTS ix_runs_project ON runs (project_id)",
+    "CREATE INDEX IF NOT EXISTS ix_characters_project ON characters (project_id)",
+]
+with engine.begin() as _c:
+    from sqlalchemy import text as _text
+    for _sql in _INDEX_DDL:
+        try:
+            _c.execute(_text(_sql))
+        except Exception:  # noqa: BLE001
+            pass
 Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 app = FastAPI(title="AADO API", version="0.1.0")
