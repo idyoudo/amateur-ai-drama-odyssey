@@ -55,7 +55,8 @@ async def static_cache_middleware(request, call_next):
         if path.endswith((".woff2", ".woff", ".ttf", ".png", ".jpg", ".svg")):
             response.headers["Cache-Control"] = "public, max-age=604800"
         elif path.endswith((".css", ".js")):
-            response.headers["Cache-Control"] = "public, max-age=300, must-revalidate"
+            # 未指纹化：强制每次重验，避免发版后浏览器用旧样式
+            response.headers["Cache-Control"] = "no-cache"
     return response
 
 

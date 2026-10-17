@@ -70,7 +70,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 /* ── 主区 ── */
 .main{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
 .topbar{position:sticky;top:0;z-index:15;background:var(--topbar-bg);backdrop-filter:saturate(160%) blur(16px);
-  border-bottom:1px solid var(--line);padding:11px 52px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding:9px 52px;display:flex;align-items:center;justify-content:space-between;
   gap:16px;flex-wrap:wrap}
 .topbar h1{font-family:var(--serif);font-size:25px;font-weight:400;margin:0;letter-spacing:-.02em;line-height:1.1;
   display:flex;align-items:baseline;gap:12px;white-space:nowrap;min-width:0}
@@ -79,7 +79,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .topbar .crumbs:hover{color:var(--accent)}
 .topbar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
-.view{padding:22px 52px 80px;max-width:1180px;width:100%}
+.view{padding:16px 52px 72px;max-width:1180px;width:100%}
 .view.wide{max-width:none}
 
 /* 编辑式大标题 */
@@ -266,16 +266,14 @@ body.dark{color-scheme:dark;
 }
 
 /* ── E1 全幅 Hero（仅概览） ── */
-.hero-full{position:relative;margin:-22px -52px 30px;padding:clamp(30px,5vh,56px) 52px clamp(24px,4vh,44px);
-  min-height:clamp(220px,30vh,320px);display:flex;flex-direction:column;justify-content:center;
-  border-bottom:1px solid var(--line);overflow:hidden;
-  background:radial-gradient(900px 420px at 84% -20%, var(--accent-soft) 0%, transparent 62%), var(--bg)}
-.hero-full::after{content:"";position:absolute;left:56px;right:56px;bottom:0;height:1px;
-  background:linear-gradient(90deg,var(--line-strong),transparent 70%)}
-.hero-full .eyebrow{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dim-2);margin-bottom:16px}
-.hero-full h1{font-family:var(--serif);font-size:clamp(24px,3.2vw,42px);font-weight:400;line-height:1.12;
-  letter-spacing:-.025em;margin:0;max-width:none;white-space:nowrap;word-break:keep-all}
-.hero-full p{font-size:14.5px;color:var(--dim);margin:16px 0 0;max-width:none;line-height:1.7}
+/* 紧凑页头：不做通栏大留白，正文紧贴其下 */
+.hero-full{position:relative;margin:0 0 18px;padding:0 0 16px;min-height:0;
+  display:block;border-bottom:1px solid var(--line);background:none;overflow:visible}
+.hero-full .eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dim-2);margin-bottom:6px}
+.hero-full h1{font-family:var(--serif);font-size:clamp(20px,2.4vw,30px);font-weight:400;line-height:1.25;
+  letter-spacing:-.02em;margin:0;max-width:none;white-space:nowrap;word-break:keep-all}
+.hero-full p{font-size:13px;color:var(--dim);margin:6px 0 0;max-width:76ch;line-height:1.6}
 
 /* ── E2 项目卡电影感封面 ── */
 .project-card{padding:0;overflow:hidden}
@@ -299,8 +297,8 @@ body.dark{color-scheme:dark;
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
 @media (max-width:860px){
-  .hero-full{margin:-28px -20px 32px;padding:36px 20px 30px;min-height:0}
-  .hero-full h1{font-size:28px;white-space:normal;text-wrap:balance}
+  .hero-full{margin:0 0 16px;padding:0 0 14px;min-height:0}
+  .hero-full h1{font-size:20px;white-space:normal;text-wrap:balance}
   .page-title{font-size:28px}
 }
 
