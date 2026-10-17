@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AADO 控制面 API 冒烟测试（含登录鉴权：未登录 401 / 错误密码 401 / 登录后放行）。"""
+import base64
 import json
 import os
 import sys
@@ -87,6 +88,36 @@ r = client.post("/api/dramas/%d/run" % novel_id, headers=H)
 check("小说项目流水线 19 阶段", r.status_code == 200 and len(r.json()["stages"]) == 19)
 check("短剧包型进入 M1",
       any(s["artifact"].get("package") == "100 集×1 分" for s in r.json()["stages"]))
+
+# ---------------- 小说 TXT 导入 ----------------
+_sample = ("测试小说\n作者：测试作者\n\n第一章 雨夜\n" + ("雨夜里的旧剧院传来回声。" * 20)
+           + "\n\n第二章 回声\n" + ("调音师在旧磁带里听见自己的声音。" * 20)
+           + "\n\n第三章 真相\n" + ("真相藏在那盘从未播放过的磁带里。" * 20))
+_b64 = base64.b64encode(_sample.encode("utf-8")).decode()
+r = client.post("/api/novels/import", headers=H,
+                json={"filename": "测试小说.txt", "content_b64": _b64})
+d = r.json()
+check("小说导入 200", r.status_code == 200 and d["chapters"] == 3)
+check("小说标题识别", d["title"] == "测试小说")
+check("小说作者识别", d["author"] == "测试作者")
+check("小说字数统计", d["char_count"] > 100 and d["words_wan"] > 0)
+check("小说编码识别", d["encoding"] == "utf-8")
+novel_id = d["novel_id"]
+_gbk = base64.b64encode(_sample.encode("gb18030")).decode()
+r = client.post("/api/novels/import", headers=H,
+                json={"filename": "测试小说-GBK.txt", "content_b64": _gbk})
+check("GBK 编码识别", r.status_code == 200 and r.json()["encoding"] == "gb18030"
+      and r.json()["title"] == "测试小说")
+r = client.post("/api/dramas", headers=H,
+                json={"title": "导入小说项目", "logline": "从 TXT 导入的小说改编项目",
+                      "platform": "红果漫剧", "rating": "12+", "genre": "悬疑",
+                      "platform_key": "hongguo", "source_type": "novel",
+                      "source_meta": {"novel_id": novel_id},
+                      "episodes": 3, "episode_seconds": 60, "aspect": "9:16", "minutes": 1})
+d = r.json()
+check("导入小说立项 200", r.status_code == 200 and d["source_meta"].get("novel_id") == novel_id)
+check("导入小说来源字段", d["source_meta"].get("filename") == "测试小说.txt"
+      and d["source_meta"].get("chapters") == 3)
 
 # ---------------- 入队 + 幂等 ----------------
 r1 = client.post("/api/drama-jobs", headers=H, json={"project_id": "p1", "type": "shot_video",

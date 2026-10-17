@@ -364,6 +364,39 @@ function fmtDur(sec) {
   const m = Math.floor(sec / 60), s = Math.round(sec % 60);
   return s ? `${m} 分 ${s} 秒` : `${m} 分钟`;
 }
+function bufToB64(buf) {
+  const bytes = new Uint8Array(buf); let s = ""; const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk)
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  return btoa(s);
+}
+async function importNovelFile(file) {
+  const st = $("#novel_status");
+  if (!file) return;
+  if (!/\.txt$/i.test(file.name) && file.type && !/text/.test(file.type))
+    return toast("请选择 TXT 文件");
+  if (file.size > 10 * 1024 * 1024) return toast("文件超过 10 MB");
+  if (st) st.textContent = "正在解析…";
+  try {
+    const b64 = bufToB64(await file.arrayBuffer());
+    const d = await api("/api/novels/import", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, content_b64: b64 }) });
+    window._NOVEL = d;
+    const t = $("#pf_title"), a = $("#pf_author"), w = $("#pf_words");
+    const c = $("#pf_chapters"), l = $("#pf_logline");
+    if (t && (!t.value.trim() || t.dataset.auto === "1")) { t.value = d.title || ""; t.dataset.auto = "1"; }
+    if (a && (!a.value.trim() || a.dataset.auto === "1")) { a.value = d.author || ""; a.dataset.auto = "1"; }
+    if (w) w.value = d.words_wan || w.value;
+    if (c) c.value = d.chapters || c.value;
+    if (l && !l.value.trim()) l.value = d.logline || "";
+    if (st) st.innerHTML = `已导入《${esc(d.title)}》 · ${d.chapters} 章 · ${d.words_wan} 万字 · ${esc(d.encoding)} · ${esc(d.filename)}`;
+    refreshFormatRec();
+  } catch (e) {
+    if (st) st.textContent = "导入失败：" + e.message;
+    toast("小说导入失败：" + e.message);
+  }
+}
 let _recSeq = 0, _recTimer = null;
 function scheduleFormatRec() { clearTimeout(_recTimer); _recTimer = setTimeout(refreshFormatRec, 250); }
 function setCreateMode(mode) {
@@ -429,10 +462,16 @@ async function viewProjects() {
         <input name="author" id="pf_author" class="novel-only hide" placeholder="原著作者（小说模式）">
       </div>
       <div class="grid3 novel-only hide" id="novel_row">
-        <input name="words_wan" id="pf_words" type="number" min="1" step="1" placeholder="原作字数（万字）" oninput="scheduleFormatRec()">
+        <input name="words_wan" id="pf_words" type="number" min="0.1" step="0.1" placeholder="原作字数（万字）" oninput="scheduleFormatRec()">
         <input name="chapters" id="pf_chapters" type="number" min="1" step="1" placeholder="原作章节数" oninput="scheduleFormatRec()">
         <input name="source_url" id="pf_source_url" placeholder="原著链接 / 授权编号（可选）">
       </div>
+      <label class="import-box novel-only hide" id="novel_drop">
+        <input type="file" id="pf_novel_file" accept=".txt,text/plain" class="hide">
+        <b>导入小说 TXT</b>
+        <small>自动识别章节、字数、作者与编码（UTF-8 / GBK）· 上限 10 MB · 也可拖拽到此处</small>
+        <span id="novel_status" class="muted" style="font-size:var(--fs-sm)"></span>
+      </label>
       <div class="rec-box" id="fmtbox"><span class="muted">正在获取分集建议…</span></div>
       <div class="grid3">
         <label class="fld"><small>分集数</small><input name="episodes" id="pf_eps" type="number" min="1" max="200" value="6"></label>
@@ -459,6 +498,19 @@ async function viewProjects() {
     ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div><div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
   });
   window._PROJS = projs;
+  window._NOVEL = null;
+  const fInput = $("#pf_novel_file");
+  if (fInput) fInput.onchange = e => { const f = e.target.files[0]; if (f) importNovelFile(f); e.target.value = ""; };
+  const drop = $("#novel_drop");
+  if (drop) {
+    ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.add("drag");
+    }));
+    ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.remove("drag");
+    }));
+    drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) importNovelFile(f); });
+  }
   refreshFormatRec();
   const pf = $("#pf");
   if (pf) pf.onsubmit = async e => {
@@ -470,9 +522,12 @@ async function viewProjects() {
     const sel = $("#pf_platform");
     b.platform = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : (b.platform_key || "红果漫剧");
     if (b.source_type === "novel") {
-      b.source_meta = { title: b.title, author: b.author || "",
+      const nv = window._NOVEL || {};
+      b.source_meta = { title: b.title, author: b.author || nv.author || "",
         words_wan: Number(b.words_wan || 0) || null,
-        chapters: Number(b.chapters || 0) || null, source_url: b.source_url || "" };
+        chapters: Number(b.chapters || 0) || null, source_url: b.source_url || "",
+        novel_id: nv.novel_id || null };
+      if (nv.filename) b.source_meta.filename = nv.filename;
     }
     delete b.author; delete b.words_wan; delete b.chapters; delete b.source_url;
     if (!b.minutes) b.minutes = Math.max(1, Math.round((b.episode_seconds || 1800) / 60));
@@ -585,7 +640,7 @@ async function viewProject(id) {
   const sm = p.source_meta || {};
   const srcRow = sm.type === "novel" ? `<div class="k">改编来源</div><div>《${esc(sm.title || p.title)}》${
     sm.author ? " · " + esc(sm.author) : ""}${sm.words_wan ? " · 原作 " + esc(sm.words_wan) + " 万字" : ""}${
-    sm.chapters ? " / " + esc(sm.chapters) + " 章" : ""}</div>` : "";
+    sm.chapters ? " / " + esc(sm.chapters) + " 章" : ""}${sm.filename ? " · " + esc(sm.filename) : ""}</div>` : "";
   setMain({
     title: esc(p.title),
     top: `<div class="right">

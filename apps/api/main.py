@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
 from film import formats as fmt
+from film import novels as novel_parser
 from film.jobs import db as jobs_db
 from film.projects import project as proj_mod
 from film.suppliers import config as sup_config
@@ -268,6 +269,34 @@ def list_formats():
     return fmt.public_presets()
 
 
+@app.post("/api/novels/import")
+def import_novel(body: dict):
+    """导入小说 TXT：识别编码/章节/字数/作者，原文落库。"""
+    import base64
+    filename = str(body.get("filename") or "novel.txt")[:200]
+    b64 = str(body.get("content_b64") or "")
+    if not b64:
+        raise HTTPException(status_code=422, detail="缺少文件内容")
+    try:
+        data = base64.b64decode(b64, validate=False)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail="文件内容不是有效的 base64")
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="文件过大（上限 10 MB）")
+    text, enc = novel_parser.decode_bytes(data)
+    if not text.strip():
+        raise HTTPException(status_code=422, detail="文件为空")
+    meta = novel_parser.parse_novel(text, filename)
+    with Session() as s:
+        row = jobs_db.Novel(filename=filename, title=meta["title"], author=meta["author"],
+                            chapters=meta["chapters"], char_count=meta["char_count"],
+                            encoding=enc, text=text)
+        s.add(row)
+        s.commit()
+        meta.update({"novel_id": row.id, "encoding": enc, "filename": filename})
+    return meta
+
+
 @app.post("/api/formats/recommend")
 def recommend_format(body: dict):
     """按平台、原著规模与题材给出分集建议（可手动覆盖）。"""
@@ -312,9 +341,24 @@ def create_project(body: CreateProject):
     source_meta = {}
     if body.source_type == "novel":
         raw = body.source_meta or {}
-        for k in ("title", "author", "words_wan", "chapters", "source_url"):
+        for k in ("title", "author", "words_wan", "chapters", "source_url", "novel_id"):
             if raw.get(k) not in (None, ""):
                 source_meta[k] = raw.get(k)
+        if source_meta.get("novel_id"):
+            try:
+                nid = int(source_meta["novel_id"])
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=422, detail="novel_id 非法")
+            with Session() as s:
+                nv = s.get(jobs_db.Novel, nid)
+            if nv is None:
+                raise HTTPException(status_code=422, detail="导入的小说不存在")
+            source_meta.setdefault("title", nv.title)
+            source_meta.setdefault("author", nv.author or "")
+            source_meta.setdefault("chapters", nv.chapters)
+            source_meta.setdefault("words_wan", round((nv.char_count or 0) / 10000.0, 1))
+            source_meta.update({"novel_id": nv.id, "filename": nv.filename,
+                                "encoding": nv.encoding, "char_count": nv.char_count})
         source_meta["type"] = "novel"
     with Session() as s:
         row = jobs_db.Project(title=p["title"], logline=p["logline"],

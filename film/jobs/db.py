@@ -5,7 +5,7 @@
 """
 import datetime as _dt
 
-from sqlalchemy import DateTime, Index, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import DateTime, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from . import state_machine
@@ -170,6 +170,21 @@ class ModuleParams(Base):
     project_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class Novel(Base):
+    """导入的小说原文（TXT）：用于小说改编立项与后续拆章。"""
+    __tablename__ = "novels"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    filename: Mapped[str] = mapped_column(String(256), nullable=True)
+    title: Mapped[str] = mapped_column(String(128), nullable=True)
+    author: Mapped[str] = mapped_column(String(128), nullable=True)
+    chapters: Mapped[int] = mapped_column(Integer, default=0)
+    char_count: Mapped[int] = mapped_column(Integer, default=0)
+    encoding: Mapped[str] = mapped_column(String(32), nullable=True)
+    text: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
 class ModelConfig(Base):
