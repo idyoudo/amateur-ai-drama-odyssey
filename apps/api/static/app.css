@@ -28,8 +28,8 @@
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --ease:cubic-bezier(.32,.72,0,1);
   /* 字体阶梯（唯一字号来源，禁止再引入中间值） */
-  --fs-micro:11px; --fs-meta:12px; --fs-sm:13px; --fs-table:14px; --fs-body:15px;
-  --fs-h3:18px; --fs-h2:20px; --fs-h1:22px; --fs-stat:24px;
+  --fs-micro:10px; --fs-meta:11px; --fs-sm:12px; --fs-table:13px; --fs-body:14px;
+  --fs-h3:16px; --fs-h2:18px; --fs-h1:20px; --fs-stat:22px;
   /* 语义 token（E4：消灭硬编码） */
   --topbar-bg:rgba(251,251,253,.88);
   --overlay:rgba(23,23,28,.36);
@@ -292,7 +292,8 @@ body.dark{color-scheme:dark;
 .pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .pc-title{font-family:var(--serif);font-size:var(--fs-h2);font-weight:400;margin:0;line-height:1.2;letter-spacing:-.01em}
 .pc-meta{font-size:var(--fs-meta);color:var(--dim-2);margin-top:5px;letter-spacing:.02em}
-.pc-logline{font-size:var(--fs-table);color:var(--dim);line-height:1.6;margin-top:10px}
+.pc-logline{font-size:var(--fs-table);color:var(--dim);line-height:1.6;margin-top:10px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media (max-width:520px){
   .cards{grid-template-columns:1fr}
 }
