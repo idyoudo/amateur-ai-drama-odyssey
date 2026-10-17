@@ -120,7 +120,7 @@ function renderLogin() {
       <input name="username" placeholder="用户名" value="admin">
       <input name="password" type="password" placeholder="密码" autofocus>
       <button class="btn" type="submit">登 录</button>
-      <div id="lerr" class="muted hide" style="color:var(--bad);font-size:12px"></div>
+      <div id="lerr" class="muted hide" style="color:var(--bad);font-size:var(--fs-sm)"></div>
     </div></form></div>`;
   $("#lf").onsubmit = async e => {
     e.preventDefault(); const f = new FormData(e.target);
@@ -285,7 +285,7 @@ async function navigate(name, param) {
     setMain({
       title: "页面未找到", sub: "链接可能已失效",
       body: `<div class="card empty">${ico("x")}<div>没有这个页面</div>
-        <div class="muted" style="font-size:12.5px;margin-top:4px">检查地址，或回到概览继续操作</div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:4px">检查地址，或回到概览继续操作</div>
         <div style="margin-top:16px"><button class="btn" onclick="go('overview')">回到概览</button></div></div>`,
     });
     return;
@@ -338,15 +338,15 @@ async function viewOverview() {
     <h2>制作流程 <span class="hint">19 模块 · Development → Delivery</span></h2>
     <div class="card">
       ${SEGMENTS.map(([seg, mods]) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
-        <div style="flex:0 0 150px;font-size:12px;color:var(--accent)">${seg}</div>
+        <div style="flex:0 0 150px;font-size:var(--fs-sm);color:var(--accent)">${seg}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${mods.map(m => {
           const meta = STAGES.find(x => x[0] === m) || ["", m, ""];
-          return `<span class="pill" style="font-size:11px">${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
+          return `<span class="pill" style="font-size:var(--fs-meta)">${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
     </div>
     <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
       : `<div class="card empty">${ico("film")}<div>还没有项目</div>
-        <div class="muted" style="font-size:12.5px;margin-top:6px">30 秒体验：一键创建示例项目并跑完 19 阶段</div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">30 秒体验：一键创建示例项目并跑完 19 阶段</div>
         <div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
         <button class="btn ghost" style="margin-left:8px" onclick="go('projects')">手动立项</button></div></div>`}`,
   });
@@ -371,8 +371,8 @@ function projectCard(p) {
       <div class="cv-meta">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div>
     </div>
     <div class="pbody">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-        <div class="muted" style="font-size:12px;min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
+      <div class="pbody-row">
+        <div class="muted" style="font-size:var(--fs-sm);min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
     </div></div>`;
 }
 
@@ -396,7 +396,7 @@ async function viewProjects() {
         <select name="minutes"><option value="22">22 分钟/集</option><option value="30" selected>30 分钟/集</option><option value="45">45 分钟/集</option></select>
       </div>
       <div class="form-actions"><button class="btn" type="submit">创建立项</button>
-        <span class="muted" style="font-size:12px">默认首季 6 集 × 30 分钟</span></div>
+        <span class="muted" style="font-size:var(--fs-sm)">默认首季 6 集 × 30 分钟</span></div>
     </form>
     <h2>全部项目 <span class="hint">${projs.length} 个</span></h2>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
@@ -473,7 +473,7 @@ function renderBoard() {
     <div class="board-cards">${list.filter(p => (p.lifecycle || "立项") === name).map(p =>
       `<div class="board-card" onclick="go('project:${p.id}')"><div class="bc-title">${esc(p.title)}</div>
         <div class="bc-meta">${p.episodes || 6} 集 · ${p.shots || 0} 镜</div>
-        <div class="bc-actions">${lifecycleActions(p)}</div></div>`).join("") || `<div class="muted" style="font-size:11.5px;padding:6px 2px">—</div>`}</div></div>`;
+        <div class="bc-actions">${lifecycleActions(p)}</div></div>`).join("") || `<div class="muted" style="font-size:var(--fs-meta);padding:6px 2px">—</div>`}</div></div>`;
   $("#pboard").innerHTML = `<div class="board">${order.map(col).join("")}</div>`;
 }
 async function setLifecycle(id, status, label) {
@@ -515,7 +515,7 @@ async function viewProject(id) {
       <div class="s">${st ? `<i class="dot ${cls}"></i> ${txt}` : txt}</div></div>`;
   };
   const stepper = SEGMENTS.map(([seg, mods]) => `<div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--accent);letter-spacing:.5px;margin-bottom:6px">${seg}</div>
+      <div style="font-size:var(--fs-meta);color:var(--accent);letter-spacing:.5px;margin-bottom:6px">${seg}</div>
       <div class="stepper">${mods.map(stepCard).join("")}</div></div>`).join("");
 
   const passed = run ? run.summary.passed : 0, total = 19;
@@ -558,15 +558,15 @@ async function viewProject(id) {
       const cnt = ep.breakdown[String(n)] || 0;
       cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--accent)" : ""}" onclick="pickEp(${id},${n})">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <b style="font-size:13px">第 ${n} 集</b>
-          ${n === CUR_EP ? '<span class="pill gold" style="font-size:10px">当前</span>' : ""}</div>
-        <div class="muted" style="font-size:11px;margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
+          <b style="font-size:var(--fs-table)">第 ${n} 集</b>
+          ${n === CUR_EP ? '<span class="pill gold" style="font-size:var(--fs-micro)">当前</span>' : ""}</div>
+        <div class="muted" style="font-size:var(--fs-meta);margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
     }
-    bar.innerHTML = `<div style="font-size:12px;color:var(--accent);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
+    bar.innerHTML = `<div style="font-size:var(--fs-sm);color:var(--accent);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
   }).catch(e => {
     const bar = $("#epbar");
-    if (bar) bar.innerHTML = `<div class="muted" style="color:var(--bad);font-size:12px">分集看板加载失败：${esc(e.message)}
+    if (bar) bar.innerHTML = `<div class="muted" style="color:var(--bad);font-size:var(--fs-sm)">分集看板加载失败：${esc(e.message)}
       <button class="btn ghost sm" style="margin-left:8px" onclick="viewProject(${id})">重试</button></div>`;
   });
   // 制作统计（异步，按当前集）
@@ -582,7 +582,7 @@ async function viewProject(id) {
         <div class="progress" style="margin-top:8px"><i style="width:${pct}%"></i></div></div>`;
   }).catch(e => {
     const el = $("#projstats");
-    if (el) el.innerHTML = `<div class="card" style="grid-column:1/-1;color:var(--bad);font-size:12px">镜头统计加载失败：${esc(e.message)}
+    if (el) el.innerHTML = `<div class="card" style="grid-column:1/-1;color:var(--bad);font-size:var(--fs-sm)">镜头统计加载失败：${esc(e.message)}
       <button class="btn ghost sm" style="margin-left:8px" onclick="viewProject(${id})">重试</button></div>`;
   });
   window.pickStage = (n) => { CUR.stage = n; syncHash(hashFor("project", id, n)); viewProject(id); };
@@ -594,7 +594,7 @@ async function renderStageDetail(st) {
 }
 async function _renderStageDetail(st) {
   const el = $("#stagedetail"); if (!el) return;
-  if (!st) { el.innerHTML = `<div class="detail empty">${ico("play")}<div>该阶段尚无运行结果</div><div class="muted" style="font-size:12.5px;margin-top:4px">点击右上角「运行流水线」生成</div></div>`; return; }
+  if (!st) { el.innerHTML = `<div class="detail empty">${ico("play")}<div>该阶段尚无运行结果</div><div class="muted" style="font-size:var(--fs-sm);margin-top:4px">点击右上角「运行流水线」生成</div></div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
   const art = st.artifact || {};
   const modCode = (st.stage.match(/^M\d+/) || [""])[0];
@@ -691,10 +691,10 @@ function sbCard(s) {
     <div class="thumb">${ico(s.status === "已生成" ? "frame" : "film")}
       <span class="tag">镜 ${s.shot_no}</span>
       <input type="checkbox" ${sel ? "checked" : ""} style="position:absolute;top:8px;right:8px;width:auto" onclick="event.stopPropagation();sbToggle('${s.id}')"></div>
-    <div class="body"><h4 style="font-size:13px">场 ${s.scene_no} · ${esc(s.move)}</h4>
+    <div class="body"><h4 style="font-size:var(--fs-table)">场 ${s.scene_no} · ${esc(s.move)}</h4>
       <div class="meta"><span>${esc(s.size)}</span><span>${esc(s.angle)}</span><span>${s.duration}s</span>
         ${(s.characters || []).map(c => `<span>${esc(c)}</span>`).join("")}</div>
-      <div style="margin-top:8px"><span class="pill ${s.status === "已生成" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`;
+      <div style="margin-top:8px"><span class="pill ${s.status === "已生成" ? "ok" : ""}" style="font-size:var(--fs-micro)">${esc(s.status)}</span></div></div></div>`;
 }
 function sbToggle(id) {
   id = String(id); if (SBSEL.has(id)) SBSEL.delete(id); else SBSEL.add(id);
@@ -739,7 +739,7 @@ async function sbOpen(shotId, shotNo) {
         <div class="k">提示词</div><div>${esc(sh.prompt)}</div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <b style="font-size:13px">候选（抽卡）</b>
+        <b style="font-size:var(--fs-table)">候选（抽卡）</b>
         <button class="btn sm" onclick="genCands('${shotId}')">${ico("sparkle")} 生成 4 个候选</button></div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
         ${cands.length ? cands.map(c => `<div class="cand ${c.selected ? "on" : ""}" onclick="pickCand('${c.id}','${shotId}')">
@@ -763,7 +763,7 @@ async function costPreview() {
     `<div class="kv" style="margin-bottom:10px">${pv.items.map(it =>
       `<div class="k">${esc(it.kind)}</div><div>${it.count ? it.count + " 次" : (it.seconds || 0) + " 秒"} · ¥${it.cost_cny}</div>`).join("")}
       <div class="k"><b>合计</b></div><div><b>¥${pv.total_cny}</b></div></div>
-     <button class="btn" onclick="costConfirm()">确认并放行</button> <span class="muted" style="font-size:11px">未确认前不产生付费调用</span>`;
+     <button class="btn" onclick="costConfirm()">确认并放行</button> <span class="muted" style="font-size:var(--fs-meta)">未确认前不产生付费调用</span>`;
 }
 async function costConfirm() {
   const d = await api("/api/dramas/" + CUR.id + "/cost-preview", { method: "POST",
@@ -782,7 +782,7 @@ async function renderProviders() {
         <b>${ico(ICON[k.kind] || "route")} ${esc(k.kind)}</b>
         <span class="pill ${k.configured ? "ok" : ""}">${k.configured ? "真实" : "Mock"}</span></div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
-        ${k.stages.map((st, i) => `<span class="pill ok" style="font-size:11px">${esc(st.stage)} ✓</span>${i < k.stages.length - 1 ? '<span class="muted">→</span>' : ""}`).join("")}
+        ${k.stages.map((st, i) => `<span class="pill ok" style="font-size:var(--fs-meta)">${esc(st.stage)} ✓</span>${i < k.stages.length - 1 ? '<span class="muted">→</span>' : ""}`).join("")}
       </div></div>`).join("")}</div>`;
 }
 
@@ -799,16 +799,16 @@ async function renderCost() {
       <div class="stat"><div class="k">${d.north_star.minutes_per_yuan}</div><div class="l">每元产出分钟（北极星）</div></div>
       <div class="stat"><div class="k">${esc(d.budget.level)}</div><div class="l">预算预警</div></div>
     </div>
-    <h2 style="font-size:13px">过程指标</h2>
+    <h2 style="font-size:var(--fs-table)">过程指标</h2>
     <div class="card">${d.process.map(x => `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(x.name)}</span><b>${x.value}${x.name.includes("调用") ? "" : "%"}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>${esc(x.name)}</span><b>${x.value}${x.name.includes("调用") ? "" : "%"}</b></div>
       ${bar(x.name.includes("重试") || x.name.includes("调用") ? x.value : x.value)}</div>`).join("")}</div>
-    <h2 style="font-size:13px">影视过程指标（与成本并列）</h2>
+    <h2 style="font-size:var(--fs-table)">影视过程指标（与成本并列）</h2>
     <div class="card">${d.film_process.map(x => `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(x.name)}</span><b>${x.value}%</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--fs-sm)"><span>${esc(x.name)}</span><b>${x.value}%</b></div>
       ${bar(x.value)}</div>`).join("")}</div>
-    <div class="muted" style="font-size:11px;margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>
-    <h2 style="font-size:13px">生成前确认闸 <span class="hint">花额度前逐镜摊开（C6）</span></h2>
+    <div class="muted" style="font-size:var(--fs-meta);margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>
+    <h2 style="font-size:var(--fs-table)">生成前确认闸 <span class="hint">花额度前逐镜摊开（C6）</span></h2>
     <div class="card" id="costprev"><button class="btn ghost" onclick="costPreview()">预估本项目生成成本</button></div>`;
 }
 
@@ -835,7 +835,7 @@ async function renderContinuity() {
   const box = $("#contview"); if (!box) return;
   let d; try { d = await api("/api/dramas/" + CUR.id + "/continuity"); } catch (e) { return; }
   if (!d.rows.length) return;
-  box.innerHTML = `<h2 style="font-size:13px;margin-top:20px">连续性表 <span class="hint">${esc(d.axes)}</span></h2>
+  box.innerHTML = `<h2 style="font-size:var(--fs-table);margin-top:20px">连续性表 <span class="hint">${esc(d.axes)}</span></h2>
     <div style="display:flex;gap:10px;margin-bottom:10px">
       <span class="pill">${d.shots} 镜</span>
       <span class="pill ${d.violations.length ? "bad" : "ok"}">${d.violations.length ? d.violations.length + " 处违规" : "无违规"}</span></div>
@@ -845,7 +845,7 @@ async function renderContinuity() {
         <td>${esc(r.entry_side || "")}</td><td>${esc(r.exit_side || "")}</td>
         <td>${esc(r.eyeline || "")}</td><td>${esc(r.day_night || "")}</td></tr>`).join("")}
       </tbody></table></div>
-    ${d.violations.length ? `<div style="color:var(--bad);margin-top:10px;font-size:12px">${d.violations.slice(0,10).map(v => `镜 ${v.shot_no} · ${esc(v.msg)}`).join("<br>")}</div>` : ""}`;
+    ${d.violations.length ? `<div style="color:var(--bad);margin-top:10px;font-size:var(--fs-sm)">${d.violations.slice(0,10).map(v => `镜 ${v.shot_no} · ${esc(v.msg)}`).join("<br>")}</div>` : ""}`;
 }
 
 /* 角色工作台（M3：锚点三视图 + 音色 + 定妆门禁） */
@@ -858,10 +858,10 @@ async function renderCast() {
     ${chars.map(c => `<h2>${ico("face")} ${esc(c.name)} <span class="hint">音色 ${esc(c.voice_key)} · ${c.anchors.length} 张锚点 · ${esc(c.status)}</span></h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:18px">
         ${c.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4">${ico("face")}<span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
-          <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
+          <div class="body"><div class="muted" style="font-size:var(--fs-meta)">锚点 · ${esc(a)}</div></div></div>`).join("")}
       </div>`).join("")}
-    <div class="card"><b style="font-size:13px">定妆门禁</b>
-      <div class="kv" style="grid-template-columns:120px 1fr;font-size:12px;margin-top:8px">
+    <div class="card"><b style="font-size:var(--fs-table)">定妆门禁</b>
+      <div class="kv" style="grid-template-columns:120px 1fr;font-size:var(--fs-sm);margin-top:8px">
         <div class="k">署名</div><div>showrunner（唯一署名审批人）</div>
         <div class="k">理由码</div><div>pass_with_condition</div>
         <div class="k">二元清单</div><div>三视图齐备 · 五官一致 · 无真人相似风险 · 嵌入已入库</div>
@@ -882,14 +882,14 @@ async function renderScript() {
       <div class="stat"><div class="k">15/15</div><div class="l">Save the Cat 拍</div></div>
       <div class="stat"><div class="k">${viol.length ? "⚠ " + viol.length : "✓ 0"}</div><div class="l">结构问题</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px"><b style="font-size:13px">结构健康度</b>
-      <div class="kv" style="grid-template-columns:150px 1fr;font-size:12px;margin-top:8px">
+    <div class="card" style="margin-bottom:16px"><b style="font-size:var(--fs-table)">结构健康度</b>
+      <div class="kv" style="grid-template-columns:150px 1fr;font-size:var(--fs-sm);margin-top:8px">
         <div class="k">Plot Point I</div><div>${esc(st.ppi)}（应 0.22–0.25）</div>
         <div class="k">Midpoint</div><div>${esc(st.midpoint)}（应 0.48–0.52）</div>
         <div class="k">Plot Point II</div><div>${esc(st.ppii)}（应 0.78–0.82）</div>
         <div class="k">Truby 四节点</div><div>${(st.truby || []).map(esc).join(" · ")}</div>
       </div>
-      ${viol.length ? `<div style="color:var(--bad);margin-top:8px;font-size:12px">${viol.map(esc).join("；")}</div>` : ""}
+      ${viol.length ? `<div style="color:var(--bad);margin-top:8px;font-size:var(--fs-sm)">${viol.map(esc).join("；")}</div>` : ""}
     </div>
     <div style="display:flex;gap:8px;margin:14px 0 10px">
       <span class="pill gold">分镜表</span>
@@ -899,9 +899,9 @@ async function renderScript() {
     <div id="memview"></div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
       ${d.scenes.map(sc => `<div class="card" style="cursor:pointer" onclick="editScene(${sc.number})">
-        <div style="display:flex;justify-content:space-between"><b style="font-size:13px">场 ${sc.number}</b>
-          <span class="pill" style="font-size:10px">${esc((sc.beats || [])[0] || "")}</span></div>
-        <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}
+        <div style="display:flex;justify-content:space-between"><b style="font-size:var(--fs-table)">场 ${sc.number}</b>
+          <span class="pill" style="font-size:var(--fs-micro)">${esc((sc.beats || [])[0] || "")}</span></div>
+        <div class="muted" style="font-size:var(--fs-meta);margin-top:6px;line-height:1.7">目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}
     </div>`;
   renderMemory();
 }
@@ -910,18 +910,18 @@ async function showScreenplay() {
   if (!box.classList.contains("hide")) { box.classList.add("hide"); return; }
   try { const d = await api("/api/dramas/" + CUR.id + "/screenplay");
     box.classList.remove("hide");
-    box.innerHTML = `<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:16px;max-height:400px;overflow:auto">${esc(d.text)}</pre>`;
+    box.innerHTML = `<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:var(--fs-sm);line-height:1.7;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:16px;max-height:400px;overflow:auto">${esc(d.text)}</pre>`;
   } catch (e) { toast("" + e.message); }
 }
 async function renderMemory() {
   const box = $("#memview"); if (!box) return;
   let d; try { d = await api("/api/dramas/" + CUR.id + "/memory"); } catch (e) { return; }
   if (!d.context) return;
-  box.innerHTML = `<h2 style="font-size:13px;margin-top:18px">长篇连贯性记忆 <span class="hint">C1 四层 · 跨集不跑偏</span></h2>
-    <pre style="white-space:pre-wrap;font-size:12px;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:14px">${esc(d.context)}</pre>
+  box.innerHTML = `<h2 style="font-size:var(--fs-table);margin-top:18px">长篇连贯性记忆 <span class="hint">C1 四层 · 跨集不跑偏</span></h2>
+    <pre style="white-space:pre-wrap;font-size:var(--fs-sm);color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:14px">${esc(d.context)}</pre>
     <div style="margin:8px 0"><span class="pill ${d.violations.length ? "bad" : "ok"}">记忆层 ${d.violations.length ? d.violations.length + " 项超限" : "合规"}</span>
       <span class="pill ${d.audit.length ? "bad" : "ok"}" style="margin-left:6px">因果链审计 ${d.audit.length ? d.audit.length + " 处问题" : "通过"}</span></div>
-    <div class="muted" style="font-size:11px">因果链变更记录（触发→过程→结果）示例：${d.change_records.slice(0,2).map(r => `场${r.scene_no}: ${esc(r.trigger)}→${esc(r.process)}→${esc(r.result)}`).join("；") || "—"}</div>`;
+    <div class="muted" style="font-size:var(--fs-meta)">因果链变更记录（触发→过程→结果）示例：${d.change_records.slice(0,2).map(r => `场${r.scene_no}: ${esc(r.trigger)}→${esc(r.process)}→${esc(r.result)}`).join("；") || "—"}</div>`;
 }
 async function editScene(no) {
   const d = await api("/api/dramas/" + CUR.id + "/script?episode=" + CUR_EP);
@@ -930,12 +930,12 @@ async function editScene(no) {
   modal.innerHTML = `<div class="box" style="max-width:560px">
     <div class="mhead"><h2>编辑 场 ${no}</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
     <div class="mbody">
-      <div class="muted" style="font-size:12px;margin-bottom:12px">单改纪律：一次只改需要改的字段，改后自动复校验结构。</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">单改纪律：一次只改需要改的字段，改后自动复校验结构。</div>
       <div class="stack">
-        <label class="muted" style="font-size:11px">事件</label><input id="s_event" value="${esc(sc.event || "")}">
-        <label class="muted" style="font-size:11px">目标</label><input id="s_goal" value="${esc(sc.goal || "")}">
-        <label class="muted" style="font-size:11px">冲突</label><input id="s_conflict" value="${esc(sc.conflict || "")}">
-        <label class="muted" style="font-size:11px">结果</label><input id="s_result" value="${esc(sc.result || "")}">
+        <label class="muted" style="font-size:var(--fs-meta)">事件</label><input id="s_event" value="${esc(sc.event || "")}">
+        <label class="muted" style="font-size:var(--fs-meta)">目标</label><input id="s_goal" value="${esc(sc.goal || "")}">
+        <label class="muted" style="font-size:var(--fs-meta)">冲突</label><input id="s_conflict" value="${esc(sc.conflict || "")}">
+        <label class="muted" style="font-size:var(--fs-meta)">结果</label><input id="s_result" value="${esc(sc.result || "")}">
         <button class="btn" onclick="saveScene(${no})">保存并复校验</button>
       </div></div></div>`;
   document.body.appendChild(modal);
@@ -959,14 +959,14 @@ async function renderGates() {
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">
     ${gates.map(g => `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:13.5px">${ico("gate")} ${esc(g.label)}</b>
+        <b style="font-size:var(--fs-body)">${ico("gate")} ${esc(g.label)}</b>
         <span class="pill ${g.decision === "pending" ? "" : "ok"}">${g.decision === "pending" ? "待签" : "已通过"}</span></div>
-      <div class="kv" style="grid-template-columns:88px 1fr;font-size:12px;margin-top:10px">
+      <div class="kv" style="grid-template-columns:88px 1fr;font-size:var(--fs-sm);margin-top:10px">
         <div class="k">署名</div><div>${esc(g.approver)}</div>
         <div class="k">岗位</div><div>${esc(g.role)}</div>
         <div class="k">理由码</div><div>${esc(g.reason_code || "—")}</div>
       </div>
-      <div style="margin-top:10px;font-size:11px">${g.checklist.map(c => `<div style="padding:2px 0;color:${c.pass ? "var(--ok)" : "var(--dim)"}">${c.pass ? "✓" : "○"} ${esc(c.item)}</div>`).join("")}</div>
+      <div style="margin-top:10px;font-size:var(--fs-meta)">${g.checklist.map(c => `<div style="padding:2px 0;color:${c.pass ? "var(--ok)" : "var(--dim)"}">${c.pass ? "✓" : "○"} ${esc(c.item)}</div>`).join("")}</div>
     </div>`).join("")}</div>`;
 }
 
@@ -980,9 +980,9 @@ async function renderTimeline() {
   const total = d.total_duration;
   const bar = d.timeline.map(sh => {
     const w = (sh.duration / total * 100);
-    return `<div title="镜${sh.shot_no} ${sh.size} ${sh.move} ${sh.duration}s" style="flex:0 0 ${w}%;height:44px;background:${SIZE_COLOR[sh.size]||"#4a5f7d"};border-right:1px solid #0a0c10;display:flex;align-items:center;justify-content:center;font-size:9px;color:#cdd7e5;overflow:hidden">${sh.shot_no}</div>`;
+    return `<div title="镜${sh.shot_no} ${sh.size} ${sh.move} ${sh.duration}s" style="flex:0 0 ${w}%;height:44px;background:${SIZE_COLOR[sh.size]||"#4a5f7d"};border-right:1px solid #0a0c10;display:flex;align-items:center;justify-content:center;font-size:var(--fs-micro);color:#cdd7e5;overflow:hidden">${sh.shot_no}</div>`;
   }).join("");
-  const markers = d.acts.map(a => `<div style="position:absolute;left:${a.at / total * 100}%;top:-6px;bottom:-20px;border-left:1px dashed var(--accent);font-size:9px;color:var(--accent);padding-left:3px;white-space:nowrap">${esc(a.name)}</div>`).join("");
+  const markers = d.acts.map(a => `<div style="position:absolute;left:${a.at / total * 100}%;top:-6px;bottom:-20px;border-left:1px dashed var(--accent);font-size:var(--fs-micro);color:var(--accent);padding-left:3px;white-space:nowrap">${esc(a.name)}</div>`).join("");
   box.innerHTML = `
     <div class="stats" style="margin-bottom:16px">
       <div class="stat"><div class="k">${total}s</div><div class="l">成片时长</div></div>
@@ -990,7 +990,7 @@ async function renderTimeline() {
       <div class="stat"><div class="k">${d.asl}s</div><div class="l">平均镜头长度 ASL</div></div>
       <div class="stat"><div class="k">${d.asl_in_band ? "✓" : "⚠"}</div><div class="l">ASL 在 2–4s 参考带</div></div>
     </div>
-    <h2 style="font-size:13px">时间线 <span class="hint">按镜头时长比例 · 虚线为幕结构标记</span></h2>
+    <h2 style="font-size:var(--fs-table)">时间线 <span class="hint">按镜头时长比例 · 虚线为幕结构标记</span></h2>
     <div style="position:relative;margin-top:18px;margin-bottom:26px">
       <div style="display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">${bar}</div>
       ${markers}</div>
@@ -1012,8 +1012,8 @@ function stageBody(stage, art) {
     return `<div class="muted" style="margin-bottom:10px">形态 <b>${esc(art.form)}</b> · ${art.scenes} 场 · 15 拍覆盖 · Truby 四节点</div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
       ${art.scene_list.map(sc => `<div class="card"><div style="display:flex;justify-content:space-between">
-        <b style="font-size:13px">场 ${sc.no}</b><span class="pill" style="font-size:10px">${esc((sc.beats||[])[0]||"")}</span></div>
-        <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.7">
+        <b style="font-size:var(--fs-table)">场 ${sc.no}</b><span class="pill" style="font-size:var(--fs-micro)">${esc((sc.beats||[])[0]||"")}</span></div>
+        <div class="muted" style="font-size:var(--fs-meta);margin-top:6px;line-height:1.7">
           目标：${esc(sc.goal)}<br>冲突：${esc(sc.conflict)}<br>结果：${esc(sc.result)}</div></div>`).join("")}</div>`;
   }
   // 选角：角色工作台（参考 LumenX CharacterWorkbench / Cast）
@@ -1023,7 +1023,7 @@ function stageBody(stage, art) {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
         ${art.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4">${ico("face")}
           <span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
-          <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
+          <div class="body"><div class="muted" style="font-size:var(--fs-meta)">锚点 · ${esc(a)}</div></div></div>`).join("")}
       </div>
       <div class="kv" style="margin-top:16px">
         <div class="k">角色</div><div>${esc(art.character)}</div>
@@ -1048,11 +1048,11 @@ function stageBody(stage, art) {
       <div style="display:flex;flex-direction:column;gap:8px">
         <div class="card" style="border-color:var(--accent);background:var(--accent-soft)">
           <b>${ico("master")} 生成母版</b> <span class="pill gold">${esc(art.master)}</span>
-          <div class="muted" style="font-size:11px;margin-top:4px">唯一 · 16:9 open gate 最高可用分辨率</div></div>
-        <div style="text-align:center;color:var(--dim);font-size:16px">↓ 派生</div>
+          <div class="muted" style="font-size:var(--fs-meta);margin-top:4px">唯一 · 16:9 open gate 最高可用分辨率</div></div>
+        <div style="text-align:center;color:var(--dim);font-size:var(--fs-h3)">↓ 派生</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
-          ${derived.map(d => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(d)}</div>
-            <div class="muted" style="font-size:10px;margin-top:4px">parent → 生成母版</div></div>`).join("")}
+          ${derived.map(d => `<div class="card" style="padding:12px"><div style="font-size:var(--fs-sm)">${esc(d)}</div>
+            <div class="muted" style="font-size:var(--fs-micro);margin-top:4px">parent → 生成母版</div></div>`).join("")}
         </div>
       </div>
       <div class="kv" style="margin-top:14px">
@@ -1160,8 +1160,8 @@ function stageBody(stage, art) {
       <div id="versionbox" style="margin-bottom:16px"></div>
       <div class="muted" style="margin-bottom:10px">交付版本清单（标注保证 / 可选 / 需确认，EL-11）</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">
-        ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(v.n)}</div>
-          <span class="pill ${v.s === "保证" ? "ok" : "gold"}" style="font-size:10px;margin-top:6px">${esc(v.s)}</span></div>`).join("")}
+        ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:var(--fs-sm)">${esc(v.n)}</div>
+          <span class="pill ${v.s === "保证" ? "ok" : "gold"}" style="font-size:var(--fs-micro);margin-top:6px">${esc(v.s)}</span></div>`).join("")}
       </div>
       <div class="kv">
         <div class="k">交付画幅</div><div><span class="pill gold">${esc(art.spec)}</span></div>
@@ -1181,17 +1181,17 @@ function editProject(p) {
   const modal = document.createElement("div"); modal.className = "modal"; modal.id = "pmmodal";
   modal.innerHTML = `<div class="box" style="max-width:560px">
     <div class="mhead"><h2>项目设置</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
-    <div class="mbody"><div class="muted" style="font-size:12px;margin-bottom:12px">已产出阶段修改会提示重跑影响（M1.4-F03）。</div>
+    <div class="mbody"><div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">已产出阶段修改会提示重跑影响（M1.4-F03）。</div>
     <div class="stack">
-      <label class="muted" style="font-size:11px">片名</label><input id="e_title" value="${esc(p.title)}">
-      <label class="muted" style="font-size:11px">Logline</label><input id="e_logline" value="${esc(p.logline)}">
+      <label class="muted" style="font-size:var(--fs-meta)">片名</label><input id="e_title" value="${esc(p.title)}">
+      <label class="muted" style="font-size:var(--fs-meta)">Logline</label><input id="e_logline" value="${esc(p.logline)}">
       <div class="row2">
-        <div><label class="muted" style="font-size:11px">目标平台</label><input id="e_platform" value="${esc(p.platform || "")}"></div>
-        <div><label class="muted" style="font-size:11px">题材</label><input id="e_genre" value="${esc(p.genre || "")}"></div></div>
+        <div><label class="muted" style="font-size:var(--fs-meta)">目标平台</label><input id="e_platform" value="${esc(p.platform || "")}"></div>
+        <div><label class="muted" style="font-size:var(--fs-meta)">题材</label><input id="e_genre" value="${esc(p.genre || "")}"></div></div>
       <div class="row2">
-        <div><label class="muted" style="font-size:11px">分级</label><select id="e_rating">
+        <div><label class="muted" style="font-size:var(--fs-meta)">分级</label><select id="e_rating">
           ${["全龄","12+","16+"].map(r => `<option ${r === p.rating ? "selected" : ""}>${r}</option>`).join("")}</select></div>
-        <div><label class="muted" style="font-size:11px">单集时长</label><select id="e_minutes">
+        <div><label class="muted" style="font-size:var(--fs-meta)">单集时长</label><select id="e_minutes">
           ${[22,30,45].map(m => `<option value="${m}" ${m === p.minutes ? "selected" : ""}>${m} 分钟/集</option>`).join("")}</select></div></div>
       <button class="btn" onclick="saveProject(${p.id})">保存</button>
     </div></div></div>`;
@@ -1242,8 +1242,8 @@ async function viewAssets() {
       <div class="cards">${shots.slice(0, 60).map(s => `<div class="asset"><div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
         <span class="tag">${esc(s.project)} · 镜${s.shot_no}</span></div>
         <div class="body"><div class="meta"><span>${esc(s.size)}</span><span>${esc(s.move)}</span><span>${s.duration}s</span>
-          <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
-      ${(!chars.length && !shots.length) ? `<div class="card empty">${ico("layers")}<div>还没有资产</div><div class="muted" style="font-size:12.5px;margin-top:4px">先在项目里运行流水线</div></div>` : ""}`,
+          <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:var(--fs-micro)">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
+      ${(!chars.length && !shots.length) ? `<div class="card empty">${ico("layers")}<div>还没有资产</div><div class="muted" style="font-size:var(--fs-sm);margin-top:4px">先在项目里运行流水线</div></div>` : ""}`,
   }, true);
 }
 
@@ -1273,7 +1273,7 @@ function jobRowsHtml(jobs) {
     <td>${esc(JOB_TYPE_LABEL[j.type] || j.type)}</td>
     <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(JOB_STATUS_LABEL[j.status] || j.status)}</span></td>
     <td style="min-width:110px"><div class="progress"><i style="width:${pv}%"></i></div>
-      <span class="muted" style="font-size:10.5px">${pv}%</span></td>
+      <span class="muted" style="font-size:var(--fs-meta)">${pv}%</span></td>
     <td>${j.attempts || 0}/${j.attempt_limit || 0}</td>
     <td>${j.error_code ? `<span class="muted" title="${esc(j.error_class || "")}">${esc(j.error_code)}</span>` : "—"}</td>
     <td>${jobActionHtml(j)}</td></tr>`;
@@ -1396,8 +1396,8 @@ async function viewPlayground() {
       <div class="asset"><div class="thumb">${ico({ "图像生成":"frame","文生视频":"film","图生视频":"film","参考生视频":"film","配音":"wave","配乐":"music" }[t.kind] || "lab")}
         <span class="tag">${esc(t.kind)}</span></div>
         <div class="body"><div class="desc">${esc(t.prompt)}</div>
-          <div class="meta"><span>${esc(t.model)}</span><span class="pill ok" style="font-size:10px">${esc(t.status)}</span></div></div></div>`).join("")}</div>`
-      : `<div class="card empty">${ico("lab")}<div>还没有生成记录</div><div class="muted" style="font-size:12.5px;margin-top:4px">选一个模式，输入提示词即可生成</div></div>`}`,
+          <div class="meta"><span>${esc(t.model)}</span><span class="pill ok" style="font-size:var(--fs-micro)">${esc(t.status)}</span></div></div></div>`).join("")}</div>`
+      : `<div class="card empty">${ico("lab")}<div>还没有生成记录</div><div class="muted" style="font-size:var(--fs-sm);margin-top:4px">选一个模式，输入提示词即可生成</div></div>`}`,
   }, true);
 }
 async function pgGenerate() {
@@ -1415,7 +1415,7 @@ async function viewModels() {
   setMain({
     title: "模型配置", sub: "填 model + Key 走真实供应商，缺一走 Mock",
     top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
-    body: `<div class="muted" style="font-size:12px;margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
+    body: `<div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
     <div class="cards">${Object.entries(d.config).map(([k, c]) => {
       const on = c.api_key_set;
       return `<div class="asset"><div class="thumb">${ico({ text: "doc", video: "film", image: "frame", tts: "wave", music: "music", lipsync: "face" }[k] || "route")}</div>
@@ -1496,7 +1496,7 @@ async function attachParams(st) {
   panel.innerHTML = `<summary>参数设置 <span class="muted">· ${esc(spec.title)} · 未填用推荐默认值</span></summary>
     <div class="grid3" style="margin-top:12px">${spec.fields.map(f => fieldHtml(f, spec.values[f.key])).join("")}</div>
     <div class="form-actions"><button class="btn sm" id="pmsave">保存参数</button>
-      <span class="muted" style="font-size:11.5px">参数参与该模块生成；留空使用推荐值</span></div>`;
+      <span class="muted" style="font-size:var(--fs-meta)">参数参与该模块生成；留空使用推荐值</span></div>`;
   const detail = el.querySelector(".detail") || el;
   detail.appendChild(panel);
   panel.querySelector("#pmsave").onclick = async () => {
@@ -1637,7 +1637,7 @@ async function previewSheet() {
       ${row("权利状态", d.rights_status)}${row("AI 标识", d.ai_label)}${row("分级", d.rating)}${row("语言", d.language)}${row("色彩标签", d.color_tag)}
       <div class="dv-sec">可选交付标注</div>
       ${Object.entries(d.optional_delivery || {}).map(([k, v]) => row(k, v)).join("")}
-      <div class="muted" style="font-size:11px;margin-top:14px">生成时间：${esc(d.generated_at)} · 未接入真实供应商时为 Mock/模拟数据</div>
+      <div class="muted" style="font-size:var(--fs-meta);margin-top:14px">生成时间：${esc(d.generated_at)} · 未接入真实供应商时为 Mock/模拟数据</div>
     </div></div>`;
   document.body.appendChild(modal);
 }
@@ -1647,7 +1647,7 @@ function row(k, v) { return `<div class="dv-row"><span class="dv-k">${esc(k)}</s
 async function renderVersions() {
   const box = $("#versionbox"); if (!box) return;
   let d; try { d = await api("/api/dramas/" + CUR.id + "/versions"); } catch (e) {
-    box.innerHTML = `<div class="muted" style="color:var(--bad);font-size:12px">版本历史加载失败：${esc(e.message)}
+    box.innerHTML = `<div class="muted" style="color:var(--bad);font-size:var(--fs-sm)">版本历史加载失败：${esc(e.message)}
       <button class="btn ghost sm" style="margin-left:8px" onclick="renderVersions()">重试</button></div>`;
     return;
   }
