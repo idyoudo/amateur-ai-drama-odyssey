@@ -319,21 +319,16 @@ async function viewOverview() {
   const [cfg, projs] = await Promise.all([api("/api/models/config"), api("/api/dramas")]);
   const configured = cfg.available.length;
   setMain({
-    top: `<span class="crumbs">概览</span>
-      <div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
+    title: "概览",
+    top: `<div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
       <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "Mock 模式"}</span></div>`,
-    hero: true,
     body: `
-    <section class="hero-full">
-      <h1>从一部小说，到一季好莱坞级短剧。</h1>
-      <p>19 个模块同线完成，每一步可审计。</p>
-    </section>
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
       <div class="stat"><div class="k">${configured}</div><div class="l">已配置模型</div></div>
       <div class="stat"><div class="k">${projs.length}</div><div class="l">项目</div></div>
     </div>
-    <h2>制作流程 <span class="hint">19 模块 · Development → Delivery</span></h2>
+    <h2>制作流程</h2>
     <div class="card">
       ${SEGMENTS.map(([seg, mods]) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
         <div style="flex:0 0 150px;font-size:var(--fs-sm);color:var(--accent)">${seg}</div>
@@ -341,7 +336,7 @@ async function viewOverview() {
           const meta = STAGES.find(x => x[0] === m) || ["", m, ""];
           return `<span class="pill" style="font-size:var(--fs-meta)">${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
     </div>
-    <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
+    <h2>最近项目</h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
       : `<div class="card empty">${ico("film")}<div>还没有项目</div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">30 秒体验：一键创建示例项目并跑完 19 阶段</div>
@@ -396,7 +391,7 @@ async function viewProjects() {
       <div class="form-actions"><button class="btn" type="submit">创建立项</button>
         <span class="muted" style="font-size:var(--fs-sm)">默认首季 6 集 × 30 分钟</span></div>
     </form>
-    <h2>全部项目 <span class="hint">${projs.length} 个</span></h2>
+    <h2>全部项目</h2>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <input id="psearch" placeholder="搜索片名 / logline" style="max-width:260px" oninput="filterProjs()">
       <select id="psort" style="max-width:170px" onchange="filterProjs()">
@@ -518,7 +513,7 @@ async function viewProject(id) {
 
   const passed = run ? run.summary.passed : 0, total = 19;
   setMain({
-    title: esc(p.title), sub: `${esc(p.rating || "")} · ${esc(p.genre || "")} · ${p.episodes} 集 × ${p.minutes} 分钟`,
+    title: esc(p.title),
     top: `<span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目</span>
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
@@ -537,7 +532,7 @@ async function viewProject(id) {
         <div class="k">流水线</div><div>${run ? `<span class="pill ${run.summary.deliverable ? "ok" : "bad"}">${passed}/${total} 阶段通过 ${run.summary.deliverable ? "· 可交付" : ""}</span>` : `<span class="pill">尚未运行</span>`}</div>
       </div>
     </div>
-    <h2>制作流程 <span class="hint">按 Development → Delivery 五段 · 点击阶段查看成果</span></h2>
+    <h2>制作流程 <span class="hint">点击阶段查看成果</span></h2>
     ${stepper}
     <div id="stagedetail"></div>`,
   }, true);
@@ -560,7 +555,7 @@ async function viewProject(id) {
           ${n === CUR_EP ? '<span class="pill gold" style="font-size:var(--fs-micro)">当前</span>' : ""}</div>
         <div class="muted" style="font-size:var(--fs-meta);margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
     }
-    bar.innerHTML = `<div style="font-size:var(--fs-sm);color:var(--accent);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
+    bar.innerHTML = `<div style="font-size:var(--fs-sm);color:var(--accent);margin-bottom:6px">分集看板</div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
   }).catch(e => {
     const bar = $("#epbar");
@@ -1230,7 +1225,7 @@ async function viewAssets() {
   const d = await api("/api/assets/summary?limit=120");
   const chars = d.characters || [], shots = d.shots || [];
   setMain({
-    title: "资产库", sub: "跨项目角色与镜头",
+    title: "资产库",
     top: `<div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
     body: `${chars.length ? `<h2>角色 <span class="hint">定妆锚点 + 音色</span></h2>
       <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb">${ico("face")}<span class="tag">${esc(c.project)}</span></div>
@@ -1291,7 +1286,7 @@ async function viewJobs() {
           <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
         <button class="btn" onclick="submitJob()">入队任务</button>
       </div></div>
-    <h2>任务列表 <span class="hint">每 5 秒刷新 · 进度/失败原因来自队列真实字段</span></h2>
+    <h2>任务列表 <span class="hint">每 5 秒刷新</span></h2>
     <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
       <tbody id="jobstbl">${jobRowsHtml(jobs)}</tbody></table></div>`,
   }, true);
@@ -1411,7 +1406,7 @@ async function pgGenerate() {
 async function viewModels() {
   const d = await api("/api/models/config");
   setMain({
-    title: "模型配置", sub: "未配置走 Mock",
+    title: "模型配置",
     top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
     body: `<div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
     <div class="cards">${Object.entries(d.config).map(([k, c]) => {

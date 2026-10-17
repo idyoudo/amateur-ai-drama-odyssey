@@ -166,8 +166,22 @@ def health():
 @app.get("/", response_class=HTMLResponse)
 def home():
     import os
-    html = os.path.join(os.path.dirname(__file__), "static", "index.html")
-    return open(html, encoding="utf-8").read()
+    import re
+    html_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    with open(html_path, encoding="utf-8") as f:
+        html = f.read()
+
+    def _ver(m):
+        name = m.group(1)
+        try:
+            ts = int(os.path.getmtime(os.path.join(STATIC_DIR, name)))
+        except OSError:
+            ts = 0
+        return "/static/%s?v=%d" % (name, ts)
+
+    # 静态资源按 mtime 加版本号，发版后无需手动清缓存
+    html = re.sub(r"/static/([\w.-]+\.(?:css|js))", _ver, html)
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/models", response_class=HTMLResponse)
