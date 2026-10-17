@@ -29,7 +29,7 @@
   --ease:cubic-bezier(.32,.72,0,1);
   /* 字体阶梯（唯一字号来源，禁止再引入中间值） */
   --fs-micro:11px; --fs-meta:12px; --fs-sm:13px; --fs-table:14px; --fs-body:15px;
-  --fs-h3:18px; --fs-h2:20px; --fs-h1:22px; --fs-stat:24px; --fs-display:24px;
+  --fs-h3:18px; --fs-h2:20px; --fs-h1:22px; --fs-stat:24px;
   /* 语义 token（E4：消灭硬编码） */
   --topbar-bg:rgba(251,251,253,.88);
   --overlay:rgba(23,23,28,.36);
@@ -84,22 +84,12 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .topbar{position:sticky;top:0;z-index:15;background:var(--topbar-bg);backdrop-filter:saturate(160%) blur(16px);
   border-bottom:1px solid var(--line);padding:9px 52px;display:flex;align-items:center;justify-content:space-between;
   gap:16px;flex-wrap:wrap}
-.topbar h1{font-family:var(--serif);font-size:var(--fs-h2);font-weight:400;margin:0;letter-spacing:-.02em;line-height:1.1;
-  display:flex;align-items:baseline;gap:12px;white-space:nowrap;min-width:0}
-.topbar h1 .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:42vw}
-.topbar .crumbs{font-family:var(--sans);color:var(--dim);font-size:var(--fs-sm);font-weight:450;letter-spacing:0;cursor:pointer}
-.topbar .crumbs:hover{color:var(--accent)}
 .topbar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.topbar-title{font-size:var(--fs-h2);font-weight:600;letter-spacing:-.01em;color:var(--ink);line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
 
 .view{padding:16px 52px 72px;max-width:1180px;width:100%}
 .view.wide{max-width:none}
-
-/* 编辑式大标题 */
-.hero{margin:0 0 34px}
-.hero .eyebrow{font-size:var(--fs-micro);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dim-2);margin-bottom:12px}
-.hero h1{font-family:var(--serif);font-size:var(--fs-display);font-weight:400;line-height:1.18;letter-spacing:-.02em;
-  margin:0;max-width:22ch;text-wrap:balance;word-break:keep-all}
-.hero p{font-size:var(--fs-body);color:var(--dim);margin:14px 0 0;max-width:56ch;line-height:1.7}
 
 h2{font-size:var(--fs-h3);font-weight:600;margin:28px 0 12px;letter-spacing:-.005em;text-transform:none;color:var(--ink-2);
   display:flex;align-items:baseline;gap:10px}
@@ -273,23 +263,11 @@ body.dark{color-scheme:dark;
   .sidebar.open{transform:none;box-shadow:var(--shadow-lg)}
   .view{padding:28px 20px 72px}
   .topbar{padding:14px 20px}
-  .hero h1{font-size:var(--fs-h1)}
-  .page-title{font-size:var(--fs-h1)}
   .stats{grid-template-columns:1fr 1fr}
   .cards{grid-template-columns:1fr 1fr}
   .row2{grid-template-columns:1fr}
   .kv{grid-template-columns:120px 1fr}
 }
-
-/* ── E1 全幅 Hero（仅概览） ── */
-/* 紧凑页头：不做通栏大留白，正文紧贴其下 */
-.hero-full{position:relative;margin:0 0 18px;padding:0 0 16px;min-height:0;
-  display:block;border-bottom:1px solid var(--line);background:none;overflow:visible}
-.hero-full .eyebrow{font-size:var(--fs-micro);font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--dim-2);margin-bottom:6px}
-.hero-full h1{font-family:var(--serif);font-size:var(--fs-display);font-weight:400;line-height:1.25;
-  letter-spacing:-.02em;margin:0;max-width:none;white-space:nowrap;word-break:keep-all}
-.hero-full p{font-size:var(--fs-table);color:var(--dim);margin:6px 0 0;max-width:76ch;line-height:1.6}
 
 /* ── E2 项目卡电影感封面 ── */
 .project-card{padding:0;overflow:hidden}
@@ -306,22 +284,11 @@ body.dark{color-scheme:dark;
   .pbody-row{flex-direction:column;align-items:flex-start}
 }
 
-/* ── E3 页面级编辑式大标题 ── */
-/* 页头：标题与一句说明同排，突出正文 */
-.page-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 18px}
-.page-title{font-family:var(--serif);font-size:var(--fs-display);font-weight:400;line-height:1.15;
-  letter-spacing:-.02em;margin:0;word-break:keep-all}
-.page-sub{font-size:var(--fs-sm);color:var(--dim);margin:0}
-
 /* ── E5 克制的入场（仅 .view 层，无数字滚动/无 hover-only） ── */
 .view{animation:viewin .22s var(--ease) both}
 @keyframes viewin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
-}
-@media (max-width:860px){
-  .hero-full{margin:0 0 16px;padding:0 0 14px;min-height:0}
-  .hero-full h1{font-size:var(--fs-h2);white-space:normal;text-wrap:balance}
 }
 
 /* 横向工具栏（输入 + 选择 + 按钮同一行，基线对齐） */

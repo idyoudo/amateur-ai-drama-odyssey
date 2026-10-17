@@ -194,9 +194,6 @@ function shell(active) {
 function setMain(html, wide) {
   const m = $("#main");
   if (!m) return;
-  const head = html.hero ? "" :
-    (html.title ? `<div class="page-head"><h1 class="page-title">${html.title}</h1>${
-      html.sub ? `<span class="page-sub">${html.sub}</span>` : ""}</div>` : "");
   let top = String(html.top || "");
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
@@ -206,7 +203,8 @@ function setMain(html, wide) {
   } else {
     top = `<div class="right">${helpBtn}</div>` + top;
   }
-  m.innerHTML = `<div class="topbar">${top}</div><div class="view ${wide ? "wide" : ""}">${head}${html.body}</div>`;
+  const title = html.title ? `<span class="topbar-title">${html.title}</span>` : "";
+  m.innerHTML = `<div class="topbar">${title}${top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
   refreshBell();
 }
 async function refreshBell() {
@@ -283,7 +281,7 @@ async function navigate(name, param) {
   if (name === "__notfound") {
     shell("overview");
     setMain({
-      title: "页面未找到", sub: "链接可能已失效",
+    title: "页面未找到",
       body: `<div class="card empty">${ico("x")}<div>没有这个页面</div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:4px">检查地址，或回到概览继续操作</div>
         <div style="margin-top:16px"><button class="btn" onclick="go('overview')">回到概览</button></div></div>`,
@@ -488,7 +486,7 @@ async function viewProject(id) {
   try { p = await api("/api/dramas/" + id); }
   catch (e) {
     setMain({
-      title: "项目未找到", sub: "链接可能已失效",
+      title: "项目未找到",
       body: `<div class="card empty">${esc(e.message)}<div style="margin-top:16px"><button class="btn" onclick="go('projects')">返回项目列表</button></div></div>`,
     });
     return;
@@ -514,8 +512,7 @@ async function viewProject(id) {
   const passed = run ? run.summary.passed : 0, total = 19;
   setMain({
     title: esc(p.title),
-    top: `<span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目</span>
-      <div class="right">
+    top: `<div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
         <button class="btn ghost sm" id="setbtn">${ico("gear")} 设置</button>
