@@ -50,6 +50,7 @@
 | `docs/plans/` | `AADO-自主打磨清单.md` | 自驱动迭代的判定清单 |
 | `docs/plans/` | `开源调研报告-短剧漫剧视频.md` | 开源短剧/漫剧/视频项目调研 |
 | `docs/plans/` | `开源吸纳-选举记录.md` | 10 项候选吸纳 5 人多数决 |
+| `docs/plans/` | `UI重设计-调研与方向.md` | UI 重设计调研 + 4 候选方向 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
