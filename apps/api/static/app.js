@@ -193,8 +193,8 @@ async function viewOverview() {
     body: `
     <section class="hero-full">
       <div class="eyebrow">AADO · Drama Odyssey</div>
-      <h1>从一部小说，<br>到一季好莱坞级短剧。</h1>
-      <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块在同一条可审计的流水线上完成，每一帧都有据可查。</p>
+      <h1>从一部小说，到一季好莱坞级短剧。</h1>
+      <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块同线完成，每一步都可审计。</p>
     </section>
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
@@ -1028,11 +1028,12 @@ async function viewJobs() {
     title: "任务", sub: "PG 队列 · 幂等 + 租约 + checkpoint",
     top: `<div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
     body: `<div class="card">
-      <div class="stack" style="max-width:520px">
-        <div class="row2"><input id="job_pid" placeholder="项目 ID"><select id="job_type">
+      <div class="toolbar">
+        <input id="job_pid" placeholder="项目 ID" style="max-width:220px">
+        <select id="job_type" style="max-width:200px">
           <option value="adapt">剧本开发</option><option value="casting">选角定妆</option>
-          <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select></div>
-        <div><button class="btn" onclick="submitJob()">入队任务</button></div>
+          <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
+        <button class="btn" onclick="submitJob()">入队任务</button>
       </div></div>
     <h2>任务列表</h2>
     ${jobs.length ? `<div class="card"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>
