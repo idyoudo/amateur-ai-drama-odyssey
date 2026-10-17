@@ -366,3 +366,15 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .notif-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:8px;cursor:pointer;transition:.13s}
 .notif-item:hover{background:var(--surface-2)}
 .notif-detail{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+
+/* C2：项目看板 */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.board-col{background:var(--surface-2);border-radius:var(--radius-lg);padding:10px;min-height:160px}
+.board-col-t{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2);padding:4px 6px 10px}
+.board-cards{display:flex;flex-direction:column;gap:8px}
+.board-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s var(--ease)}
+.board-card:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm)}
+.bc-title{font-size:13px;font-weight:550;letter-spacing:-.01em}
+.bc-meta{font-size:11px;color:var(--dim);margin-top:4px}
+@media (max-width:860px){.board{grid-template-columns:1fr 1fr}}

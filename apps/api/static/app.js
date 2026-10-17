@@ -267,7 +267,10 @@ async function viewOverview() {
     </div>
     <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
-      : `<div class="card empty">${ico("film")}<div>还没有项目</div><div class="muted" style="font-size:12.5px;margin-top:4px">到「项目」页创建第一部剧，点「一键全流程」查看 19 阶段成果</div></div>`}`,
+      : `<div class="card empty">${ico("film")}<div>还没有项目</div>
+        <div class="muted" style="font-size:12.5px;margin-top:6px">30 秒体验：一键创建示例项目并跑完 19 阶段</div>
+        <div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
+        <button class="btn ghost" style="margin-left:8px" onclick="go('projects')">手动立项</button></div></div>`}`,
   });
 }
 /* E2：低饱和电影感封面（按 id 确定性取色，禁止彩虹） */
@@ -318,14 +321,19 @@ async function viewProjects() {
         <span class="muted" style="font-size:12px">默认首季 6 集 × 30 分钟</span></div>
     </form>
     <h2>全部项目 <span class="hint">${projs.length} 个</span></h2>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:280px" oninput="filterProjs()">
-      <select id="psort" style="max-width:180px" onchange="filterProjs()">
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:260px" oninput="filterProjs()">
+      <select id="psort" style="max-width:170px" onchange="filterProjs()">
         <option value="id">按创建时间</option><option value="title">按片名</option>
         <option value="deliverable">可交付优先</option></select>
+      <div style="display:flex;gap:4px;margin-left:auto">
+        <button class="btn ghost sm" id="viewlist" onclick="setProjView('list')">列表</button>
+        <button class="btn ghost sm" id="viewboard" onclick="setProjView('board')">看板</button>
+      </div>
     </div>
     <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
-    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div></div>`}`,
+    <div id="pboard" class="hide"></div>
+    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div><div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
   });
   window._PROJS = projs;
   const pf = $("#pf");
@@ -358,6 +366,25 @@ function filterProjs() {
   if (sort === "title") list = list.slice().sort((a, b) => (a.title || "").localeCompare(b.title || ""));
   else if (sort === "deliverable") list = list.slice().sort((a, b) => (b.deliverable ? 1 : 0) - (a.deliverable ? 1 : 0));
   $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">${ico("film")}<div>无匹配项目</div></div>`;
+}
+
+let PROJ_VIEW = "list";
+function setProjView(v) {
+  PROJ_VIEW = v;
+  $("#plist").classList.toggle("hide", v !== "list");
+  $("#pboard").classList.toggle("hide", v !== "board");
+  $("#viewlist").classList.toggle("acc", v === "list");
+  $("#viewboard").classList.toggle("acc", v === "board");
+  if (v === "board") renderBoard();
+}
+function renderBoard() {
+  const order = ["立项", "制作中", "可交付", "归档"];
+  const list = window._PROJS || [];
+  const col = (name) => `<div class="board-col"><div class="board-col-t">${name}<span class="muted">${list.filter(p => (p.lifecycle || "立项") === name).length}</span></div>
+    <div class="board-cards">${list.filter(p => (p.lifecycle || "立项") === name).map(p =>
+      `<div class="board-card" onclick="go('project:${p.id}')"><div class="bc-title">${esc(p.title)}</div>
+        <div class="bc-meta">${p.episodes || 6} 集 · ${p.shots || 0} 镜</div></div>`).join("") || `<div class="muted" style="font-size:11.5px;padding:6px 2px">—</div>`}</div></div>`;
+  $("#pboard").innerHTML = `<div class="board">${order.map(col).join("")}</div>`;
 }
 
 /* ---------- 项目工作台 ---------- */
@@ -1328,4 +1355,13 @@ function openHelp(module) {
     </div></div>`;
   document.body.appendChild(modal);
   renderHelpContent();
+}
+
+/* C6：一键示例项目 */
+async function seedDemo() {
+  try {
+    const d = await api("/api/demos/seed", { method: "POST" });
+    toast(d.created ? "示例项目已创建" : "示例项目已存在");
+    go("project:" + d.id);
+  } catch (e) { toast("创建失败：" + e.message); }
 }

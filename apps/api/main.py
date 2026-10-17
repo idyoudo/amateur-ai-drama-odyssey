@@ -170,9 +170,19 @@ def list_projects():
             run = s.scalars(select(jobs_db.Run).where(
                 jobs_db.Run.project_id == r.id).order_by(jobs_db.Run.id.desc())).first()
             n_shots = s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == r.id).count()
+            deliverable = bool(run and run.result.get("summary", {}).get("deliverable"))
+            if r.status == "archived":
+                lifecycle = "归档"
+            elif run is None:
+                lifecycle = "立项"
+            elif deliverable:
+                lifecycle = "可交付"
+            else:
+                lifecycle = "制作中"
             out.append({"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
+                        "lifecycle": lifecycle,
                         "episodes": r.episodes, "minutes": r.minutes,
-                        "deliverable": bool(run and run.result.get("summary", {}).get("deliverable")),
+                        "deliverable": deliverable,
                         "stages_passed": (run.result.get("summary", {}).get("passed") if run else 0) or 0,
                         "shots": n_shots})
     return out
@@ -599,6 +609,24 @@ def delivery_sheet(project_id: int):
         "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
         "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
     }
+
+
+@app.post("/api/demos/seed")
+def seed_demo():
+    """创建示例项目（幂等）：一键体验 19 阶段全流程。"""
+    with Session() as s:
+        existing = s.scalars(select(jobs_db.Project).where(
+            jobs_db.Project.title == "示例 · 回声")).first()
+        if existing:
+            return {"id": existing.id, "created": False}
+        p = jobs_db.Project(title="示例 · 回声", logline="都市悬疑：失忆调音师卷入命案，真相藏在自己失忆的那一夜",
+                            platform="短剧平台", rating="12+", genre="悬疑", style="写实",
+                            episodes=6, minutes=30,
+                            delivery_spec={"master": "2.39:1", "platform": "16:9", "derived": "9:16", "optional": []},
+                            pilot_mode=False, status="draft")
+        s.add(p); s.commit(); pid = p.id
+    run_project(pid)
+    return {"id": pid, "created": True}
 
 
 @app.get("/api/notifications")
