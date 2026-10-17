@@ -15,13 +15,13 @@ const SEGMENTS = [
   ["Delivery 交付", ["M10 门禁", "M12 交付", "M14 成本", "M15 存储", "M16 协作", "M17 供应商", "M18 合规", "M13 任务"]],
 ];
 const STAGES = [
-  ["M1 立项", "立项", "📋"], ["M2 剧本", "剧本", "✍️"], ["M3 选角", "选角", "🎭"],
-  ["M4 分镜", "分镜", "🎬"], ["M5 摄影", "摄影", "🎥"], ["M6 一致性", "一致性", "👤"],
-  ["M7 配音", "配音", "🎙️"], ["M8 配乐", "配乐", "🎵"], ["M9 剪辑", "剪辑", "✂️"],
-  ["M10 门禁", "门禁", "🚦"], ["M11 母版", "母版", "🎞️"], ["M12 交付", "交付", "📦"],
-  ["M14 成本", "成本", "💰"], ["M15 存储", "存储", "🗄️"], ["M16 协作", "协作", "👥"],
-  ["M17 供应商", "供应商", "🔌"], ["M18 合规", "合规", "⚖️"], ["M19 VFX", "VFX", "✨"],
-  ["M13 任务", "任务", "🔄"],
+  ["M1 立项", "立项", "doc"], ["M2 剧本", "剧本", "doc"], ["M3 选角", "选角", "face"],
+  ["M4 分镜", "分镜", "frame"], ["M5 摄影", "摄影", "film"], ["M6 一致性", "一致性", "users"],
+  ["M7 配音", "配音", "wave"], ["M8 配乐", "配乐", "music"], ["M9 剪辑", "剪辑", "scissors"],
+  ["M10 门禁", "门禁", "gate"], ["M11 母版", "母版", "master"], ["M12 交付", "交付", "box"],
+  ["M14 成本", "成本", "pulse"], ["M15 存储", "存储", "layers"], ["M16 协作", "协作", "users"],
+  ["M17 供应商", "供应商", "route"], ["M18 合规", "合规", "scales"], ["M19 VFX", "VFX", "sparkle"],
+  ["M13 任务", "任务", "clock"],
 ];
 
 /* ---------- 请求 ---------- */
@@ -76,8 +76,8 @@ function toast(msg) {
 function logout() { localStorage.removeItem(TK); renderLogin(); }
 function renderLogin() {
   document.body.innerHTML = `<div class="login-wrap"><form class="login-card" id="lf">
-    <div class="brand"><div class="lg">🎬</div><div><div style="font-weight:700;font-size:16px">AADO</div>
-      <div class="muted" style="font-size:11px;letter-spacing:1px">AI DRAMA ODYSSEY</div></div></div>
+    <div class="brand"><div class="mark">${ico("film")}</div><div><div class="name">AADO</div>
+      <div class="sub">AI Drama Odyssey</div></div></div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <input name="username" placeholder="用户名" value="admin">
       <input name="password" type="password" placeholder="密码" autofocus>
@@ -93,16 +93,62 @@ function renderLogin() {
   };
 }
 
-/* ---------- 外壳 ---------- */
-const RAIL = [
-  ["overview", "概览", "🏠"], ["projects", "项目", "🎬"], ["assets", "资产库", "🎨"],
-  ["playground", "生成台", "🧪"], ["jobs", "任务", "📋"], ["models", "模型", "🎛️"], ["settings", "设置", "⚙️"],
+/* ---------- SVG 图标（无 emoji，线宽统一） ---------- */
+const ICONS = {
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  film:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+  sparkle:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M12 8.5 13.6 12 12 15.5 10.4 12z"/><circle cx="12" cy="12" r="1.4"/>',
+  lab:'<path d="M9 3h6M10 3v6l-4.5 8.2A2 2 0 0 0 7.3 21h9.4a2 2 0 0 0 1.8-2.8L14 9V3"/><path d="M7.5 15h9"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/>',
+  sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.2 7l2.1 1.2M17.7 15.8l2.1 1.2M4.2 17l2.1-1.2M17.7 8.2l2.1-1.2"/>',
+  play:'<path d="M7 4.5 19 12 7 19.5z"/>',
+  download:'<path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M4 20h16"/>',
+  shield:'<path d="M12 3 5 6v6c0 4.2 3 7.6 7 9 4-1.4 7-4.8 7-9V6z"/><path d="M9.2 12l2 2 3.6-3.6"/>',
+  check:'<path d="M4.5 12.5 10 18 19.5 6.5"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  face:'<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 15c1 1 2.2 1.5 3.5 1.5S14.5 16 15.5 15"/>',
+  frame:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
+  layers:'<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+  pulse:'<path d="M3 12h4l2.5-6 4 12 2.5-6h5"/>',
+  box:'<path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
+  users:'<circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 20a5.5 5.5 0 0 0-2-4.2"/>',
+  scales:'<path d="M12 4v16M7 20h10M6 7h12M6 7 3.5 13h5zM18 7l-2.5 6h5z"/>',
+  wand:'<path d="M4 20 15 9M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+  music:'<circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="15.5" r="2.5"/><path d="M9.5 17.5V7l10-2v10.5"/>',
+  wave:'<path d="M3 12h2l2-5 3 10 3-7 2 4h6"/>',
+  scissors:'<circle cx="6.5" cy="7" r="2.5"/><circle cx="6.5" cy="17" r="2.5"/><path d="M8.7 8.7 20 18M8.7 15.3 20 6"/>',
+  gate:'<path d="M5 21V6l7-3 7 3v15"/><path d="M9 21v-6h6v6"/>',
+  master:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v4M11 5v4M15 5v4"/>',
+  inbox:'<path d="M3 12h5l1.5 3h5L16 12h5"/><path d="M4 5h16l1 7v6H3v-6z"/>',
+  route:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h5a4 4 0 0 1 4 4v5.5"/>',
+};
+function ico(name, cls) {
+  const p = ICONS[name] || ICONS.box;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" ` +
+    `stroke-linecap="round" stroke-linejoin="round"${cls ? ` class="${cls}"` : ""}>${p}</svg>`;
+}
+
+/* ---------- 外壳（带文字标签的侧边栏） ---------- */
+const NAV = [
+  ["制作", [["overview","概览","home"],["projects","项目","film"]]],
+  ["资产", [["assets","资产库","layers"],["playground","生成台","lab"]]],
+  ["运行", [["jobs","任务","list"]]],
+  ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
-  document.body.innerHTML = `<aside class="rail" id="rail">
-      <div class="logo" title="AADO">🎬</div>
-      <div class="nav">${RAIL.map(([id, l, ic]) =>
-        `<div class="item ${id === active ? "on" : ""}" data-go="${id}"><div>${ic}</div><span>${l}</span></div>`).join("")}</div>
+  document.body.innerHTML = `<aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="mark">${ico("film")}</div>
+        <div><div class="name">AADO</div><div class="sub">Drama Odyssey</div></div></div>
+      <nav class="nav">${NAV.map(([sec, items]) => `<div class="nav-sec">
+        <div class="nav-label">${sec}</div>
+        ${items.map(([id, l, ic]) => `<div class="nav-item ${id === active ? "on" : ""}" data-go="${id}">${ico(ic)}<span>${l}</span></div>`).join("")}
+      </div>`).join("")}</nav>
+      <div class="side-foot"><div class="dotline"><i class="dot ok"></i>服务运行中</div>
+        <div>好莱坞级 AI 短剧流水线</div></div>
     </aside>
     <div class="main" id="main"></div>`;
   $$("[data-go]").forEach(el => el.onclick = () => go(el.dataset.go));
@@ -153,11 +199,11 @@ async function viewOverview() {
         <div style="flex:0 0 150px;font-size:12px;color:var(--gold2)">${seg}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${mods.map(m => {
           const meta = STAGES.find(x => x[0] === m) || ["", m, ""];
-          return `<span class="pill" style="font-size:11px">${meta[2]} ${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
+          return `<span class="pill" style="font-size:11px">${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
     </div>
     <h2>最近项目 <span class="hint">进入工作台运行流水线</span></h2>
     ${projs.length ? `<div class="cards">${projs.slice(0, 6).map(projectCard).join("")}</div>`
-      : `<div class="card empty">🎬 还没有项目。<br>到「项目」页创建第一部剧，然后点「一键全流程」看 19 阶段成果。</div>`}`,
+      : `<div class="card empty">${ico("film")}<div>还没有项目</div><div class="muted" style="font-size:12.5px;margin-top:4px">到「项目」页创建第一部剧，点「一键全流程」查看 19 阶段成果</div></div>`}`,
   });
 }
 function projectCard(p) {
@@ -195,7 +241,7 @@ async function viewProjects() {
         <option value="deliverable">可交付优先</option></select>
     </div>
     <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
-    ${projs.length ? "" : `<div class="card empty">暂无项目</div>`}`,
+    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div></div>`}`,
   });
   window._PROJS = projs;
 }
@@ -206,11 +252,11 @@ function filterProjs() {
     !q || (p.title || "").toLowerCase().includes(q) || (p.logline || "").toLowerCase().includes(q));
   if (sort === "title") list = list.slice().sort((a, b) => (a.title || "").localeCompare(b.title || ""));
   else if (sort === "deliverable") list = list.slice().sort((a, b) => (b.deliverable ? 1 : 0) - (a.deliverable ? 1 : 0));
-  $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">无匹配项目</div>`;
+  $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">${ico("film")}<div>无匹配项目</div></div>`;
   $("#pf").onsubmit = async e => {
     e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); b.episodes = 6;
     try { const d = await api("/api/dramas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
-      toast("✅ 立项成功"); go("project:" + d.id); } catch (err) { toast("❌ " + err.message); }
+      toast("立项成功"); go("project:" + d.id); } catch (err) { toast("" + err.message); }
   };
 }
 
@@ -231,7 +277,7 @@ async function viewProject(id) {
     const cls = st ? (st.status === "passed" ? "ok" : "bad") : "";
     const txt = st ? (st.status === "passed" ? "通过" : "失败") : (run ? "—" : "待运行");
     return `<div class="step ${CUR.stage === name ? "on" : ""}" onclick="pickStage('${name}')">
-      <div class="n">${meta[2]} ${meta[1]}</div><div class="t">${name.replace(/^M\d+ /, "")}</div>
+      <div class="n">${meta[1]}</div><div class="t">${name.replace(/^M\d+ /, "")}</div>
       <div class="s">${st ? `<i class="dot ${cls}"></i> ${txt}` : txt}</div></div>`;
   };
   const stepper = SEGMENTS.map(([seg, mods]) => `<div style="margin-bottom:12px">
@@ -244,9 +290,9 @@ async function viewProject(id) {
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
-        <button class="btn ghost sm" id="setbtn">⚙ 设置</button>
-        <button class="btn ghost" id="runbtn">▶ 运行流水线</button>
-        <button class="btn" id="prodbtn">🎬 一键全流程</button></div>`,
+        <button class="btn ghost sm" id="setbtn">${ico("gear")} 设置</button>
+        <button class="btn ghost" id="runbtn">${ico("play")} 运行流水线</button>
+        <button class="btn" id="prodbtn">${ico("sparkle")} 一键全流程</button></div>`,
     body: `
     <div id="epbar" style="margin-bottom:12px"></div>
     <div class="stats" id="projstats" style="margin-bottom:16px"></div>
@@ -300,10 +346,10 @@ async function viewProject(id) {
 }
 async function renderStageDetail(st) {
   const el = $("#stagedetail"); if (!el) return;
-  if (!st) { el.innerHTML = `<div class="detail empty">该阶段尚无运行结果，点击「运行流水线」生成。</div>`; return; }
+  if (!st) { el.innerHTML = `<div class="detail empty">${ico("play")}<div>该阶段尚无运行结果</div><div class="muted" style="font-size:12.5px;margin-top:4px">点击右上角「运行流水线」生成</div></div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
   const art = st.artifact || {};
-  const head = `<div class="head"><h2 style="margin:0">${meta[2]} ${st.stage}</h2>
+  const head = `<div class="head"><h2>${st.stage}</h2>
       <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
   // 供应商阶段 → 三段式追踪
@@ -364,7 +410,7 @@ async function renderStoryboard() {
   try { shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP); } catch (e) {}
   if (!shots.length) {
     box.innerHTML = `<div class="muted" style="margin-bottom:12px">尚无分镜表。从剧本派生镜头（每场 1–3 镜）。</div>
-      <button class="btn" onclick="genShots()">📋 生成分镜表</button>`;
+      <button class="btn" onclick="genShots()">${ico("frame")} 生成分镜表</button>`;
     return;
   }
   box.innerHTML = `
@@ -374,7 +420,7 @@ async function renderStoryboard() {
         <button class="btn ghost sm" onclick="sbSelect('all')">全选</button>
         <button class="btn ghost sm" onclick="sbSelect('none')">取消</button>
         <button class="btn ghost sm" onclick="sbSelect('pending')">选未生成</button>
-        <button class="btn sm" onclick="sbBatch()">⚡ 批量生成所选</button>
+        <button class="btn sm" onclick="sbBatch()">${ico("sparkle")} 批量生成所选</button>
       </div>
     </div>
     <div class="cards" id="sbshots" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
@@ -384,7 +430,7 @@ async function renderStoryboard() {
 function sbCard(s) {
   const sel = SBSEL.has(String(s.id));
   return `<div class="asset sbcard" data-id="${s.id}" data-no="${s.shot_no}" style="cursor:pointer;${sel ? "border-color:var(--gold)" : ""}">
-    <div class="thumb" style="font-size:30px">${s.status === "已生成" ? "🖼️" : "🎞️"}
+    <div class="thumb">${ico(s.status === "已生成" ? "frame" : "film")}
       <span class="tag">镜 ${s.shot_no}</span>
       <input type="checkbox" ${sel ? "checked" : ""} style="position:absolute;top:8px;right:8px;width:auto" onclick="event.stopPropagation();sbToggle('${s.id}')"></div>
     <div class="body"><h4 style="font-size:13px">场 ${s.scene_no} · ${esc(s.move)}</h4>
@@ -407,13 +453,13 @@ async function sbBatch() {
   if (!SBSEL.size) return toast("先选择镜头");
   try { const r = await api("/api/dramas/" + CUR.id + "/shots/batch", { method: "POST",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shot_ids: Array.from(SBSEL).map(Number) }) });
-    toast("✅ 生成 " + r.generated + " 镜"); renderStoryboard();
-  } catch (e) { toast("❌ " + e.message); }
+    toast("生成 " + r.generated + " 镜"); renderStoryboard();
+  } catch (e) { toast("" + e.message); }
 }
 async function genShots() {
   try { const r = await api("/api/dramas/" + CUR.id + "/shots/generate", { method: "POST" });
-    toast("✅ 派生 " + r.count + " 镜"); renderStoryboard();
-  } catch (e) { toast("❌ " + e.message); }
+    toast("派生 " + r.count + " 镜"); renderStoryboard();
+  } catch (e) { toast("" + e.message); }
 }
 
 /* 镜头详情弹窗：字段 + 抽卡候选（参考 LumenX R2V 批量抽卡） */
@@ -436,10 +482,10 @@ async function sbOpen(shotId, shotNo) {
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <b style="font-size:13px">候选（抽卡）</b>
-        <button class="btn sm" onclick="genCands('${shotId}')">🎲 生成 4 个候选</button></div>
+        <button class="btn sm" onclick="genCands('${shotId}')">${ico("sparkle")} 生成 4 个候选</button></div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
         ${cands.length ? cands.map(c => `<div class="cand ${c.selected ? "on" : ""}" onclick="pickCand('${c.id}','${shotId}')">
-          <div class="thumb">🖼️${c.selected ? '<span class="pick">已选</span>' : ""}<span class="score">${c.score}</span></div></div>`).join("")
+          <div class="thumb">${ico("frame")}${c.selected ? '<span class="pick">已选</span>' : ""}<span class="score">${c.score}</span></div></div>`).join("")
           : `<div class="muted" style="padding:20px">尚无候选，点击「生成 4 个候选」抽卡。</div>`}
       </div>
     </div></div>`;
@@ -448,7 +494,7 @@ async function sbOpen(shotId, shotNo) {
 function closeModal() { const m = $("#sbmodal"); if (m) m.remove(); }
 async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
-  catch (e) { toast("❌ " + e.message); }
+  catch (e) { toast("" + e.message); }
 }
 /* 供应商三段式追踪（M17.5-F02） */
 async function costPreview() {
@@ -464,18 +510,18 @@ async function costPreview() {
 async function costConfirm() {
   const d = await api("/api/dramas/" + CUR.id + "/cost-preview", { method: "POST",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmed: true }) });
-  toast(d.blocked.length ? "⚠ 仍未放行" : "✅ 已放行生成");
+  toast(d.blocked.length ? "仍未放行：需确认" : "已放行生成");
 }
 async function renderProviders() {
   const box = $("#provview"); if (!box) return;
   let d; try { d = await api("/api/dramas/" + CUR.id + "/provider-tasks"); } catch (e) { return; }
   if (!d.kinds.length) { box.innerHTML = `<div class="muted">尚无供应商调用记录，先运行流水线。</div>`; return; }
-  const ICON = { text: "📝", image: "🖼️", video: "🎥", tts: "🎙️", music: "🎵", lipsync: "👄" };
+  const ICON = { text: "doc", image: "frame", video: "film", tts: "wave", music: "music", lipsync: "face" };
   box.innerHTML = `<div class="muted" style="margin-bottom:12px">${esc(d.note)}</div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
     ${d.kinds.map(k => `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b>${ICON[k.kind] || "🔌"} ${esc(k.kind)}</b>
+        <b>${ico(ICON[k.kind] || "route")} ${esc(k.kind)}</b>
         <span class="pill ${k.configured ? "ok" : ""}">${k.configured ? "真实" : "Mock"}</span></div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
         ${k.stages.map((st, i) => `<span class="pill ok" style="font-size:11px">${esc(st.stage)} ✓</span>${i < k.stages.length - 1 ? '<span class="muted">→</span>' : ""}`).join("")}
@@ -505,7 +551,7 @@ async function renderCost() {
       ${bar(x.value)}</div>`).join("")}</div>
     <div class="muted" style="font-size:11px;margin-top:10px">规模：${d.scale.episodes} 集 · ${d.scale.shots} 镜 · ${d.scale.characters} 角色</div>
     <h2 style="font-size:13px">生成前确认闸 <span class="hint">花额度前逐镜摊开（C6）</span></h2>
-    <div class="card" id="costprev"><button class="btn" onclick="costPreview()">预估本项目生成成本</button></div>`;
+    <div class="card" id="costprev"><button class="btn ghost" onclick="costPreview()">预估本项目生成成本</button></div>`;
 }
 
 /* 母版 QC 逐项（M11.5/M11.6） */
@@ -516,7 +562,7 @@ async function renderQC() {
   box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="muted">影视 QC 清单 · 逐项阈值 / 实测 / 判定</div>
       <div><span class="pill ${d.summary.failed ? "bad" : "ok"}">${d.summary.passed}/${d.summary.total} 通过</span>
-        <button class="btn sm" style="margin-left:8px" onclick="downloadQC()">⬇ 下载报告</button></div></div>
+        <button class="btn sm" style="margin-left:8px" onclick="downloadQC()">${ico("download")} 下载报告</button></div></div>
     <div class="card" style="padding:0"><table>
       <thead><tr><th>检查项</th><th>阈值</th><th>实测</th><th>判定</th></tr></thead><tbody>
       ${d.items.map(it => `<tr><td>${esc(it.item)}</td><td class="muted">${esc(it.threshold)}</td>
@@ -551,9 +597,9 @@ async function renderCast() {
   const chars = await api("/api/dramas/" + CUR.id + "/characters");
   if (!chars.length) { box.innerHTML = `<div class="muted">尚无角色，先运行流水线。</div>`; return; }
   box.innerHTML = `<div class="muted" style="margin-bottom:12px">角色定妆 = 后续所有画面的唯一视觉事实来源；锚点是与一致性检测（M6）共享的基准。</div>
-    ${chars.map(c => `<h2 style="font-size:14px">🎭 ${esc(c.name)} <span class="hint">音色 ${esc(c.voice_key)} · ${c.anchors.length} 张锚点 · ${esc(c.status)}</span></h2>
+    ${chars.map(c => `<h2>${ico("face")} ${esc(c.name)} <span class="hint">音色 ${esc(c.voice_key)} · ${c.anchors.length} 张锚点 · ${esc(c.status)}</span></h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:18px">
-        ${c.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4;font-size:28px">🎭<span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
+        ${c.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4">${ico("face")}<span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
           <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
       </div>`).join("")}
     <div class="card"><b style="font-size:13px">定妆门禁</b>
@@ -607,7 +653,7 @@ async function showScreenplay() {
   try { const d = await api("/api/dramas/" + CUR.id + "/screenplay");
     box.classList.remove("hide");
     box.innerHTML = `<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--fg);background:#0a0e15;border:1px solid var(--line);border-radius:10px;padding:16px;max-height:400px;overflow:auto">${esc(d.text)}</pre>`;
-  } catch (e) { toast("❌ " + e.message); }
+  } catch (e) { toast("" + e.message); }
 }
 async function renderMemory() {
   const box = $("#memview"); if (!box) return;
@@ -642,9 +688,9 @@ async function saveScene(no) {
   try { const r = await api("/api/dramas/" + CUR.id + "/script/scene/" + no + "?episode=" + CUR_EP, { method: "PUT",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     closeModal();
-    toast(r.violations.length ? "⚠ 保存成功，但结构有 " + r.violations.length + " 处问题" : "✅ 已保存，结构合规");
+    toast(r.violations.length ? "保存成功，但结构有 " + r.violations.length + " 处问题" : "已保存，结构合规");
     renderScript();
-  } catch (e) { toast("❌ " + e.message); }
+  } catch (e) { toast("" + e.message); }
 }
 
 /* 门禁工作台（AADO 好莱坞级：五门禁署名 + 理由码 + 二元清单） */
@@ -655,7 +701,7 @@ async function renderGates() {
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">
     ${gates.map(g => `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:14px">🚦 ${esc(g.label)}</b>
+        <b style="font-size:13.5px">${ico("gate")} ${esc(g.label)}</b>
         <span class="pill ${g.decision === "pending" ? "" : "ok"}">${g.decision === "pending" ? "待签" : "已通过"}</span></div>
       <div class="kv" style="grid-template-columns:88px 1fr;font-size:12px;margin-top:10px">
         <div class="k">署名</div><div>${esc(g.approver)}</div>
@@ -698,8 +744,8 @@ async function renderTimeline() {
 }
 
 async function pickCand(cid, shotId) {
-  try { await api("/api/candidates/" + cid + "/select", { method: "POST" }); toast("✅ 已选定"); closeModal(); await sbOpen(shotId); }
-  catch (e) { toast("❌ " + e.message); }
+  try { await api("/api/candidates/" + cid + "/select", { method: "POST" }); toast("已选定"); closeModal(); await sbOpen(shotId); }
+  catch (e) { toast("" + e.message); }
 }
 /* 阶段专属富展示 */
 function stageBody(stage, art) {
@@ -717,7 +763,7 @@ function stageBody(stage, art) {
     const VIEWNAME = { front: "正面", side: "侧面", back: "背面", "3_4": "3/4 侧", full_body: "全身", expression: "表情" };
     return `<div class="muted" style="margin-bottom:10px">角色定妆 = 后续所有画面的唯一视觉事实来源。锚点图集是与一致性检测（M6）共享的基准。</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
-        ${art.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4;font-size:30px">🎭
+        ${art.anchors.map(a => `<div class="asset"><div class="thumb" style="aspect-ratio:3/4">${ico("face")}
           <span class="tag">${esc(VIEWNAME[a] || a)}</span></div>
           <div class="body"><div class="muted" style="font-size:11px">锚点 · ${esc(a)}</div></div></div>`).join("")}
       </div>
@@ -743,7 +789,7 @@ function stageBody(stage, art) {
     return `<div class="muted" style="margin-bottom:12px">一次生成、多端派生：所有版本由同一生成母版派生，禁止单画幅重复生成（EL-01）。</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div class="card" style="border-color:var(--gold);background:linear-gradient(135deg,rgba(212,162,76,.1),transparent)">
-          <b>🎞️ 生成母版</b> <span class="pill gold">${esc(art.master)}</span>
+          <b>${ico("master")} 生成母版</b> <span class="pill gold">${esc(art.master)}</span>
           <div class="muted" style="font-size:11px;margin-top:4px">唯一 · 16:9 open gate 最高可用分辨率</div></div>
         <div style="text-align:center;color:var(--dim);font-size:16px">↓ 派生</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
@@ -825,7 +871,7 @@ function stageBody(stage, art) {
   }
   // 母版：规格 QC 清单
   if (art.codec && art.tc) {
-    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadQC()">⬇ 下载 QC 报告（JSON）</button></div>
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadQC()">${ico("download")} 下载 QC 报告</button></div>
       <div class="kv">
         <div class="k">母版编码</div><div><span class="pill gold">${esc(art.codec)}</span></div>
         <div class="k">音频</div><div>${esc(art.audio)}</div>
@@ -850,8 +896,8 @@ function stageBody(stage, art) {
     const versions = [
       { n: "2.39:1 主母版", s: "保证" }, { n: "16:9 平台版", s: "保证" }, { n: "9:16 竖屏衍生", s: "保证" },
       { n: "HDR10", s: "可选" }, { n: "5.1 环绕", s: "可选" }, { n: "48fps", s: "可选" }];
-    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">⬇ 下载交付单</button>
-        <button class="btn ghost" onclick="downloadReceipt()" style="margin-left:8px">🔏 生成签名收据</button></div>
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">${ico("download")} 下载交付单</button>
+        <button class="btn ghost" onclick="downloadReceipt()" style="margin-left:8px">${ico("shield")} 生成签名收据</button></div>
       <div class="muted" style="margin-bottom:10px">交付版本清单（标注保证 / 可选 / 需确认，EL-11）</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">
         ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(v.n)}</div>
@@ -896,23 +942,23 @@ async function saveProject(id) {
     platform: $("#e_platform").value, genre: $("#e_genre").value,
     rating: $("#e_rating").value, minutes: parseInt($("#e_minutes").value, 10) };
   try { await api("/api/dramas/" + id, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    closeModal(); toast("✅ 已保存"); viewProject(id);
-  } catch (e) { toast("❌ " + e.message); }
+    closeModal(); toast("已保存"); viewProject(id);
+  } catch (e) { toast("" + e.message); }
 }
 function pickEp(id, n) { CUR_EP = n; viewProject(id); }
 async function produceAll(id) {
-  const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…（流水线→分镜→抽卡→组装）";
+  const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…";
   try { const r = await api("/api/dramas/" + id + "/produce", { method: "POST" });
-    toast("🎬 完成：" + r.stages_passed + "/" + r.stages_total + " 阶段 · " + r.shots + " 镜 · 成片 " + r.total_duration + "s");
+    toast("完成：" + r.stages_passed + "/" + r.stages_total + " 阶段 · " + r.shots + " 镜 · 成片 " + r.total_duration + "s");
     CUR.stage = null; viewProject(id);
-  } catch (e) { toast("❌ " + e.message); }
-  b.disabled = false; b.textContent = "🎬 一键全流程";
+  } catch (e) { toast("" + e.message); }
+  b.disabled = false; b.innerHTML = ico("sparkle") + " 一键全流程";
 }
 async function runPipeline(id) {
   const b = $("#runbtn"); b.disabled = true; b.textContent = "运行中…";
   try { const r = await api("/api/dramas/" + id + "/run", { method: "POST" });
-    toast("✅ 流水线完成 " + r.summary.passed + "/" + r.summary.total); CUR.stage = null; viewProject(id);
-  } catch (e) { toast("❌ " + e.message); b.disabled = false; b.textContent = "▶ 运行流水线"; }
+    toast("流水线完成 " + r.summary.passed + "/" + r.summary.total); CUR.stage = null; viewProject(id);
+  } catch (e) { toast("" + e.message); b.disabled = false; b.innerHTML = ico("play") + " 运行流水线"; }
 }
 
 /* ---------- 资产库 ---------- */
@@ -931,15 +977,15 @@ async function viewAssets() {
     top: `<h1>资产库 <span class="crumbs">跨项目角色与镜头</span></h1>
       <div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
     body: `${chars.length ? `<h2>角色 <span class="hint">定妆锚点 + 音色</span></h2>
-      <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb" style="font-size:34px">🎭<span class="tag">${esc(c.project)}</span></div>
+      <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb">${ico("face")}<span class="tag">${esc(c.project)}</span></div>
         <div class="body"><h4>${esc(c.name)}</h4>
           <div class="meta"><span>音色 ${esc(c.voice)}</span>${(c.anchors||[]).map(a => `<span>${esc(VIEWNAME[a]||a)}</span>`).join("")}</div></div></div>`).join("")}</div>` : ""}
       ${shots.length ? `<h2>镜头 <span class="hint">按状态</span></h2>
-      <div class="cards">${shots.slice(0, 60).map(s => `<div class="asset"><div class="thumb" style="font-size:28px">${s.status === "已生成" || s.status === "已选定" ? "🖼️" : "🎞️"}
+      <div class="cards">${shots.slice(0, 60).map(s => `<div class="asset"><div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
         <span class="tag">${esc(s.project)} · 镜${s.shot_no}</span></div>
         <div class="body"><div class="meta"><span>${esc(s.size)}</span><span>${esc(s.move)}</span><span>${s.duration}s</span>
           <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:10px">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
-      ${(!chars.length && !shots.length) ? `<div class="card empty">还没有资产。先在项目里运行流水线。</div>` : ""}`,
+      ${(!chars.length && !shots.length) ? `<div class="card empty">${ico("layers")}<div>还没有资产</div><div class="muted" style="font-size:12.5px;margin-top:4px">先在项目里运行流水线</div></div>` : ""}`,
   }, true);
 }
 
@@ -966,7 +1012,7 @@ async function viewJobs() {
       ${jobs.map(j => `<tr><td>${j.id}</td><td>${esc(j.project)}</td><td>${esc(j.type)}</td>
         <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(j.status)}</span></td>
         <td>${j.status === "failed" ? `<button class="btn ghost sm" onclick="jobRetry(${j.id})">重试</button>` : "—"}</td></tr>`).join("")}
-      </tbody></table></div>` : `<div class="card empty">📋 队列为空。<br>填项目 ID + 选择任务类型入队，worker 会自动领取执行。</div>`}`,
+      </tbody></table></div>` : `<div class="card empty">${ico("list")}<div>队列为空</div><div class="muted" style="font-size:12.5px;margin-top:4px">填项目 ID + 选择任务类型入队</div></div>`}`,
   }, true);
 }
 async function submitJob() {
@@ -974,12 +1020,12 @@ async function submitJob() {
   if (!pid) return toast("填项目 ID");
   try { await api("/api/drama-jobs", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ project_id: pid, type: type, idempotency_key: pid + ":" + type + ":" + Date.now() }) });
-    toast("✅ 已入队"); viewJobs();
-  } catch (e) { toast("❌ " + e.message); }
+    toast("已入队"); viewJobs();
+  } catch (e) { toast("" + e.message); }
 }
 async function jobRetry(id) {
-  try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("✅ 已重试"); viewJobs(); }
-  catch (e) { toast("❌ " + e.message); }
+  try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("已重试"); viewJobs(); }
+  catch (e) { toast("" + e.message); }
 }
 
 async function downloadReceipt() {
@@ -987,8 +1033,8 @@ async function downloadReceipt() {
     const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href = url; a.download = (d.project || "project") + "_receipt.json"; a.click(); URL.revokeObjectURL(url);
-    toast("🔏 收据已生成（签名" + (d.signature ? "已签" : "无密钥") + "）");
-  } catch (e) { toast("❌ " + e.message); }
+    toast("收据已生成（签名" + (d.signature ? "已签" : "无密钥") + "）");
+  } catch (e) { toast("" + e.message); }
 }
 async function downloadQC() {
   try {
@@ -997,8 +1043,8 @@ async function downloadQC() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url;
     a.download = (d.project || "project") + "_qc_report.json"; a.click();
-    URL.revokeObjectURL(url); toast("✅ QC 报告已下载（" + d.summary.passed + "/" + d.summary.total + " 通过）");
-  } catch (e) { toast("❌ " + e.message); }
+    URL.revokeObjectURL(url); toast("QC 报告已下载（" + d.summary.passed + "/" + d.summary.total + " 通过）");
+  } catch (e) { toast("" + e.message); }
 }
 async function downloadSheet() {
   try {
@@ -1007,8 +1053,8 @@ async function downloadSheet() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url;
     a.download = (d.project.title || "project") + "_delivery_sheet.json"; a.click();
-    URL.revokeObjectURL(url); toast("✅ 交付单已下载");
-  } catch (e) { toast("❌ " + e.message); }
+    URL.revokeObjectURL(url); toast("交付单已下载");
+  } catch (e) { toast("" + e.message); }
 }
 
 /* ---------- 生成台 Playground（参考 LumenX Playground） ---------- */
@@ -1029,11 +1075,11 @@ async function viewPlayground() {
     </div>
     <h2>生成历史 <span class="hint">最近 50 次</span></h2>
     ${tasks.length ? `<div class="cards">${tasks.map(t => `
-      <div class="asset"><div class="thumb" style="font-size:28px">${({ "图像生成":"🖼️","文生视频":"🎬","图生视频":"🎞️","参考生视频":"🎥","配音":"🎙️","配乐":"🎵" }[t.kind] || "🧪")}
+      <div class="asset"><div class="thumb">${ico({ "图像生成":"frame","文生视频":"film","图生视频":"film","参考生视频":"film","配音":"wave","配乐":"music" }[t.kind] || "lab")}
         <span class="tag">${esc(t.kind)}</span></div>
         <div class="body"><div class="desc">${esc(t.prompt)}</div>
           <div class="meta"><span>${esc(t.model)}</span><span class="pill ok" style="font-size:10px">${esc(t.status)}</span></div></div></div>`).join("")}</div>`
-      : `<div class="card empty">🧪 还没有生成记录。<br>选一个模式（图像/视频/配音/配乐），输入提示词即可生成。</div>`}`,
+      : `<div class="card empty">${ico("lab")}<div>还没有生成记录</div><div class="muted" style="font-size:12.5px;margin-top:4px">选一个模式，输入提示词即可生成</div></div>`}`,
   }, true);
 }
 async function pgGenerate() {
@@ -1041,8 +1087,8 @@ async function pgGenerate() {
   if (!prompt.trim()) return toast("请输入提示词");
   try { await api("/api/playground/generate", { method: "POST",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: PG_KIND, prompt }) });
-    toast("✅ 已生成"); viewPlayground();
-  } catch (e) { toast("❌ " + e.message); }
+    toast("已生成"); viewPlayground();
+  } catch (e) { toast("" + e.message); }
 }
 
 /* ---------- 模型 ---------- */
@@ -1053,7 +1099,7 @@ async function viewModels() {
       <div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
     body: `<div class="cards">${Object.entries(d.config).map(([k, c]) => {
       const on = c.model && c.api_key;
-      return `<div class="asset"><div class="thumb" style="font-size:30px">${({ text: "📝", video: "🎥", image: "🖼️", tts: "🎙️", music: "🎵", lipsync: "👄" }[k]) || "🔌"}</div>
+      return `<div class="asset"><div class="thumb">${ico({ text: "doc", video: "film", image: "frame", tts: "wave", music: "music", lipsync: "face" }[k] || "route")}</div>
         <div class="body"><h4 style="display:flex;justify-content:space-between">${k}
           <span class="pill ${on ? "ok" : ""}">${on ? "已配置" : "Mock"}</span></h4>
           <div class="desc">${esc(c.model || "未填模型")}</div></div></div>`;
