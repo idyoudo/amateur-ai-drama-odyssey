@@ -25,14 +25,37 @@ const STAGES = [
 ];
 
 /* ---------- 请求 ---------- */
+/* C8：GET 请求短 TTL 缓存 + 在途去重；写操作后整体失效 */
+const _apiCache = new Map();
+const _apiInflight = new Map();
+const API_TTL_MS = 2500;
 async function api(path, opt) {
   opt = opt || {};
+  const method = (opt.method || "GET").toUpperCase();
+  if (method === "GET") {
+    const hit = _apiCache.get(path);
+    if (hit && Date.now() - hit.t < API_TTL_MS) return hit.v;
+    if (_apiInflight.has(path)) return _apiInflight.get(path);
+  }
   opt.headers = Object.assign({}, opt.headers || {}, hasToken() ? { Authorization: "Bearer " + localStorage.getItem(TK) } : {});
-  const r = await fetch(path, opt);
-  if (r.status === 401) { logout(); throw new Error("未授权"); }
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((d && d.detail) ? JSON.stringify(d.detail) : ("HTTP " + r.status));
-  return d;
+  const p = (async () => {
+    const r = await fetch(path, opt);
+    if (r.status === 401) { logout(); throw new Error("未授权"); }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((d && d.detail) ? JSON.stringify(d.detail) : ("HTTP " + r.status));
+    return d;
+  })();
+  if (method === "GET") {
+    _apiInflight.set(path, p);
+    try {
+      const v = await p;
+      _apiCache.set(path, { t: Date.now(), v });
+      return v;
+    } finally { _apiInflight.delete(path); }
+  }
+  _apiCache.clear();           // 写操作后失效全部缓存
+  _apiInflight.clear();
+  return p;
 }
 function skeleton(n) {
   const m = $("#main");
@@ -159,7 +182,8 @@ function setMain(html, wide) {
     (html.title ? `<h1 class="page-title">${html.title}</h1>` : "") +
     (html.sub ? `<p class="page-sub">${html.sub}</p>` : "");
   let top = String(html.top || "");
-  const helpBtn = `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
+  const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
+    `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
   if (top.includes("</div>")) {
     const i = top.lastIndexOf("</div>");
     top = top.slice(0, i) + helpBtn + top.slice(i);
@@ -167,6 +191,29 @@ function setMain(html, wide) {
     top = `<div class="right">${helpBtn}</div>` + top;
   }
   m.innerHTML = `<div class="topbar">${top}</div><div class="view ${wide ? "wide" : ""}">${head}${html.body}</div>`;
+  refreshBell();
+}
+async function refreshBell() {
+  try {
+    const d = await api("/api/notifications");
+    const el = $("#bellcount"); if (!el) return;
+    if (d.count > 0) { el.textContent = d.count > 99 ? "99+" : d.count; el.classList.remove("hide"); }
+    else el.classList.add("hide");
+  } catch (e) {}
+}
+async function openNotifications() {
+  let d; try { d = await api("/api/notifications"); } catch (e) { return toast("加载失败"); }
+  const modal = document.createElement("div"); modal.className = "modal"; modal.id = "notifmodal";
+  const items = d.items || [];
+  modal.innerHTML = `<div class="box" style="max-width:560px">
+    <div class="mhead"><h2>待办与通知</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">
+      ${items.length ? items.map(it => `<div class="notif-item" onclick="closeModal();go('project:${it.link_project}')">
+        <span class="pill ${it.severity === "bad" ? "bad" : "gold"}">${esc(it.title)}</span>
+        <div class="notif-detail">${esc(it.detail)}</div></div>`).join("")
+        : `<div class="empty">${ico("check")}<div>没有待办，一切正常</div></div>`}
+    </div></div>`;
+  document.body.appendChild(modal);
 }
 async function go(route) {
   const parts = String(route).split(":");
@@ -281,6 +328,27 @@ async function viewProjects() {
     ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div></div>`}`,
   });
   window._PROJS = projs;
+  const pf = $("#pf");
+  if (pf) pf.onsubmit = async e => {
+    e.preventDefault();
+    const b = Object.fromEntries(new FormData(e.target)); b.episodes = 6;
+    const btn = pf.querySelector("button[type=submit]");
+    withLoading(btn, async () => {
+      const d = await api("/api/dramas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+      toast("立项成功"); go("project:" + d.id);
+    });
+  };
+}
+
+/* 异步按钮 loading 封装：执行期间禁用并显示"处理中…" */
+async function withLoading(btn, fn) {
+  if (!btn) return fn();
+  const old = btn.innerHTML, dis = btn.disabled;
+  btn.disabled = true; btn.dataset.loading = "1";
+  btn.innerHTML = `<span class="spin"></span>处理中…`;
+  try { return await fn(); }
+  catch (e) { toast("操作失败：" + e.message); }
+  finally { btn.disabled = dis; btn.innerHTML = old; delete btn.dataset.loading; }
 }
 function filterProjs() {
   const q = (($("#psearch") || {}).value || "").toLowerCase();
@@ -290,11 +358,6 @@ function filterProjs() {
   if (sort === "title") list = list.slice().sort((a, b) => (a.title || "").localeCompare(b.title || ""));
   else if (sort === "deliverable") list = list.slice().sort((a, b) => (b.deliverable ? 1 : 0) - (a.deliverable ? 1 : 0));
   $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">${ico("film")}<div>无匹配项目</div></div>`;
-  $("#pf").onsubmit = async e => {
-    e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); b.episodes = 6;
-    try { const d = await api("/api/dramas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
-      toast("立项成功"); go("project:" + d.id); } catch (err) { toast("" + err.message); }
-  };
 }
 
 /* ---------- 项目工作台 ---------- */
@@ -536,7 +599,7 @@ async function sbOpen(shotId, shotNo) {
     </div></div>`;
   document.body.appendChild(modal);
 }
-function closeModal() { const m = $("#sbmodal"); if (m) m.remove(); }
+function closeModal() { $$(".modal").forEach(m => m.remove()); }
 async function genCands(shotId) {
   try { await api("/api/shots/" + shotId + "/candidates", { method: "POST" }); closeModal(); await sbOpen(shotId); }
   catch (e) { toast("" + e.message); }
@@ -1008,16 +1071,8 @@ async function runPipeline(id) {
 
 /* ---------- 资产库 ---------- */
 async function viewAssets() {
-  const projs = await api("/api/dramas");
-  const chars = [], shots = [];
-  for (const p of projs.slice(0, 12)) {
-    try {
-      const cs = await api("/api/dramas/" + p.id + "/characters");
-      cs.forEach(c => chars.push({ project: p.title, name: c.name, voice: c.voice_key, anchors: c.anchors }));
-      const sh = await api("/api/dramas/" + p.id + "/shots");
-      sh.forEach(x => shots.push({ project: p.title, ...x }));
-    } catch (e) {}
-  }
+  const d = await api("/api/assets/summary?limit=120");
+  const chars = d.characters || [], shots = d.shots || [];
   setMain({
     title: "资产库", sub: "跨项目角色与镜头",
     top: `<div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
@@ -1037,12 +1092,8 @@ async function viewAssets() {
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */
 const JOB_STATUS_COLOR = { queued: "muted", running: "gold", completed: "ok", failed: "bad", waiting_human: "gold", retry_exhausted: "bad", cancelled: "muted" };
 async function viewJobs() {
-  const projs = await api("/api/dramas");
-  let jobs = [];
-  for (const p of projs.slice(0, 10)) {
-    try { const js = await api("/api/dramas/" + p.id + "/jobs"); js.forEach(j => jobs.push({ project: p.title, ...j })); } catch (e) {}
-  }
-  jobs.sort((a, b) => b.id - a.id);
+  const d = await api("/api/jobs/summary?limit=100");
+  const jobs = d.jobs || [];
   setMain({
     title: "任务", sub: "PG 队列 · 幂等 + 租约 + checkpoint",
     top: `<div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
@@ -1062,7 +1113,7 @@ async function viewJobs() {
       </tbody></table></div>` : `<div class="card empty">${ico("list")}<div>队列为空</div><div class="muted" style="font-size:12.5px;margin-top:4px">填项目 ID + 选择任务类型入队</div></div>`}`,
   }, true);
 }
-async function submitJob() {
+async function submitJob(btn) {
   const pid = ($("#job_pid") || {}).value, type = ($("#job_type") || {}).value;
   if (!pid) return toast("填项目 ID");
   try { await api("/api/drama-jobs", { method: "POST", headers: { "Content-Type": "application/json" },

@@ -262,6 +262,24 @@ r = client.put("/api/dramas/%d/module-params/M1" % pid, headers=H, json={"episod
 check("非法参数 422", r.status_code == 422)
 check("未知模块 404", client.put("/api/dramas/%d/module-params/M99" % pid, headers=H, json={}).status_code == 404)
 
+# 聚合接口（C7）
+r = client.get("/api/assets/summary?limit=10", headers=H)
+check("资产聚合 200", r.status_code == 200 and "characters" in r.json())
+check("资产聚合有镜头上限", len(r.json()["shots"]) <= 10)
+r = client.get("/api/jobs/summary?limit=10", headers=H)
+check("任务聚合 200", r.status_code == 200 and "jobs" in r.json())
+r = client.get("/api/dramas/%d/overview" % pid, headers=H)
+d = r.json()
+check("项目概览 200", r.status_code == 200)
+check("概览含镜头统计", "shots_total" in d and "completion" in d)
+check("概览含分集", len(d["breakdown"]) >= 1)
+
+# 通知待办（C4）
+r = client.get("/api/notifications", headers=H)
+d = r.json()
+check("通知 200", r.status_code == 200)
+check("通知含 items/count", "items" in d and "count" in d)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

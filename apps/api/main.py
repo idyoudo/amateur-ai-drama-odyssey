@@ -31,6 +31,19 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "")
 
 
 @app.middleware("http")
+async def static_cache_middleware(request, call_next):
+    """静态资源缓存头（带 ETag 重验；字体/图片长缓存）。"""
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/static/"):
+        if path.endswith((".woff2", ".woff", ".ttf", ".png", ".jpg", ".svg")):
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        elif path.endswith((".css", ".js")):
+            response.headers["Cache-Control"] = "public, max-age=300, must-revalidate"
+    return response
+
+
+@app.middleware("http")
 async def auth_middleware(request, call_next):
     path = request.url.path
     if path.startswith("/api/") and path != "/api/auth/login":
@@ -586,6 +599,80 @@ def delivery_sheet(project_id: int):
         "rating": p.rating, "language": "zh（中文优先，英语同步准备）", "color_tag": "Rec.709 SDR",
         "optional_delivery": {"HDR10": "可选", "5.1": "可选", "48fps": "可选"},
     }
+
+
+@app.get("/api/notifications")
+def notifications():
+    """待办聚合：失败/待人工任务、未运行项目、预算预警。"""
+    items = []
+    with Session() as s:
+        projs = {p.id: p for p in s.scalars(select(jobs_db.Project)).all()}
+        rows = s.scalars(select(jobs_db.Job).where(
+            jobs_db.Job.status.in_(("failed", "waiting_human", "retry_exhausted")))
+            .order_by(jobs_db.Job.id.desc()).limit(30)).all()
+        for r in rows:
+            p = projs.get(r.project_id)
+            items.append({"type": "job", "severity": "bad" if r.status in ("failed", "retry_exhausted") else "warn",
+                          "title": "任务" + ("失败" if r.status == "failed" else ("待人工" if r.status == "waiting_human" else "重试耗尽")),
+                          "detail": "%s · %s" % ((p.title if p else ""), r.type),
+                          "link_project": r.project_id})
+        for pid, p in projs.items():
+            run = s.scalars(select(jobs_db.Run).where(
+                jobs_db.Run.project_id == pid).order_by(jobs_db.Run.id.desc())).first()
+            if run is None:
+                items.append({"type": "project", "severity": "warn", "title": "项目尚未运行流水线",
+                              "detail": p.title, "link_project": pid})
+    return {"items": items, "count": len(items)}
+
+
+@app.get("/api/assets/summary")
+def assets_summary(limit: int = 120, offset: int = 0):
+    """跨项目资产聚合（角色 + 镜头），一次请求，避免前端 N+1。"""
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        chars = s.scalars(select(jobs_db.Character).order_by(jobs_db.Character.id)).all()
+        q = select(jobs_db.Shot).order_by(jobs_db.Shot.id)
+        shots = s.scalars(q.offset(offset).limit(limit)).all()
+        total_shots = s.query(jobs_db.Shot).count()
+    return {"characters": [{"project": projs.get(c.project_id, ""), "name": c.name,
+                            "voice": c.voice_key, "anchors": c.anchors or []} for c in chars],
+            "shots": [{"project": projs.get(sh.project_id, ""), "shot_no": sh.shot_no,
+                       "size": sh.size, "move": sh.move, "duration": sh.duration,
+                       "status": sh.status, "episode_id": sh.episode_id} for sh in shots],
+            "total_shots": total_shots, "limit": limit, "offset": offset}
+
+
+@app.get("/api/jobs/summary")
+def jobs_summary(limit: int = 100, offset: int = 0):
+    """跨项目任务聚合，一次请求。"""
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        rows = s.scalars(select(jobs_db.Job).order_by(jobs_db.Job.id.desc())
+                         .offset(offset).limit(limit)).all()
+        total = s.query(jobs_db.Job).count()
+    return {"jobs": [{"id": r.id, "project": projs.get(r.project_id, ""), "type": r.type,
+                      "status": r.status, "shot_id": r.shot_id} for r in rows],
+            "total": total, "limit": limit, "offset": offset}
+
+
+@app.get("/api/dramas/{project_id}/overview")
+def project_overview(project_id: int):
+    """项目概览聚合：项目 + 分集 + 镜头统计，一次请求。"""
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        rows = s.query(jobs_db.Shot.episode_id, jobs_db.Shot.status, func.count(jobs_db.Shot.id)).filter(
+            jobs_db.Shot.project_id == project_id).group_by(jobs_db.Shot.episode_id, jobs_db.Shot.status).all()
+        total = sum(r[2] for r in rows)
+        gen = sum(r[2] for r in rows if r[1] in ("已生成", "已选定"))
+        sel = sum(r[2] for r in rows if r[1] == "已选定")
+        breakdown = {}
+        for ep, st, n in rows:
+            breakdown[str(ep or 1)] = breakdown.get(str(ep or 1), 0) + n
+    return {"id": p.id, "title": p.title, "episodes": p.episodes or 6, "minutes": p.minutes or 30,
+            "shots_total": total, "generated": gen, "selected": sel,
+            "completion": round(gen / total * 100) if total else 0, "breakdown": breakdown}
 
 
 @app.get("/api/dramas/{project_id}/module-params")

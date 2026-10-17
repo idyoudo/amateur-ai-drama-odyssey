@@ -24,6 +24,7 @@ class Job(Base):
     __table_args__ = (
         UniqueConstraint("project_id", "idempotency_key", name="uq_jobs_idem"),
         Index("ix_jobs_status_available", "status", "available_at"),
+        Index("ix_jobs_project", "project_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -71,6 +72,9 @@ class Project(Base):
 class Shot(Base):
     """镜头（M4 分镜表 + M5 契约字段）。"""
     __tablename__ = "shots"
+    __table_args__ = (
+        Index("ix_shots_project_episode", "project_id", "episode_id", "shot_no"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     project_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -93,6 +97,7 @@ class Shot(Base):
 class Candidate(Base):
     """镜头生成候选（抽卡，M5.1/F02 多候选 + 选择位）。"""
     __tablename__ = "candidates"
+    __table_args__ = (Index("ix_candidates_shot", "shot_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     shot_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -132,6 +137,7 @@ class PlaygroundTask(Base):
 class Character(Base):
     """角色（M3 选角：锚点图集 + 音色绑定 + 定妆门禁）。"""
     __tablename__ = "characters"
+    __table_args__ = (Index("ix_characters_project", "project_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     project_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -167,6 +173,7 @@ class ModuleParams(Base):
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"
+    __table_args__ = (Index("ix_runs_project", "project_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     project_id: Mapped[int] = mapped_column(Integer, nullable=False)

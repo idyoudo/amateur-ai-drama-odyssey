@@ -346,3 +346,23 @@ body.dark{color-scheme:dark;
 .help-sec ol,.help-sec ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);line-height:1.75}
 .help-sec li{margin-bottom:5px}
 @media (max-width:860px){.help-body{grid-template-columns:1fr}.help-nav{display:flex;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line);max-height:none}.help-item{white-space:normal}}
+
+/* C1：焦点可见性 + 异步加载态 */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[data-loading]{pointer-events:none}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+.btn.ghost .spin,.btn.ghost[data-loading] .spin{border-color:rgba(0,0,0,.2);border-top-color:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(217,45,32,.08)}
+.fld-error{font-size:11px;color:var(--bad);margin-top:4px}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+
+/* C4：通知铃铛与待办面板 */
+.bell-btn{position:relative}
+.bell-btn svg{width:14px;height:14px}
+.bell-count{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;
+  background:var(--bad);color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:8px;cursor:pointer;transition:.13s}
+.notif-item:hover{background:var(--surface-2)}
+.notif-detail{font-size:12.5px;color:var(--ink-2);line-height:1.5}
