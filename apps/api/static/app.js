@@ -390,22 +390,54 @@ async function importNovelFile(file) {
     if (w) w.value = d.words_wan || w.value;
     if (c) c.value = d.chapters || c.value;
     if (l && !l.value.trim()) l.value = d.logline || "";
-    if (st) st.innerHTML = `已导入《${esc(d.title)}》 · ${d.chapters} 章 · ${d.words_wan} 万字 · ${esc(d.encoding)} · ${esc(d.filename)}`;
+    if (st) st.innerHTML = `已导入《${esc(d.title)}》 · ${d.chapters} 章 · ${d.words_wan >= 0.1 ? d.words_wan : "<0.1"} 万字 · ${esc(d.encoding)} · ${esc(d.filename)}`;
     refreshFormatRec();
   } catch (e) {
     if (st) st.textContent = "导入失败：" + e.message;
     toast("小说导入失败：" + e.message);
   }
 }
-let _recSeq = 0, _recTimer = null;
+let _recSeq = 0, _recTimer = null, _wizStep = 1, _source = "original";
 function scheduleFormatRec() { clearTimeout(_recTimer); _recTimer = setTimeout(refreshFormatRec, 250); }
-function setCreateMode(mode) {
-  const novel = mode === "novel";
-  $("#pf_source_type").value = mode;
-  $$(".mode-tab").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
-  $$(".novel-only").forEach(e => e.classList.toggle("hide", !novel));
-  $("#pf_title").placeholder = novel ? "片名 / 小说名" : "片名";
+function pickSource(kind) {
+  _source = kind;
+  const st = $("#pf_source_type"), sm = $("#pf_source_method");
+  if (st) st.value = kind === "original" ? "original" : "novel";
+  if (sm) sm.value = kind;
+  $$(".source-card").forEach(c => c.classList.toggle("on", c.dataset.source === kind));
+  const imp = $("#txt_import"); if (imp) imp.classList.toggle("hide", kind !== "txt");
+  const title = $("#pf_title");
+  if (title) title.placeholder = kind === "original" ? "片名" : "片名 / 小说名";
+  const s3 = document.querySelector('.wstep[data-step="3"]');
+  if (s3) s3.classList.toggle("skip", kind === "original");
   refreshFormatRec();
+}
+function setWizardStep(n) {
+  _wizStep = n;
+  $$(".wpanel").forEach(p => p.classList.toggle("hide", Number(p.dataset.panel) !== n));
+  $$(".wstep").forEach(s => {
+    const k = Number(s.dataset.step);
+    s.classList.toggle("on", k === n);
+    s.classList.toggle("done", k < n && !s.classList.contains("skip"));
+  });
+  if (n === 4) refreshFormatRec();
+}
+function wizardNext() {
+  if (_wizStep === 2) {
+    const t = (($("#pf_title") || {}).value || "").trim();
+    const l = (($("#pf_logline") || {}).value || "").trim();
+    if (!t) return toast("请填写片名");
+    if (!l) return toast("请填写一句话故事");
+    if (_source === "original") return setWizardStep(4);
+    return setWizardStep(3);
+  }
+  if (_wizStep === 3 && _source === "txt" && !window._NOVEL)
+    return toast("请先导入 TXT，或返回选择「小说链接」手动填写");
+  setWizardStep(Math.min(4, _wizStep + 1));
+}
+function wizardPrev() {
+  if (_wizStep === 4) return setWizardStep(_source === "original" ? 2 : 3);
+  setWizardStep(Math.max(1, _wizStep - 1));
 }
 async function refreshFormatRec() {
   const box = $("#fmtbox"); if (!box) return;
@@ -437,47 +469,82 @@ async function refreshFormatRec() {
 function projectFormHtml(platformOpts) {
   return `<form class="stack" id="pf">
       <input type="hidden" name="source_type" id="pf_source_type" value="original">
-      <div class="mode-tabs">
-        <button type="button" class="mode-tab on" data-mode="original" onclick="setCreateMode('original')">原创剧本</button>
-        <button type="button" class="mode-tab" data-mode="novel" onclick="setCreateMode('novel')">小说改编</button>
+      <input type="hidden" name="source_method" id="pf_source_method" value="original">
+      <div class="wizard-steps">
+        <div class="wstep on" data-step="1"><b>1</b>来源</div>
+        <div class="wstep" data-step="2"><b>2</b>基本信息</div>
+        <div class="wstep skip" data-step="3"><b>3</b>原著</div>
+        <div class="wstep" data-step="4"><b>4</b>分集</div>
       </div>
-      <div class="grid3">
-        <input name="title" id="pf_title" placeholder="片名" required maxlength="128">
-        <input name="logline" id="pf_logline" placeholder="一句话故事（logline，必填 ≤120 字）" required maxlength="120">
-        <select name="platform_key" id="pf_platform" onchange="refreshFormatRec()">${platformOpts}</select>
+
+      <div class="wpanel" data-panel="1">
+        <div class="source-cards">
+          <div class="source-card on" data-source="original" onclick="pickSource('original')">
+            <b>原创剧本</b><small>已有故事，直接立项</small></div>
+          <div class="source-card" data-source="txt" onclick="pickSource('txt')">
+            <b>导入小说 TXT</b><small>自动识别章节、字数、作者与编码</small></div>
+          <div class="source-card" data-source="link" onclick="pickSource('link')">
+            <b>小说链接</b><small>登记原著链接与授权信息（不抓取内容）</small></div>
+        </div>
+        <div class="wizard-actions"><span></span>
+          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
       </div>
-      <div class="grid3">
-        <input name="genre" id="pf_genre" placeholder="题材" value="悬疑" oninput="scheduleFormatRec()">
-        <select name="rating"><option>全龄</option><option selected>12+</option><option>16+</option></select>
-        <input name="author" id="pf_author" class="novel-only hide" placeholder="原著作者（小说模式）">
+
+      <div class="wpanel hide" data-panel="2">
+        <div class="row2">
+          <input name="title" id="pf_title" placeholder="片名" required maxlength="128">
+          <input name="logline" id="pf_logline" placeholder="一句话故事（logline，必填 ≤120 字）" required maxlength="120">
+        </div>
+        <div class="row2">
+          <input name="genre" id="pf_genre" placeholder="题材" value="悬疑" oninput="scheduleFormatRec()">
+          <select name="rating"><option>全龄</option><option selected>12+</option><option>16+</option></select>
+        </div>
+        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
+          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
       </div>
-      <div class="grid3 novel-only hide" id="novel_row">
-        <input name="words_wan" id="pf_words" type="number" min="0.1" step="0.1" placeholder="原作字数（万字）" oninput="scheduleFormatRec()">
-        <input name="chapters" id="pf_chapters" type="number" min="1" step="1" placeholder="原作章节数" oninput="scheduleFormatRec()">
-        <input name="source_url" id="pf_source_url" placeholder="原著链接 / 授权编号（可选）">
+
+      <div class="wpanel hide" data-panel="3">
+        <label class="import-box" id="txt_import">
+          <input type="file" id="pf_novel_file" accept=".txt,text/plain" class="hide">
+          <b>导入小说 TXT</b>
+          <small>自动识别章节、字数、作者与编码（UTF-8 / GBK）· 上限 10 MB · 也可拖拽到此处</small>
+          <span id="novel_status" class="muted" style="font-size:var(--fs-sm)"></span>
+        </label>
+        <div class="row2">
+          <input name="author" id="pf_author" placeholder="原著作者">
+          <input name="source_url" id="pf_source_url" placeholder="原著链接 / 授权编号（可选）">
+        </div>
+        <div class="row2">
+          <input name="words_wan" id="pf_words" type="number" min="0.1" step="0.1" placeholder="原作字数（万字）" oninput="scheduleFormatRec()">
+          <input name="chapters" id="pf_chapters" type="number" min="1" step="1" placeholder="原作章节数" oninput="scheduleFormatRec()">
+        </div>
+        <div class="muted" style="font-size:var(--fs-sm)">小说链接仅作授权登记，系统不会抓取链接内容；如需自动解析章节，请使用 TXT 导入。</div>
+        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
+          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
       </div>
-      <label class="import-box novel-only hide" id="novel_drop">
-        <input type="file" id="pf_novel_file" accept=".txt,text/plain" class="hide">
-        <b>导入小说 TXT</b>
-        <small>自动识别章节、字数、作者与编码（UTF-8 / GBK）· 上限 10 MB · 也可拖拽到此处</small>
-        <span id="novel_status" class="muted" style="font-size:var(--fs-sm)"></span>
-      </label>
-      <div class="rec-box" id="fmtbox"><span class="muted">正在获取分集建议…</span></div>
-      <div class="grid3">
-        <label class="fld"><small>分集数</small><input name="episodes" id="pf_eps" type="number" min="1" max="200" value="6"></label>
-        <label class="fld"><small>每集时长（秒）</small><input name="episode_seconds" id="pf_secs" type="number" min="15" max="2700" step="15" value="1800"></label>
-        <label class="fld"><small>画幅</small><select name="aspect" id="pf_aspect">
-          <option value="9:16">9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="2.39:1">2.39:1 宽银幕</option></select></label>
+
+      <div class="wpanel hide" data-panel="4">
+        <div class="row2">
+          <select name="platform_key" id="pf_platform" onchange="refreshFormatRec()">${platformOpts}</select>
+          <div class="muted" style="font-size:var(--fs-sm);align-self:center">建议按平台与原著规模生成，可手动覆盖</div>
+        </div>
+        <div class="rec-box" id="fmtbox"><span class="muted">正在获取分集建议…</span></div>
+        <div class="grid3">
+          <label class="fld"><small>分集数</small><input name="episodes" id="pf_eps" type="number" min="1" max="200" value="6"></label>
+          <label class="fld"><small>每集时长（秒）</small><input name="episode_seconds" id="pf_secs" type="number" min="15" max="2700" step="15" value="1800"></label>
+          <label class="fld"><small>画幅</small><select name="aspect" id="pf_aspect">
+            <option value="9:16">9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="2.39:1">2.39:1 宽银幕</option></select></label>
+        </div>
+        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
+          <button type="submit" class="btn">创建立项</button></div>
       </div>
-      <div class="form-actions"><button class="btn" type="submit">创建立项</button>
-        <span class="muted" style="font-size:var(--fs-sm)">建议值可手动覆盖；未填字段使用推荐值</span></div>
     </form>`;
 }
 function wireProjectForm(pf) {
   if (!pf) return;
   const fInput = $("#pf_novel_file");
   if (fInput) fInput.onchange = e => { const f = e.target.files[0]; if (f) importNovelFile(f); e.target.value = ""; };
-  const drop = $("#novel_drop");
+  const drop = $("#txt_import");
   if (drop) {
     ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => {
       e.preventDefault(); drop.classList.add("drag");
@@ -487,8 +554,15 @@ function wireProjectForm(pf) {
     }));
     drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) importNovelFile(f); });
   }
+  pf.addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && _wizStep < 4) {
+      e.preventDefault(); wizardNext();
+    }
+  });
   pf.onsubmit = async e => {
     e.preventDefault();
+    if (_source === "txt" && !window._NOVEL)
+      return toast("请先导入 TXT，或返回选择「小说链接」手动填写");
     const fd = new FormData(e.target);
     const b = {};
     fd.forEach((v, k) => { if (String(v).trim() !== "") b[k] = v; });
@@ -500,10 +574,11 @@ function wireProjectForm(pf) {
       b.source_meta = { title: b.title, author: b.author || nv.author || "",
         words_wan: Number(b.words_wan || 0) || null,
         chapters: Number(b.chapters || 0) || null, source_url: b.source_url || "",
-        novel_id: nv.novel_id || null };
+        novel_id: nv.novel_id || null, method: b.source_method || "link" };
       if (nv.filename) b.source_meta.filename = nv.filename;
     }
     delete b.author; delete b.words_wan; delete b.chapters; delete b.source_url;
+    delete b.source_method;
     if (!b.minutes) b.minutes = Math.max(1, Math.round((b.episode_seconds || 1800) / 60));
     const btn = pf.querySelector("button[type=submit]");
     withLoading(btn, async () => {
@@ -528,6 +603,8 @@ async function openProjectCreate() {
     <div class="mbody">${projectFormHtml(platformOpts)}</div></div>`;
   document.body.appendChild(modal);
   wireProjectForm($("#pf"));
+  pickSource("original");
+  setWizardStep(1);
   refreshFormatRec();
 }
 async function viewProjects() {

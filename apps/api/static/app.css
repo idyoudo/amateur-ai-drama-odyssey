@@ -171,12 +171,26 @@ form.stack{display:flex;flex-direction:column;gap:12px;max-width:100%}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 
-/* 新建项目：创作方式与分集建议 */
-.mode-tabs{display:flex;gap:6px;flex-wrap:wrap}
-.mode-tab{padding:6px 14px;border-radius:6px;border:1px solid var(--line-strong);background:var(--surface);
-  color:var(--dim);font-size:var(--fs-table);font-weight:500;transition:.15s var(--ease)}
-.mode-tab:hover{color:var(--ink);border-color:var(--dim-2)}
-.mode-tab.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
+/* 新建项目：向导流程与分集建议 */
+.wizard-steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.wstep{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;
+  font-size:var(--fs-sm);color:var(--dim)}
+.wstep b{width:20px;height:20px;border-radius:50%;background:var(--surface-3);color:var(--dim);
+  display:flex;align-items:center;justify-content:center;font-size:var(--fs-micro);font-weight:600}
+.wstep.on{color:var(--accent);background:var(--accent-soft)}
+.wstep.on b{background:var(--accent);color:#fff}
+.wstep.done b{background:var(--ok);color:#fff}
+.wstep.skip{opacity:.45}
+.wpanel{display:flex;flex-direction:column;gap:12px}
+.wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
+.source-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.source-card{border:1px solid var(--line-strong);border-radius:var(--radius-md);padding:14px;cursor:pointer;
+  background:var(--surface);display:flex;flex-direction:column;gap:4px;transition:.15s var(--ease)}
+.source-card:hover{border-color:var(--dim-2)}
+.source-card.on{border-color:var(--accent);background:var(--accent-soft)}
+.source-card b{font-size:var(--fs-table);font-weight:600}
+.source-card small{font-size:var(--fs-sm);color:var(--dim);line-height:1.5}
+@media (max-width:640px){.source-cards{grid-template-columns:1fr}}
 .rec-box{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px 14px}
 .rec-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--fs-table)}
 .rec-head b{font-family:var(--serif);font-size:var(--fs-h3);font-weight:400;letter-spacing:-.01em}
