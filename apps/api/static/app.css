@@ -269,19 +269,15 @@ body.dark{color-scheme:dark;
   .kv{grid-template-columns:120px 1fr}
 }
 
-/* ── E2 项目卡电影感封面 ── */
+/* ── 项目卡：浅色内容卡 ── */
 .project-card{padding:0;overflow:hidden}
-.cover{position:relative;height:72px;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:12px 16px;color:#fff;overflow:hidden}
-.cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.28))}
-.cover .cv-title{position:relative;z-index:1;font-family:var(--serif);font-size:var(--fs-h2);line-height:1.05;letter-spacing:-.01em;
-  text-wrap:balance;word-break:keep-all;text-shadow:0 1px 12px rgba(0,0,0,.22)}
-.cover .cv-meta{position:relative;z-index:1;font-size:var(--fs-meta);letter-spacing:.14em;text-transform:uppercase;opacity:.82;margin-top:4px}
 .project-card .pbody{padding:16px 18px}
-.pbody-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pc-title{font-family:var(--serif);font-size:var(--fs-h2);font-weight:400;margin:0;line-height:1.2;letter-spacing:-.01em}
+.pc-meta{font-size:var(--fs-meta);color:var(--dim-2);margin-top:5px;letter-spacing:.02em}
+.pc-logline{font-size:var(--fs-table);color:var(--dim);line-height:1.6;margin-top:10px}
 @media (max-width:520px){
   .cards{grid-template-columns:1fr}
-  .pbody-row{flex-direction:column;align-items:flex-start}
 }
 
 /* ── E5 克制的入场（仅 .view 层，无数字滚动/无 hover-only） ── */

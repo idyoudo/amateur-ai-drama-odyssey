@@ -342,28 +342,15 @@ async function viewOverview() {
         <button class="btn ghost" style="margin-left:8px" onclick="go('projects')">手动立项</button></div></div>`}`,
   });
 }
-/* E2：低饱和电影感封面（按 id 确定性取色，禁止彩虹） */
-const COVERS = [
-  ["#26263A", "#3A3A5C"], ["#232B3A", "#37465E"], ["#262333", "#3F3A5A"],
-  ["#1F2E33", "#33474E"], ["#2A2A30", "#414150"], ["#282535", "#423C58"],
-];
-function coverFor(p) {
-  const key = String(p.id || p.title || "x");
-  let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  const [a, b] = COVERS[h % COVERS.length];
-  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
-}
+/* 项目卡：与全站一致的浅色内容卡（无深色封面） */
 function projectCard(p) {
   const badge = p.deliverable ? `<span class="pill ok"><i class="dot ok"></i>可交付</span>`
     : (p.stages_passed ? `<span class="pill gold">${p.stages_passed}/19 阶段</span>` : `<span class="pill">未制作</span>`);
   return `<div class="card click project-card" onclick="go('project:${p.id}')">
-    <div class="cover" style="background:${coverFor(p)}">
-      <div class="cv-title">${esc(p.title)}</div>
-      <div class="cv-meta">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div>
-    </div>
     <div class="pbody">
-      <div class="pbody-row">
-        <div class="muted" style="font-size:var(--fs-table);min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
+      <div class="pc-head"><h3 class="pc-title">${esc(p.title)}</h3>${badge}</div>
+      <div class="pc-meta">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div>
+      <div class="pc-logline">${esc(p.logline || "")}</div>
     </div></div>`;
 }
 
