@@ -189,7 +189,7 @@ async function viewOverview() {
     body: `
     <section class="hero">
       <div class="eyebrow">AADO · Drama Odyssey</div>
-      <h1>从一部小说，到一季好莱坞级短剧。</h1>
+      <h1>从一部小说，<br>到一季好莱坞级短剧。</h1>
       <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块在同一条可审计的流水线上完成，每一帧都有据可查。</p>
     </section>
     <div class="stats">
