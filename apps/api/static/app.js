@@ -74,6 +74,7 @@ function toggleTheme() {
   toast("主题：" + (t === "dark" ? "深色" : "浅色"));
 }
 document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) { e.preventDefault(); openCommand(); return; }
   if (e.key === "Escape") { const m = document.querySelector(".modal"); if (m) m.remove(); }
   if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "")) {
     const s = $("#psearch"); if (s) { e.preventDefault(); s.focus(); }
@@ -1364,4 +1365,57 @@ async function seedDemo() {
     toast(d.created ? "示例项目已创建" : "示例项目已存在");
     go("project:" + d.id);
   } catch (e) { toast("创建失败：" + e.message); }
+}
+
+/* C5：命令面板（⌘K） */
+let _cmdData = null, _cmdIdx = 0, _cmdItems = [];
+async function openCommand() {
+  let projs = [], assets = null;
+  try { projs = await api("/api/dramas"); } catch (e) {}
+  try { assets = await api("/api/assets/summary?limit=60"); } catch (e) {}
+  const cmds = [
+    { label: "概览", kind: "页面", act: () => go("overview") },
+    { label: "项目", kind: "页面", act: () => go("projects") },
+    { label: "资产库", kind: "页面", act: () => go("assets") },
+    { label: "生成台", kind: "页面", act: () => go("playground") },
+    { label: "任务", kind: "页面", act: () => go("jobs") },
+    { label: "模型配置", kind: "页面", act: () => go("models") },
+    { label: "设置", kind: "页面", act: () => go("settings") },
+    { label: "使用指南", kind: "操作", act: () => openHelp() },
+    { label: "创建示例项目", kind: "操作", act: () => seedDemo() },
+    ...projs.map(p => ({ label: p.title, kind: "项目", act: () => go("project:" + p.id) })),
+    ...((assets && assets.characters) || []).map(c => ({ label: c.name, kind: "角色 · " + c.project, act: () => go("assets") })),
+  ];
+  _cmdData = cmds; _cmdIdx = 0;
+  const modal = document.createElement("div"); modal.className = "modal cmd-modal"; modal.id = "cmdmodal";
+  modal.innerHTML = `<div class="cmd-box">
+    <input id="cmdq" class="cmd-input" placeholder="搜索项目、页面、操作…" autocomplete="off">
+    <div class="cmd-list" id="cmdlist"></div>
+    <div class="cmd-foot"><span>↑↓ 选择</span><span>↵ 打开</span><span>Esc 关闭</span></div></div>`;
+  document.body.appendChild(modal);
+  const q = $("#cmdq"); q.focus();
+  q.oninput = () => cmdFilter(q.value);
+  q.onkeydown = (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); _cmdIdx = Math.min(_cmdIdx + 1, _cmdItems.length - 1); cmdRender(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); _cmdIdx = Math.max(_cmdIdx - 1, 0); cmdRender(); }
+    else if (e.key === "Enter") { e.preventDefault(); cmdRun(_cmdItems[_cmdIdx]); }
+  };
+  cmdFilter("");
+}
+function cmdFilter(query) {
+  const q = (query || "").toLowerCase();
+  _cmdItems = _cmdData.filter(x => !q || x.label.toLowerCase().includes(q) || x.kind.toLowerCase().includes(q)).slice(0, 40);
+  _cmdIdx = 0; cmdRender();
+}
+function cmdRender() {
+  const el = $("#cmdlist"); if (!el) return;
+  el.innerHTML = _cmdItems.length ? _cmdItems.map((x, i) =>
+    `<div class="cmd-item ${i === _cmdIdx ? "on" : ""}" onclick="cmdRun(_cmdItems[${i}])">
+      <span class="cmd-label">${esc(x.label)}</span><span class="cmd-kind">${esc(x.kind)}</span></div>`).join("")
+    : `<div class="cmd-empty">无匹配结果</div>`;
+}
+function cmdRun(item) {
+  if (!item) return;
+  closeModal();
+  item.act();
 }
