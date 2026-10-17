@@ -271,12 +271,12 @@ body.dark{color-scheme:dark;
 
 /* ── E2 项目卡电影感封面 ── */
 .project-card{padding:0;overflow:hidden}
-.cover{position:relative;height:96px;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:14px 18px;color:#fff;overflow:hidden}
+.cover{position:relative;height:72px;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:12px 16px;color:#fff;overflow:hidden}
 .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.28))}
-.cover .cv-title{position:relative;z-index:1;font-family:var(--serif);font-size:var(--fs-h2);line-height:1.1;letter-spacing:-.01em;
+.cover .cv-title{position:relative;z-index:1;font-family:var(--serif);font-size:var(--fs-h2);line-height:1.05;letter-spacing:-.01em;
   text-wrap:balance;word-break:keep-all;text-shadow:0 1px 12px rgba(0,0,0,.22)}
-.cover .cv-meta{position:relative;z-index:1;font-size:var(--fs-meta);letter-spacing:.14em;text-transform:uppercase;opacity:.82;margin-top:6px}
+.cover .cv-meta{position:relative;z-index:1;font-size:var(--fs-meta);letter-spacing:.14em;text-transform:uppercase;opacity:.82;margin-top:4px}
 .project-card .pbody{padding:16px 18px}
 .pbody-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 @media (max-width:520px){
