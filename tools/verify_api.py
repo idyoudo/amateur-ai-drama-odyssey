@@ -72,9 +72,31 @@ check("run 全通过", r.json()["summary"]["deliverable"] is True)
 # ---------------- 模型配置 ----------------
 r = client.get("/api/models/config", headers=H)
 check("config 6 个 kind", r.status_code == 200 and len(r.json()["config"]) == 6)
-r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "k1", "api_url": ""}}})
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])
+# G1/G2：密钥绝不回传 + 空值保留 + 显式清除 + 落库
+r = client.get("/api/models/config", headers=H)
+check("配置不回传明文 Key", "sk-test-video-0001" not in r.text
+      and r.json()["config"]["video"]["api_key"] == "")
+check("配置返回 api_key_set", r.json()["config"]["video"]["api_key_set"] is True)
+check("配置持久化后端", r.json()["persistence"]["backend"] == "database")
+from film.jobs.db import ModelConfig  # noqa: E402
+from apps.api.main import Session  # noqa: E402
+with Session() as s:
+    check("配置已落库", s.get(ModelConfig, "video") is not None)
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key": ""}}})
+check("空值保留原 Key", r.json()["config"]["video"]["api_key_set"] is True)
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key": "…0001"}}})
+check("掩码哨兵不覆盖原 Key", r.json()["config"]["video"]["api_key_set"] is True)
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key_clear": True}}})
+check("显式清除 Key", r.json()["config"]["video"]["api_key_set"] is False)
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v2", "api_key": "sk-secret-abcdef1234", "api_url": "https://example.com/v1"}}})
+check("保存新 Key 不泄露", "sk-secret-abcdef1234" not in r.text
+      and r.json()["config"]["video"]["api_key_hint"].endswith("1234"))
+r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_url": "ftp://bad"}}})
+check("非法 URL 422", r.status_code == 422)
+client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key_clear": True}}})
 
 # 项目详情 + 静态资源
 r = client.get("/api/dramas/%d" % pid, headers=H)

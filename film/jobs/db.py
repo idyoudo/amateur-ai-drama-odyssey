@@ -170,6 +170,17 @@ class ModuleParams(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class ModelConfig(Base):
+    """模型供应商配置（G2）：明文存库；API 永不回传明文（见 /api/models/config）。"""
+    __tablename__ = "model_configs"
+
+    kind: Mapped[str] = mapped_column(String(32), primary_key=True)
+    model: Mapped[str] = mapped_column(String(128), nullable=True)
+    api_url: Mapped[str] = mapped_column(String(256), nullable=True)
+    api_key: Mapped[str] = mapped_column(String(512), nullable=True)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

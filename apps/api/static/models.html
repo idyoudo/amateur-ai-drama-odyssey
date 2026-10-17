@@ -41,7 +41,7 @@ code{font-family:"JetBrains Mono",ui-monospace,monospace}
 <button onclick="save()">保存</button>
 <pre id="status"></pre></div>
 <script>
-const KINDS=["video","image","tts","music","lipsync"];
+const KINDS=["text","video","image","tts","music","lipsync"];
 const TK="aado_token";
 function ah(){const t=localStorage.getItem(TK);return t?{"Authorization":"Bearer "+t}:{}}
 document.getElementById("loginform").onsubmit=async e=>{
@@ -50,20 +50,26 @@ document.getElementById("loginform").onsubmit=async e=>{
   if(r.ok){const d=await r.json();localStorage.setItem(TK,d.token);document.getElementById("login").style.display="none";load();}
   else{const x=document.getElementById("loginerr");x.style.display="block";x.textContent="用户名或密码错误";}
 };
-async function load(){
+async function load(msg){
   const r=await fetch("/api/models/config",{headers:ah()});
   const d=await r.json();
   const presets=d.presets||{};
   document.getElementById("rows").innerHTML=KINDS.map(k=>{
     const c=(d.config||{})[k]||{};
     const ps=(presets[k]||[]);
+    const ph=c.api_key_set?("已设置 "+c.api_key_hint+"（留空不修改）"):"未设置（留空走 Mock）";
     return `<tr><td>${k}<br><select onchange="applyPreset('${k}',this.value)" style="margin-top:4px">
         <option value="">选厂商…</option>
         ${ps.map((p,i)=>`<option value="${i}">${p.vendor}</option>`).join("")}</select></td>
       <td><input id="${k}_model" value="${c.model||''}"></td>
-      <td><input id="${k}_key" value="${c.api_key||''}"></td>
+      <td><input id="${k}_key" type="password" autocomplete="new-password" value="" placeholder="${ph}">
+        <label style="display:flex;gap:6px;align-items:center;font-size:11.5px;color:#71717A;margin-top:6px">
+          <input type="checkbox" id="${k}_clear" style="width:auto;margin:0">清除已保存 Key</label></td>
       <td><input id="${k}_url" value="${c.api_url||''}"></td></tr>`;
   }).join("");
+  document.getElementById("status").textContent = msg || (d.persistence
+    ? "配置存储：" + d.persistence.note + " · Key 仅显示末四位，永不回传明文"
+    : "");
   window._PRESETS=presets;
 }
 function applyPreset(k,i){
@@ -74,14 +80,23 @@ function applyPreset(k,i){
 async function save(){
   const config={};
   for(const k of KINDS){
-    config[k]={
-      model:document.getElementById(k+"_model").value,
-      api_key:document.getElementById(k+"_key").value,
-      api_url:document.getElementById(k+"_url").value
-    };
+    const c={model:document.getElementById(k+"_model").value,
+             api_url:document.getElementById(k+"_url").value};
+    const key=document.getElementById(k+"_key").value.trim();
+    if(key)c.api_key=key;                       // 空值=保留原 Key；掩码永不回填
+    if(document.getElementById(k+"_clear").checked)c.api_key_clear=true;
+    config[k]=c;
   }
   const r=await fetch("/api/models/config",{method:"PUT",headers:Object.assign({"Content-Type":"application/json"},ah()),body:JSON.stringify({config})});
-  document.getElementById("status").textContent="已保存："+JSON.stringify(await r.json());
+  const d=await r.json().catch(()=>({}));
+  if(r.ok){
+    const msg="已保存 · 已配置："+((d.available||[]).join("、")||"无（全部走 Mock）")
+      +((d.warnings&&d.warnings.length)?" · 提示："+d.warnings.join("；"):"")
+      +(d.persistence?" · "+d.persistence.note:"");
+    load(msg);
+  }else{
+    document.getElementById("status").textContent="保存失败："+(d.detail||("HTTP "+r.status));
+  }
 }
 if(localStorage.getItem(TK)){document.getElementById("login").style.display="none";load()}
 </script>

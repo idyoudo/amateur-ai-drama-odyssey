@@ -1415,12 +1415,13 @@ async function viewModels() {
   setMain({
     title: "模型配置", sub: "填 model + Key 走真实供应商，缺一走 Mock",
     top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
-    body: `<div class="cards">${Object.entries(d.config).map(([k, c]) => {
-      const on = c.model && c.api_key;
+    body: `<div class="muted" style="font-size:12px;margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
+    <div class="cards">${Object.entries(d.config).map(([k, c]) => {
+      const on = c.api_key_set;
       return `<div class="asset"><div class="thumb">${ico({ text: "doc", video: "film", image: "frame", tts: "wave", music: "music", lipsync: "face" }[k] || "route")}</div>
         <div class="body"><h4 style="display:flex;justify-content:space-between">${k}
           <span class="pill ${on ? "ok" : ""}">${on ? "已配置" : "Mock"}</span></h4>
-          <div class="desc">${esc(c.model || "未填模型")}</div></div></div>`;
+          <div class="desc">${esc(c.model || "未填模型")}${on && c.api_key_hint ? ` · Key ${esc(c.api_key_hint)}` : ""}</div></div></div>`;
     }).join("")}</div>
     <h2>电影参数能力矩阵 <span class="hint">M17.1-F04：参数缺失不得默认「支持」</span></h2>
     <div class="card" style="padding:0"><table>

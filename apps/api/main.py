@@ -106,8 +106,44 @@ class UpdateProject(BaseModel):
     minutes: Optional[int] = None
 
 
-# 模型参数配置（env 为默认，页面/API 可运行时覆盖）
-_model_config = sup_config.load_from_env()
+# 模型参数配置（env 为默认，DB 覆盖；API 永不回传明文）
+def _load_model_config():
+    cfg = sup_config.load_from_env()
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.ModelConfig)).all()
+    for r in rows:
+        if r.kind in sup_config.MODEL_KINDS:
+            cfg[r.kind] = {"model": r.model or "", "api_key": r.api_key or "",
+                           "api_url": r.api_url or ""}
+    return cfg
+
+
+_model_config = _load_model_config()
+
+
+def _persistence_info():
+    durable = DATABASE_URL not in ("sqlite://", "sqlite:///:memory:")
+    return {"backend": "database", "durable": durable,
+            "note": "配置写入数据库" + ("" if durable else "（当前为内存库，重启后丢失）")}
+
+
+def _public_model_config(cfg):
+    out = {}
+    for kind in sup_config.MODEL_KINDS:
+        c = cfg.get(kind, {})
+        key = str(c.get("api_key") or "")
+        out[kind] = {
+            "model": c.get("model") or "",
+            "api_url": c.get("api_url") or "",
+            "api_key": "",
+            "api_key_set": bool(key),
+            "api_key_hint": ("…" + key[-4:]) if len(key) >= 8 else ("已设置" if key else ""),
+        }
+    return out
+
+
+def _looks_like_mask(v):
+    return ("…" in v) or ("••" in v) or ("***" in v)
 
 
 class LoginBody(BaseModel):
@@ -143,7 +179,9 @@ def models_page():
 
 @app.get("/api/models/config")
 def get_model_config():
-    return {"config": _model_config, "available": sup_config.available_kinds(_model_config),
+    return {"config": _public_model_config(_model_config),
+            "available": sup_config.available_kinds(_model_config),
+            "persistence": _persistence_info(),
             "capabilities": list(sup_config.CAPABILITY_FIELDS),
             "presets": sup_config.PRESETS,
             "routing": {"hero": "高质量档（hero/对白正脸镜）", "ambient": "经济档（氛围/过场镜）"},
@@ -154,12 +192,42 @@ def get_model_config():
 @app.put("/api/models/config")
 def update_model_config(body: dict):
     global _model_config
-    for kind, cfg in (body.get("config") or {}).items():
-        if kind in sup_config.MODEL_KINDS:
-            for field in ("model", "api_key", "api_url"):
-                if field in cfg:
-                    _model_config[kind][field] = cfg.get(field, "")
-    return {"config": _model_config, "available": sup_config.available_kinds(_model_config)}
+    incoming = body.get("config") or {}
+    updates = {k: v for k, v in incoming.items()
+               if k in sup_config.MODEL_KINDS and isinstance(v, dict)}
+    limits = {"model": 128, "api_url": 256, "api_key": 512}
+    for kind, cfg in updates.items():
+        for field, mx in limits.items():
+            val = cfg.get(field)
+            if val is not None and len(str(val)) > mx:
+                raise HTTPException(status_code=422,
+                                    detail="%s 的 %s 超长（上限 %d）" % (kind, field, mx))
+        url = str(cfg.get("api_url", "") or "")
+        if url and not url.startswith(("http://", "https://")):
+            raise HTTPException(status_code=422, detail="%s 的 API URL 必须以 http(s):// 开头" % kind)
+    with Session() as s:
+        for kind, cfg in updates.items():
+            cur = _model_config.get(kind, {})
+            model = cfg.get("model", cur.get("model", ""))
+            api_url = cfg.get("api_url", cur.get("api_url", ""))
+            api_key = cur.get("api_key", "")
+            if cfg.get("api_key_clear") is True:
+                api_key = ""
+            elif "api_key" in cfg:
+                val = str(cfg.get("api_key") or "")
+                if val and not _looks_like_mask(val):
+                    api_key = val
+            row = s.get(jobs_db.ModelConfig, kind) or jobs_db.ModelConfig(kind=kind)
+            row.model = str(model or "")
+            row.api_url = str(api_url or "")
+            row.api_key = str(api_key or "")
+            s.add(row)
+        s.commit()
+    _model_config = _load_model_config()
+    return {"config": _public_model_config(_model_config),
+            "available": sup_config.available_kinds(_model_config),
+            "warnings": sup_config.validate_config(_model_config),
+            "persistence": _persistence_info()}
 
 
 @app.post("/api/dramas")
@@ -345,7 +413,8 @@ def run_project(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         if p.status == "archived":
             raise HTTPException(status_code=409, detail="项目已归档，恢复后才能运行")
-        result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
+        result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre,
+                                       model_config=_model_config)
         if (p.status or "draft") == "draft":
             p.status = "in_progress"
         s.add(jobs_db.Run(project_id=project_id, result=result))
@@ -359,7 +428,7 @@ def run_project(project_id: int):
         from film.script import generate as m2gen, outline as m2out
         from film.storyboard import make_shotlist
         from film.suppliers import adapter as sup_adapter
-        text_ad = sup_adapter.make_adapter("text", {})
+        text_ad = sup_adapter.make_adapter("text", _model_config.get("text", {}))
         s.query(jobs_db.Script).filter(jobs_db.Script.project_id == project_id).delete()
         shots_all = []
         for _ep in range(1, (p.episodes or 6) + 1):
@@ -379,7 +448,7 @@ def run_project(project_id: int):
         from film.casting import generate as m3gen
         char_names = sorted({c for sh in shots for c in sh["characters"]}) or ["主角"]
         s.query(jobs_db.Character).filter(jobs_db.Character.project_id == project_id).delete()
-        cfg_models = sup_config.load_from_env()
+        cfg_models = _model_config
         img_ad = sup_adapter.make_adapter("image", cfg_models.get("image", {}))
         for cn in char_names:
             ch, _ = m3gen.generate_casting(cn, img_ad)
@@ -405,7 +474,7 @@ def gen_shots(project_id: int):
         p = s.get(jobs_db.Project, project_id)
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
-        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", {}))
+        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", _model_config.get("text", {})), episode=1)
         shots_all = []
         for _ep in range(1, (p.episodes or 6) + 1):
             for _sh in make_shotlist(ol, ["主角", "配角"]):
@@ -859,7 +928,7 @@ def get_memory(project_id: int):
             jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.episode_id)).all()
     m = memmod.make_memory()
     records = []
-    ad = sup_adapter.make_adapter("text", {})
+    ad = sup_adapter.make_adapter("text", _model_config.get("text", {}))
     for sc in scripts:
         ol = {"form": sc.form, "scenes": sc.scenes or []}
         m = memmod.update_memory(m, sc.episode_id, ol,
@@ -916,7 +985,7 @@ def provider_tasks(project_id: int):
     by_kind = {}
     for r in rows:
         by_kind.setdefault(r.kind, []).append({"stage": r.stage, "status": r.status})
-    cfg = sup_config.load_from_env()
+    cfg = _model_config
     return {"kinds": [{"kind": k, "stages": v,
                        "configured": sup_config.is_configured(cfg.get(k, {}))} for k, v in by_kind.items()],
             "note": "无凭据走 Mock；有凭据切换真实供应商，三段式流程不变"}

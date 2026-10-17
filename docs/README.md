@@ -60,6 +60,8 @@
 | `docs/plans/` | `商业化改进第二轮-选举记录.md` | 第二轮选举结果 |
 | `docs/plans/` | `商业化改进第三轮-候选.md` | 第三轮候选 F1–F7 |
 | `docs/plans/` | `商业化改进第三轮-选举记录.md` | 第三轮选举结果与实现落地 |
+| `docs/plans/` | `模型配置安全轮-候选.md` | 安全轮候选 G1–G4 |
+| `docs/plans/` | `模型配置安全轮-选举记录.md` | 安全轮选举结果与实现落地 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
