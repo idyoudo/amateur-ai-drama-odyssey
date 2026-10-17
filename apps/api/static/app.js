@@ -183,10 +183,15 @@ async function viewOverview() {
   const [cfg, projs] = await Promise.all([api("/api/models/config"), api("/api/dramas")]);
   const configured = cfg.available.length;
   setMain({
-    top: `<h1>概览 <span class="crumbs">好莱坞级 AI 短剧流水线</span></h1>
+    top: `<h1>概览</h1>
       <div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
       <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "Mock 模式"}</span></div>`,
     body: `
+    <section class="hero">
+      <div class="eyebrow">AADO · Drama Odyssey</div>
+      <h1>从一部小说，到一季好莱坞级短剧。</h1>
+      <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块在同一条可审计的流水线上完成，每一帧都有据可查。</p>
+    </section>
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
       <div class="stat"><div class="k">${configured}</div><div class="l">已配置模型</div></div>
