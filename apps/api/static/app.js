@@ -434,18 +434,8 @@ async function refreshFormatRec() {
     if (seq === _recSeq) box.innerHTML = `<span style="color:var(--bad)">建议加载失败：${esc(e.message)}</span>`;
   }
 }
-async function viewProjects() {
-  const projs = await api("/api/dramas");
-  let fmts = { platforms: {} };
-  try { fmts = await api("/api/formats"); } catch (e) {}
-  const platformOpts = Object.entries(fmts.platforms || {}).map(([k, v]) =>
-    `<option value="${esc(k)}">${esc(v.name)}</option>`).join("");
-  setMain({
-    title: "项目",
-    top: `<div class="right"><span class="pill">${projs.length} 个项目</span></div>`,
-    body: `
-    <h2>创建项目</h2>
-    <form class="stack" id="pf">
+function projectFormHtml(platformOpts) {
+  return `<form class="stack" id="pf">
       <input type="hidden" name="source_type" id="pf_source_type" value="original">
       <div class="mode-tabs">
         <button type="button" class="mode-tab on" data-mode="original" onclick="setCreateMode('original')">原创剧本</button>
@@ -481,24 +471,10 @@ async function viewProjects() {
       </div>
       <div class="form-actions"><button class="btn" type="submit">创建立项</button>
         <span class="muted" style="font-size:var(--fs-sm)">建议值可手动覆盖；未填字段使用推荐值</span></div>
-    </form>
-    <h2>全部项目</h2>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:260px" oninput="filterProjs()">
-      <select id="psort" style="max-width:170px" onchange="filterProjs()">
-        <option value="id">按创建时间</option><option value="title">按片名</option>
-        <option value="deliverable">可交付优先</option></select>
-      <div style="display:flex;gap:4px;margin-left:auto">
-        <button class="btn ghost sm" id="viewlist" onclick="setProjView('list')">列表</button>
-        <button class="btn ghost sm" id="viewboard" onclick="setProjView('board')">看板</button>
-      </div>
-    </div>
-    <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
-    <div id="pboard" class="hide"></div>
-    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div><div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
-  });
-  window._PROJS = projs;
-  window._NOVEL = null;
+    </form>`;
+}
+function wireProjectForm(pf) {
+  if (!pf) return;
   const fInput = $("#pf_novel_file");
   if (fInput) fInput.onchange = e => { const f = e.target.files[0]; if (f) importNovelFile(f); e.target.value = ""; };
   const drop = $("#novel_drop");
@@ -511,9 +487,7 @@ async function viewProjects() {
     }));
     drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) importNovelFile(f); });
   }
-  refreshFormatRec();
-  const pf = $("#pf");
-  if (pf) pf.onsubmit = async e => {
+  pf.onsubmit = async e => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const b = {};
@@ -536,9 +510,53 @@ async function viewProjects() {
       const d = await api("/api/dramas", { method: "POST",
         headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
       toast(`立项成功 · ${d.package.episodes} 集 × ${fmtDur(d.episode_seconds)}`);
+      closeModal();
       go("project:" + d.id);
     });
   };
+}
+async function openProjectCreate() {
+  let fmts = window._FMTS;
+  if (!fmts) { try { fmts = await api("/api/formats"); } catch (e) { fmts = { platforms: {} }; } }
+  window._NOVEL = null;
+  const platformOpts = Object.entries(fmts.platforms || {}).map(([k, v]) =>
+    `<option value="${esc(k)}">${esc(v.name)}</option>`).join("");
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "pcreatemodal";
+  modal.innerHTML = `<div class="box" style="max-width:900px">
+    <div class="mhead"><h2>新建项目</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">${projectFormHtml(platformOpts)}</div></div>`;
+  document.body.appendChild(modal);
+  wireProjectForm($("#pf"));
+  refreshFormatRec();
+}
+async function viewProjects() {
+  const projs = await api("/api/dramas");
+  let fmts = { platforms: {} };
+  try { fmts = await api("/api/formats"); } catch (e) {}
+  window._FMTS = fmts;
+  setMain({
+    title: "项目",
+    top: `<div class="right"><button class="btn sm" onclick="openProjectCreate()">新建项目</button>
+      <span class="pill">${projs.length} 个项目</span></div>`,
+    body: `
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:260px" oninput="filterProjs()">
+      <select id="psort" style="max-width:170px" onchange="filterProjs()">
+        <option value="id">按创建时间</option><option value="title">按片名</option>
+        <option value="deliverable">可交付优先</option></select>
+      <div style="display:flex;gap:4px;margin-left:auto">
+        <button class="btn ghost sm" id="viewlist" onclick="setProjView('list')">列表</button>
+        <button class="btn ghost sm" id="viewboard" onclick="setProjView('board')">看板</button>
+      </div>
+    </div>
+    <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
+    <div id="pboard" class="hide"></div>
+    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>还没有项目</div>
+      <div style="margin-top:14px"><button class="btn" onclick="openProjectCreate()">新建项目</button>
+      <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
+  });
+  window._PROJS = projs;
 }
 
 /* 异步按钮 loading 封装：执行期间禁用并显示"处理中…" */
@@ -1412,7 +1430,8 @@ async function viewJobs() {
   const jobs = d.jobs || [];
   setMain({
     title: "任务",
-    top: `<div class="right"><span class="pill" id="jobstotal">已显示 ${jobs.length} / 共 ${d.total || 0} 个任务</span></div>`,
+    top: `<div class="right"><span class="muted" style="font-size:var(--fs-sm)">每 5 秒刷新</span>
+      <span class="pill" id="jobstotal">已显示 ${jobs.length} / 共 ${d.total || 0} 个任务</span></div>`,
     body: `<div class="card">
       <div class="toolbar">
         <input id="job_pid" placeholder="项目 ID" style="max-width:220px">
@@ -1421,7 +1440,6 @@ async function viewJobs() {
           <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
         <button class="btn" onclick="submitJob()">入队任务</button>
       </div></div>
-    <h2>任务列表 <span class="hint">每 5 秒刷新</span></h2>
     <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
       <tbody id="jobstbl">${jobRowsHtml(jobs)}</tbody></table></div>`,
   }, true);
