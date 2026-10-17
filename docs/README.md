@@ -55,6 +55,7 @@
 | `docs/plans/` | `UI进阶-候选方案.md` | UI 进阶候选 E1–E5 |
 | `docs/plans/` | `UI进阶-选举记录.md` | E1–E5 选举结果 |
 | `docs/plans/` | `商业化改进-候选方案.md` | 商业化改进候选 C1–C8 |
+| `docs/plans/` | `商业化改进-选举记录.md` | C1–C8 选举结果 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
