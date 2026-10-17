@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "assets", "playground", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "assets", "playground", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "jobs", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -288,7 +288,7 @@ async function navigate(name, param) {
     });
     return;
   }
-  shell(name === "project" ? "projects" : name);
+  shell(name === "project" || name === "new-project" ? "projects" : name);
   if (SKELETON_ROUTES.has(name)) skeleton();
   return routeView(name, param);
 }
@@ -296,6 +296,7 @@ async function routeView(name, param) {
   if (name === "overview") return viewOverview();
   if (name === "projects") return viewProjects();
   if (name === "project") return viewProject(param);
+  if (name === "new-project") return viewProjectCreate();
   if (name === "assets") return viewAssets();
   if (name === "playground") return viewPlayground();
   if (name === "jobs") return viewJobs();
@@ -397,7 +398,7 @@ async function importNovelFile(file) {
     toast("小说导入失败：" + e.message);
   }
 }
-let _recSeq = 0, _recTimer = null, _wizStep = 1, _source = "original";
+let _recSeq = 0, _recTimer = null, _source = "original";
 function scheduleFormatRec() { clearTimeout(_recTimer); _recTimer = setTimeout(refreshFormatRec, 250); }
 function pickSource(kind) {
   _source = kind;
@@ -405,39 +406,28 @@ function pickSource(kind) {
   if (st) st.value = kind === "original" ? "original" : "novel";
   if (sm) sm.value = kind;
   $$(".source-card").forEach(c => c.classList.toggle("on", c.dataset.source === kind));
-  const imp = $("#txt_import"); if (imp) imp.classList.toggle("hide", kind !== "txt");
+  const sec = $("#novel_section");
+  if (sec) sec.classList.toggle("hide", kind === "original");
+  const imp = $("#txt_import");
+  if (imp) imp.classList.toggle("hide", kind !== "txt");
   const title = $("#pf_title");
   if (title) title.placeholder = kind === "original" ? "片名" : "片名 / 小说名";
-  const s3 = document.querySelector('.wstep[data-step="3"]');
-  if (s3) s3.classList.toggle("skip", kind === "original");
+  const no = $("#section_format_no");
+  if (no) no.textContent = kind === "original" ? "3" : "4";
+  updateCreateSummary();
   refreshFormatRec();
 }
-function setWizardStep(n) {
-  _wizStep = n;
-  $$(".wpanel").forEach(p => p.classList.toggle("hide", Number(p.dataset.panel) !== n));
-  $$(".wstep").forEach(s => {
-    const k = Number(s.dataset.step);
-    s.classList.toggle("on", k === n);
-    s.classList.toggle("done", k < n && !s.classList.contains("skip"));
-  });
-  if (n === 4) refreshFormatRec();
-}
-function wizardNext() {
-  if (_wizStep === 2) {
-    const t = (($("#pf_title") || {}).value || "").trim();
-    const l = (($("#pf_logline") || {}).value || "").trim();
-    if (!t) return toast("请填写片名");
-    if (!l) return toast("请填写一句话故事");
-    if (_source === "original") return setWizardStep(4);
-    return setWizardStep(3);
-  }
-  if (_wizStep === 3 && _source === "txt" && !window._NOVEL)
-    return toast("请先导入 TXT，或返回选择「小说链接」手动填写");
-  setWizardStep(Math.min(4, _wizStep + 1));
-}
-function wizardPrev() {
-  if (_wizStep === 4) return setWizardStep(_source === "original" ? 2 : 3);
-  setWizardStep(Math.max(1, _wizStep - 1));
+function updateCreateSummary() {
+  const set = (id, v) => { const e = $("#" + id); if (e) e.textContent = v; };
+  const title = (($("#pf_title") || {}).value || "").trim();
+  set("sum_title", title || "未命名项目");
+  set("sum_source", { original: "原创剧本", txt: "小说 TXT 导入", link: "小说链接" }[_source] || "原创剧本");
+  const sel = $("#pf_platform");
+  set("sum_platform", sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : "—");
+  const eps = ($("#pf_eps") || {}).value || "—";
+  const secs = Number(($("#pf_secs") || {}).value || 0);
+  set("sum_format", eps === "—" ? "—" : `${eps} 集 × ${fmtDur(secs)}`);
+  set("sum_aspect", ($("#pf_aspect") || {}).value || "—");
 }
 async function refreshFormatRec() {
   const box = $("#fmtbox"); if (!box) return;
@@ -462,22 +452,20 @@ async function refreshFormatRec() {
     if (eps) eps.value = d.episodes;
     if (secs) secs.value = d.episode_seconds;
     if (asp) asp.value = d.aspect;
+    updateCreateSummary();
   } catch (e) {
     if (seq === _recSeq) box.innerHTML = `<span style="color:var(--bad)">建议加载失败：${esc(e.message)}</span>`;
   }
 }
-function projectFormHtml(platformOpts) {
-  return `<form class="stack" id="pf">
+function projectCreateBody(platformOpts) {
+  return `<div class="create-layout">
+    <form class="create-form" id="pf">
       <input type="hidden" name="source_type" id="pf_source_type" value="original">
       <input type="hidden" name="source_method" id="pf_source_method" value="original">
-      <div class="wizard-steps">
-        <div class="wstep on" data-step="1"><b>1</b>来源</div>
-        <div class="wstep" data-step="2"><b>2</b>基本信息</div>
-        <div class="wstep skip" data-step="3"><b>3</b>原著</div>
-        <div class="wstep" data-step="4"><b>4</b>分集</div>
-      </div>
 
-      <div class="wpanel" data-panel="1">
+      <section class="form-section">
+        <div class="section-head"><span class="section-no">1</span>
+          <div><h2>来源</h2><p>选择内容从哪里开始</p></div></div>
         <div class="source-cards">
           <div class="source-card on" data-source="original" onclick="pickSource('original')">
             <b>原创剧本</b><small>已有故事，直接立项</small></div>
@@ -486,11 +474,11 @@ function projectFormHtml(platformOpts) {
           <div class="source-card" data-source="link" onclick="pickSource('link')">
             <b>小说链接</b><small>登记原著链接与授权信息（不抓取内容）</small></div>
         </div>
-        <div class="wizard-actions"><span></span>
-          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
-      </div>
+      </section>
 
-      <div class="wpanel hide" data-panel="2">
+      <section class="form-section">
+        <div class="section-head"><span class="section-no">2</span>
+          <div><h2>基本信息</h2><p>片名、一句话故事与题材</p></div></div>
         <div class="row2">
           <input name="title" id="pf_title" placeholder="片名" required maxlength="128">
           <input name="logline" id="pf_logline" placeholder="一句话故事（logline，必填 ≤120 字）" required maxlength="120">
@@ -499,11 +487,11 @@ function projectFormHtml(platformOpts) {
           <input name="genre" id="pf_genre" placeholder="题材" value="悬疑" oninput="scheduleFormatRec()">
           <select name="rating"><option>全龄</option><option selected>12+</option><option>16+</option></select>
         </div>
-        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
-          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
-      </div>
+      </section>
 
-      <div class="wpanel hide" data-panel="3">
+      <section class="form-section hide" id="novel_section">
+        <div class="section-head"><span class="section-no">3</span>
+          <div><h2>原著</h2><p>导入 TXT 自动解析，或登记原著链接</p></div></div>
         <label class="import-box" id="txt_import">
           <input type="file" id="pf_novel_file" accept=".txt,text/plain" class="hide">
           <b>导入小说 TXT</b>
@@ -519,14 +507,14 @@ function projectFormHtml(platformOpts) {
           <input name="chapters" id="pf_chapters" type="number" min="1" step="1" placeholder="原作章节数" oninput="scheduleFormatRec()">
         </div>
         <div class="muted" style="font-size:var(--fs-sm)">小说链接仅作授权登记，系统不会抓取链接内容；如需自动解析章节，请使用 TXT 导入。</div>
-        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
-          <button type="button" class="btn" onclick="wizardNext()">下一步</button></div>
-      </div>
+      </section>
 
-      <div class="wpanel hide" data-panel="4">
+      <section class="form-section">
+        <div class="section-head"><span class="section-no" id="section_format_no">4</span>
+          <div><h2>分集与画幅</h2><p>按平台与原著规模给出建议，可手动覆盖</p></div></div>
         <div class="row2">
           <select name="platform_key" id="pf_platform" onchange="refreshFormatRec()">${platformOpts}</select>
-          <div class="muted" style="font-size:var(--fs-sm);align-self:center">建议按平台与原著规模生成，可手动覆盖</div>
+          <div class="muted" style="font-size:var(--fs-sm);align-self:center">未填字段使用推荐值</div>
         </div>
         <div class="rec-box" id="fmtbox"><span class="muted">正在获取分集建议…</span></div>
         <div class="grid3">
@@ -535,10 +523,25 @@ function projectFormHtml(platformOpts) {
           <label class="fld"><small>画幅</small><select name="aspect" id="pf_aspect">
             <option value="9:16">9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="2.39:1">2.39:1 宽银幕</option></select></label>
         </div>
-        <div class="wizard-actions"><button type="button" class="btn ghost" onclick="wizardPrev()">上一步</button>
-          <button type="submit" class="btn">创建立项</button></div>
+      </section>
+    </form>
+
+    <aside class="create-aside">
+      <div class="summary-card">
+        <div class="summary-eyebrow">项目摘要</div>
+        <h3 id="sum_title">未命名项目</h3>
+        <div class="summary-rows">
+          <div><span>来源</span><b id="sum_source">原创剧本</b></div>
+          <div><span>平台</span><b id="sum_platform">—</b></div>
+          <div><span>分集</span><b id="sum_format">—</b></div>
+          <div><span>画幅</span><b id="sum_aspect">—</b></div>
+        </div>
+        <button class="btn" type="submit" form="pf" id="pf_submit">创建立项</button>
+        <button class="btn ghost" onclick="go('projects')">取消</button>
+        <div class="muted summary-note">创建后可继续运行流水线、调整分集与交付规格。</div>
       </div>
-    </form>`;
+    </aside>
+  </div>`;
 }
 function wireProjectForm(pf) {
   if (!pf) return;
@@ -554,15 +557,10 @@ function wireProjectForm(pf) {
     }));
     drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) importNovelFile(f); });
   }
-  pf.addEventListener("keydown", e => {
-    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && _wizStep < 4) {
-      e.preventDefault(); wizardNext();
-    }
-  });
   pf.onsubmit = async e => {
     e.preventDefault();
     if (_source === "txt" && !window._NOVEL)
-      return toast("请先导入 TXT，或返回选择「小说链接」手动填写");
+      return toast("请先导入 TXT，或选择「小说链接」手动填写");
     const fd = new FormData(e.target);
     const b = {};
     fd.forEach((v, k) => { if (String(v).trim() !== "") b[k] = v; });
@@ -580,31 +578,32 @@ function wireProjectForm(pf) {
     delete b.author; delete b.words_wan; delete b.chapters; delete b.source_url;
     delete b.source_method;
     if (!b.minutes) b.minutes = Math.max(1, Math.round((b.episode_seconds || 1800) / 60));
-    const btn = pf.querySelector("button[type=submit]");
+    const btn = $("#pf_submit") || pf.querySelector("button[type=submit]");
     withLoading(btn, async () => {
       const d = await api("/api/dramas", { method: "POST",
         headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
       toast(`立项成功 · ${d.package.episodes} 集 × ${fmtDur(d.episode_seconds)}`);
-      closeModal();
       go("project:" + d.id);
     });
   };
 }
-async function openProjectCreate() {
-  let fmts = window._FMTS;
-  if (!fmts) { try { fmts = await api("/api/formats"); } catch (e) { fmts = { platforms: {} }; } }
+async function viewProjectCreate() {
+  let fmts = { platforms: {} };
+  try { fmts = await api("/api/formats"); } catch (e) {}
+  window._FMTS = fmts;
   window._NOVEL = null;
   const platformOpts = Object.entries(fmts.platforms || {}).map(([k, v]) =>
     `<option value="${esc(k)}">${esc(v.name)}</option>`).join("");
-  const modal = document.createElement("div");
-  modal.className = "modal"; modal.id = "pcreatemodal";
-  modal.innerHTML = `<div class="box" style="max-width:900px">
-    <div class="mhead"><h2>新建项目</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
-    <div class="mbody">${projectFormHtml(platformOpts)}</div></div>`;
-  document.body.appendChild(modal);
-  wireProjectForm($("#pf"));
+  setMain({
+    title: "新建项目",
+    top: `<div class="right"><button class="btn ghost sm" onclick="go('projects')">返回项目</button></div>`,
+    body: projectCreateBody(platformOpts),
+  }, true);
+  const pf = $("#pf");
+  wireProjectForm(pf);
+  pf.addEventListener("input", updateCreateSummary);
+  pf.addEventListener("change", updateCreateSummary);
   pickSource("original");
-  setWizardStep(1);
   refreshFormatRec();
 }
 async function viewProjects() {
@@ -614,7 +613,7 @@ async function viewProjects() {
   window._FMTS = fmts;
   setMain({
     title: "项目",
-    top: `<div class="right"><button class="btn sm" onclick="openProjectCreate()">新建项目</button>
+    top: `<div class="right"><button class="btn sm" onclick="go('new-project')">新建项目</button>
       <span class="pill">${projs.length} 个项目</span></div>`,
     body: `
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
@@ -630,7 +629,7 @@ async function viewProjects() {
     <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
     <div id="pboard" class="hide"></div>
     ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>还没有项目</div>
-      <div style="margin-top:14px"><button class="btn" onclick="openProjectCreate()">新建项目</button>
+      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
       <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
   });
   window._PROJS = projs;
