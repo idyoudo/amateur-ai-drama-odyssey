@@ -536,8 +536,10 @@ function projectCreateBody(platformOpts) {
           <div><span>分集</span><b id="sum_format">—</b></div>
           <div><span>画幅</span><b id="sum_aspect">—</b></div>
         </div>
-        <button class="btn" type="submit" form="pf" id="pf_submit">创建立项</button>
-        <button class="btn ghost" onclick="go('projects')">取消</button>
+        <div class="summary-actions">
+          <button class="btn" type="submit" form="pf" id="pf_submit">创建立项</button>
+          <button class="btn ghost" onclick="go('projects')">取消</button>
+        </div>
         <div class="muted summary-note">创建后可继续运行流水线、调整分集与交付规格。</div>
       </div>
     </aside>
