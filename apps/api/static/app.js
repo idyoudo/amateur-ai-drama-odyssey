@@ -195,8 +195,8 @@ function setMain(html, wide) {
   const m = $("#main");
   if (!m) return;
   const head = html.hero ? "" :
-    (html.title ? `<h1 class="page-title">${html.title}</h1>` : "") +
-    (html.sub ? `<p class="page-sub">${html.sub}</p>` : "");
+    (html.title ? `<div class="page-head"><h1 class="page-title">${html.title}</h1>${
+      html.sub ? `<span class="page-sub">${html.sub}</span>` : ""}</div>` : "");
   let top = String(html.top || "");
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
@@ -319,21 +319,19 @@ async function viewOverview() {
   const [cfg, projs] = await Promise.all([api("/api/models/config"), api("/api/dramas")]);
   const configured = cfg.available.length;
   setMain({
-    top: `<span class="crumbs">AADO · Drama Odyssey</span>
+    top: `<span class="crumbs">概览</span>
       <div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
       <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "Mock 模式"}</span></div>`,
     hero: true,
     body: `
     <section class="hero-full">
-      <div class="eyebrow">AADO · Drama Odyssey</div>
       <h1>从一部小说，到一季好莱坞级短剧。</h1>
-      <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块同线完成，每一步都可审计。</p>
+      <p>19 个模块同线完成，每一步可审计。</p>
     </section>
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
       <div class="stat"><div class="k">${configured}</div><div class="l">已配置模型</div></div>
       <div class="stat"><div class="k">${projs.length}</div><div class="l">项目</div></div>
-      <div class="stat"><div class="k">端到端</div><div class="l">小说 → 成片母版</div></div>
     </div>
     <h2>制作流程 <span class="hint">19 模块 · Development → Delivery</span></h2>
     <div class="card">
@@ -372,7 +370,7 @@ function projectCard(p) {
     </div>
     <div class="pbody">
       <div class="pbody-row">
-        <div class="muted" style="font-size:var(--fs-sm);min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
+        <div class="muted" style="font-size:var(--fs-table);min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
     </div></div>`;
 }
 
@@ -380,7 +378,7 @@ function projectCard(p) {
 async function viewProjects() {
   const projs = await api("/api/dramas");
   setMain({
-    title: "项目", sub: "立项与工作台",
+    title: "项目",
     top: `<div class="right"><span class="pill">${projs.length} 个项目</span></div>`,
     body: `
     <h2>创建项目</h2>
@@ -1283,7 +1281,7 @@ async function viewJobs() {
   const d = await api("/api/jobs/summary?limit=100");
   const jobs = d.jobs || [];
   setMain({
-    title: "任务", sub: "PG 队列 · 幂等 + 租约 + checkpoint",
+    title: "任务",
     top: `<div class="right"><span class="pill" id="jobstotal">已显示 ${jobs.length} / 共 ${d.total || 0} 个任务</span></div>`,
     body: `<div class="card">
       <div class="toolbar">
@@ -1380,7 +1378,7 @@ async function viewPlayground() {
   const d = await api("/api/playground/kinds");
   const tasks = await api("/api/playground/tasks");
   setMain({
-    title: "生成台", sub: "独立生成工具台 · 即开即用",
+    title: "生成台",
     top: `<div class="right"><span class="pill">${tasks.length} 次生成</span></div>`,
     body: `
     <div class="card">
@@ -1413,7 +1411,7 @@ async function pgGenerate() {
 async function viewModels() {
   const d = await api("/api/models/config");
   setMain({
-    title: "模型配置", sub: "填 model + Key 走真实供应商，缺一走 Mock",
+    title: "模型配置", sub: "未配置走 Mock",
     top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
     body: `<div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
     <div class="cards">${Object.entries(d.config).map(([k, c]) => {
@@ -1447,7 +1445,7 @@ async function viewModels() {
 /* ---------- 设置 ---------- */
 function viewSettings() {
   setMain({
-    title: "设置", sub: "账户与系统",
+    title: "设置",
     top: `<div class="right"></div>`,
     body: `<div class="card"><div class="kv">
         <div class="k">登录账户</div><div>admin</div>
