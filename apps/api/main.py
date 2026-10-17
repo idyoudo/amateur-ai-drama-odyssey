@@ -754,14 +754,27 @@ def assets_summary(limit: int = 120, offset: int = 0):
 
 @app.get("/api/jobs/summary")
 def jobs_summary(limit: int = 100, offset: int = 0):
-    """跨项目任务聚合，一次请求。"""
+    """跨项目任务聚合：状态 + 真实进度 / 失败原因 / 尝试次数 / 租约 epoch。"""
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
         rows = s.scalars(select(jobs_db.Job).order_by(jobs_db.Job.id.desc())
                          .offset(offset).limit(limit)).all()
         total = s.query(jobs_db.Job).count()
-    return {"jobs": [{"id": r.id, "project": projs.get(r.project_id, ""), "type": r.type,
-                      "status": r.status, "shot_id": r.shot_id} for r in rows],
+    def _title(pid):
+        try:
+            return projs.get(int(pid), "")
+        except (TypeError, ValueError):
+            return projs.get(pid, "")
+    return {"jobs": [{"id": r.id, "project": _title(r.project_id), "type": r.type,
+                      "status": r.status, "shot_id": r.shot_id,
+                      "progress": r.progress or 0,
+                      "error_code": r.error_code, "error_class": r.error_class,
+                      "attempts": r.attempts or 0, "attempt_limit": r.attempt_limit or 0,
+                      "lease_epoch": r.lease_epoch or 0,
+                      "updated_at": r.updated_at.isoformat() if r.updated_at else ""}
+                     for r in rows],
             "total": total, "limit": limit, "offset": offset}
 
 

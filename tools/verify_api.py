@@ -268,6 +268,17 @@ check("资产聚合 200", r.status_code == 200 and "characters" in r.json())
 check("资产聚合有镜头上限", len(r.json()["shots"]) <= 10)
 r = client.get("/api/jobs/summary?limit=10", headers=H)
 check("任务聚合 200", r.status_code == 200 and "jobs" in r.json())
+d = r.json()
+check("任务聚合含可观测字段",
+      bool(d["jobs"]) and all(k in d["jobs"][0] for k in
+                              ("progress", "attempts", "attempt_limit", "error_code", "lease_epoch")))
+check("任务聚合 limit 夹紧", client.get("/api/jobs/summary?limit=9999", headers=H).json()["limit"] == 200)
+check("任务聚合 offset 下限", client.get("/api/jobs/summary?offset=-5", headers=H).json()["offset"] == 0)
+_jid = r1.json()["id"]
+r = client.post("/api/drama-jobs/%d/cancel" % _jid, headers=H, json={"epoch": 0})
+check("取消任务（epoch 0）", r.status_code == 200 and r.json()["status"] == "cancelled")
+r = client.post("/api/drama-jobs/%d/cancel" % _jid, headers=H, json={"epoch": 7})
+check("旧 epoch 取消被拒", r.status_code == 409)
 r = client.get("/api/dramas/%d/overview" % pid, headers=H)
 d = r.json()
 check("项目概览 200", r.status_code == 200)

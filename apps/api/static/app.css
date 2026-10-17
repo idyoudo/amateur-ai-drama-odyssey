@@ -155,6 +155,9 @@ h2:first-child{margin-top:0}
 
 /* 表格 */
 table{width:100%;border-collapse:collapse}
+.table-scroll{overflow-x:auto}
+.table-scroll table{min-width:760px}
+.table-scroll th,.table-scroll td{white-space:nowrap}
 th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);font-size:13px}
 th{color:var(--dim-2);font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;
   background:var(--surface-2)}

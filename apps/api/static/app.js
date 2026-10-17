@@ -29,6 +29,13 @@ const STAGES = [
 const _apiCache = new Map();
 const _apiInflight = new Map();
 const API_TTL_MS = 2500;
+const API_TIMEOUT_MS = 20000;
+function apiErrorText(d, status) {
+  const det = d && d.detail;
+  if (typeof det === "string") return det;
+  if (det) return JSON.stringify(det);
+  return "HTTP " + status;
+}
 async function api(path, opt) {
   opt = opt || {};
   const method = (opt.method || "GET").toUpperCase();
@@ -38,11 +45,18 @@ async function api(path, opt) {
     if (_apiInflight.has(path)) return _apiInflight.get(path);
   }
   opt.headers = Object.assign({}, opt.headers || {}, hasToken() ? { Authorization: "Bearer " + localStorage.getItem(TK) } : {});
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
   const p = (async () => {
-    const r = await fetch(path, opt);
+    let r;
+    try { r = await fetch(path, Object.assign({}, opt, { signal: ctrl.signal })); }
+    catch (e) {
+      if (e && e.name === "AbortError") throw new Error("请求超时（" + API_TIMEOUT_MS / 1000 + " 秒），请重试");
+      throw new Error("网络错误，请检查服务是否运行");
+    } finally { clearTimeout(timer); }
     if (r.status === 401) { logout(); throw new Error("未授权"); }
     const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error((d && d.detail) ? JSON.stringify(d.detail) : ("HTTP " + r.status));
+    if (!r.ok) throw new Error(apiErrorText(d, r.status));
     return d;
   })();
   if (method === "GET") {
@@ -179,6 +193,7 @@ function shell(active) {
 }
 function setMain(html, wide) {
   const m = $("#main");
+  if (!m) return;
   const head = html.hero ? "" :
     (html.title ? `<h1 class="page-title">${html.title}</h1>` : "") +
     (html.sub ? `<p class="page-sub">${html.sub}</p>` : "");
@@ -200,10 +215,13 @@ async function refreshBell() {
     const el = $("#bellcount"); if (!el) return;
     if (d.count > 0) { el.textContent = d.count > 99 ? "99+" : d.count; el.classList.remove("hide"); }
     else el.classList.add("hide");
-  } catch (e) {}
+  } catch (e) {
+    const b = $("#bell");
+    if (b) b.title = "待办加载失败：" + e.message + "（点击重试）";
+  }
 }
 async function openNotifications() {
-  let d; try { d = await api("/api/notifications"); } catch (e) { return toast("加载失败"); }
+  let d; try { d = await api("/api/notifications"); } catch (e) { return toast("加载失败：" + e.message); }
   const modal = document.createElement("div"); modal.className = "modal"; modal.id = "notifmodal";
   const items = d.items || [];
   modal.innerHTML = `<div class="box" style="max-width:560px">
@@ -216,15 +234,65 @@ async function openNotifications() {
     </div></div>`;
   document.body.appendChild(modal);
 }
+/* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "assets", "playground", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "assets", "playground", "jobs", "models"]);
+let _settingHash = false;
+function hashFor(name, param, stage) {
+  if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
+  return "#/" + encodeURIComponent(name);
+}
+function decodePart(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+function parseHash() {
+  const raw = String(location.hash || "").replace(/^#\/?/, "");
+  if (!raw) return { name: "overview" };
+  const parts = raw.split("/").map(decodePart);
+  if (parts[0] === "project") {
+    if (!parts[1]) return { name: "__notfound" };
+    return { name: "project", param: parts[1], stage: parts[2] || null };
+  }
+  if (ROUTE_NAMES.has(parts[0])) return { name: parts[0] };
+  return { name: "__notfound" };
+}
+function syncHash(h) {
+  if (location.hash === h) return;
+  _settingHash = true;
+  location.hash = h;
+}
+function replaceHash(h) {
+  if (location.hash === h) return;
+  try { history.replaceState(null, "", h); } catch (e) {}
+}
+function viewError(e, retry) {
+  const msg = (e && e.message) ? e.message : String(e);
+  setMain({
+    title: "出错了",
+    body: `<div class="card empty">${esc(msg)}<div style="margin-top:16px"><button class="btn" id="retrybtn">重试</button></div></div>`,
+  });
+  const btn = $("#retrybtn"); if (btn && retry) btn.onclick = retry;
+}
 async function go(route) {
   const parts = String(route).split(":");
-  const name = parts[0];
-  const param = parts[1];
-  shell(name === "project" ? "projects" : name);
-  try { return await routeView(name, param); }
-  catch (e) {
-    setMain({ top: `<h1>出错了</h1>`, body: `<div class="card empty">该视图加载失败：${esc(e.message)}<br><br><button class="btn" onclick="go('${name}')">重试</button></div>` });
+  const name = parts[0], param = parts[1];
+  syncHash(hashFor(name, param));
+  try { return await navigate(name, param); }
+  catch (e) { viewError(e, () => go(route)); }
+}
+async function navigate(name, param) {
+  stopJobsPoll();
+  if (name === "__notfound") {
+    shell("overview");
+    setMain({
+      title: "页面未找到", sub: "链接可能已失效",
+      body: `<div class="card empty">${ico("x")}<div>没有这个页面</div>
+        <div class="muted" style="font-size:12.5px;margin-top:4px">检查地址，或回到概览继续操作</div>
+        <div style="margin-top:16px"><button class="btn" onclick="go('overview')">回到概览</button></div></div>`,
+    });
+    return;
   }
+  shell(name === "project" ? "projects" : name);
+  if (SKELETON_ROUTES.has(name)) skeleton();
+  return routeView(name, param);
 }
 async function routeView(name, param) {
   if (name === "overview") return viewOverview();
@@ -235,7 +303,16 @@ async function routeView(name, param) {
   if (name === "jobs") return viewJobs();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
+  return navigate("__notfound");
 }
+window.addEventListener("hashchange", () => {
+  if (_settingHash) { _settingHash = false; return; }
+  if (!hasToken()) return renderLogin();
+  const r = parseHash();
+  if (r.name === "project") CUR.stage = r.stage || null;
+  const retry = () => navigate(r.name, r.name === "project" ? r.param : undefined);
+  retry().catch(viewError);
+});
 
 /* ---------- 概览 ---------- */
 async function viewOverview() {
@@ -414,11 +491,19 @@ let CUR = { id: null, stage: null };
 let CUR_EP = 1;
 async function viewProject(id) {
   CUR.id = id;
-  let p; try { p = await api("/api/dramas/" + id); } catch (e) { toast("项目不存在"); return go("projects"); }
+  let p;
+  try { p = await api("/api/dramas/" + id); }
+  catch (e) {
+    setMain({
+      title: "项目未找到", sub: "链接可能已失效",
+      body: `<div class="card empty">${esc(e.message)}<div style="margin-top:16px"><button class="btn" onclick="go('projects')">返回项目列表</button></div></div>`,
+    });
+    return;
+  }
   const run = p.last_run;
   const stages = (run && run.stages) || [];
   const byName = {}; stages.forEach(s => byName[s.stage] = s);
-  if (!CUR.stage) CUR.stage = STAGES[0][0];
+  if (!CUR.stage || !STAGES.some(s => s[0] === CUR.stage)) CUR.stage = STAGES[0][0];
 
   const stepCard = (name) => {
     const meta = STAGES.find(x => x[0] === name) || ["", name, ""];
@@ -479,7 +564,11 @@ async function viewProject(id) {
     }
     bar.innerHTML = `<div style="font-size:12px;color:var(--accent);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
-  }).catch(() => {});
+  }).catch(e => {
+    const bar = $("#epbar");
+    if (bar) bar.innerHTML = `<div class="muted" style="color:var(--bad);font-size:12px">分集看板加载失败：${esc(e.message)}
+      <button class="btn ghost sm" style="margin-left:8px" onclick="viewProject(${id})">重试</button></div>`;
+  });
   // 制作统计（异步，按当前集）
   api("/api/dramas/" + id + "/shots?episode=" + CUR_EP).then(sh => {
     const gen = sh.filter(x => x.status === "已生成" || x.status === "已选定").length;
@@ -491,8 +580,13 @@ async function viewProject(id) {
       <div class="stat"><div class="k">${sel}</div><div class="l">已选定</div></div>
       <div class="stat"><div class="k">${pct}%</div><div class="l">镜头完成度</div>
         <div class="progress" style="margin-top:8px"><i style="width:${pct}%"></i></div></div>`;
-  }).catch(() => {});
-  window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
+  }).catch(e => {
+    const el = $("#projstats");
+    if (el) el.innerHTML = `<div class="card" style="grid-column:1/-1;color:var(--bad);font-size:12px">镜头统计加载失败：${esc(e.message)}
+      <button class="btn ghost sm" style="margin-left:8px" onclick="viewProject(${id})">重试</button></div>`;
+  });
+  window.pickStage = (n) => { CUR.stage = n; syncHash(hashFor("project", id, n)); viewProject(id); };
+  replaceHash(hashFor("project", id, CUR.stage));
 }
 async function renderStageDetail(st) {
   await _renderStageDetail(st);
@@ -565,8 +659,13 @@ const SBSEL = new Set();
 let SBCUR = null;
 async function renderStoryboard() {
   const box = $("#sbwork"); if (!box) return;
-  let shots = [];
-  try { shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP); } catch (e) {}
+  let shots = [], loadErr = null;
+  try { shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP); } catch (e) { loadErr = e; }
+  if (loadErr) {
+    box.innerHTML = `<div class="card empty" style="color:var(--bad)">分镜表加载失败：${esc(loadErr.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="renderStoryboard()">重试</button></div></div>`;
+    return;
+  }
   if (!shots.length) {
     box.innerHTML = `<div class="muted" style="margin-bottom:12px">尚无分镜表。从剧本派生镜头（每场 1–3 镜）。</div>
       <button class="btn" onclick="genShots()">${ico("frame")} 生成分镜表</button>`;
@@ -1108,18 +1207,24 @@ async function saveProject(id) {
 }
 function pickEp(id, n) { CUR_EP = n; viewProject(id); }
 async function produceAll(id) {
-  const b = $("#prodbtn"); b.disabled = true; b.textContent = "制作中…";
+  const b = $("#prodbtn"); b.disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => { b.textContent = "制作中… " + Math.round((Date.now() - t0) / 1000) + "s"; }, 500);
   try { const r = await api("/api/dramas/" + id + "/produce", { method: "POST" });
     toast("完成：" + r.stages_passed + "/" + r.stages_total + " 阶段 · " + r.shots + " 镜 · 成片 " + r.total_duration + "s");
     CUR.stage = null; viewProject(id);
   } catch (e) { toast("" + e.message); }
+  clearInterval(tick);
   b.disabled = false; b.innerHTML = ico("sparkle") + " 一键全流程";
 }
 async function runPipeline(id) {
-  const b = $("#runbtn"); b.disabled = true; b.textContent = "运行中…";
+  const b = $("#runbtn"); b.disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => { b.textContent = "运行中… " + Math.round((Date.now() - t0) / 1000) + "s"; }, 500);
   try { const r = await api("/api/dramas/" + id + "/run", { method: "POST" });
     toast("流水线完成 " + r.summary.passed + "/" + r.summary.total); CUR.stage = null; viewProject(id);
   } catch (e) { toast("" + e.message); b.disabled = false; b.innerHTML = ico("play") + " 运行流水线"; }
+  finally { clearInterval(tick); }
 }
 
 /* ---------- 资产库 ---------- */
@@ -1144,12 +1249,42 @@ async function viewAssets() {
 
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */
 const JOB_STATUS_COLOR = { queued: "muted", running: "gold", completed: "ok", failed: "bad", waiting_human: "gold", retry_exhausted: "bad", cancelled: "muted" };
+const JOB_STATUS_LABEL = { queued: "排队中", running: "运行中", completed: "已完成", failed: "失败", waiting_human: "待人工", retry_exhausted: "重试耗尽", cancelled: "已取消" };
+const JOB_TYPE_LABEL = { adapt: "剧本开发", casting: "选角定妆", shot_video: "镜头生成", generate_voice: "配音", music: "配乐" };
+let _jobsTimer = null;
+function stopJobsPoll() {
+  if (_jobsTimer) { clearInterval(_jobsTimer); _jobsTimer = null; }
+}
+function jobActionHtml(j) {
+  if (j.status === "failed" || j.status === "retry_exhausted")
+    return `<button class="btn ghost sm" onclick="jobRetry(${j.id})">重试</button>`;
+  if (j.status === "queued" || j.status === "running")
+    return `<button class="btn ghost sm" onclick="jobCancel(${j.id},${j.lease_epoch || 0})">取消</button>`;
+  if (j.status === "waiting_human")
+    return `<button class="btn sm" onclick="jobResolve(${j.id},true)">通过</button>
+      <button class="btn ghost sm" style="margin-left:4px" onclick="jobResolve(${j.id},false)">驳回</button>`;
+  return "—";
+}
+function jobRowsHtml(jobs) {
+  if (!jobs.length) return `<tr><td colspan="8" style="text-align:center;color:var(--dim)">队列为空</td></tr>`;
+  return jobs.map(j => {
+    const pv = Math.max(0, Math.min(100, Number(j.progress) || 0));
+    return `<tr><td>${j.id}</td><td>${esc(j.project || "—")}</td>
+    <td>${esc(JOB_TYPE_LABEL[j.type] || j.type)}</td>
+    <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(JOB_STATUS_LABEL[j.status] || j.status)}</span></td>
+    <td style="min-width:110px"><div class="progress"><i style="width:${pv}%"></i></div>
+      <span class="muted" style="font-size:10.5px">${pv}%</span></td>
+    <td>${j.attempts || 0}/${j.attempt_limit || 0}</td>
+    <td>${j.error_code ? `<span class="muted" title="${esc(j.error_class || "")}">${esc(j.error_code)}</span>` : "—"}</td>
+    <td>${jobActionHtml(j)}</td></tr>`;
+  }).join("");
+}
 async function viewJobs() {
   const d = await api("/api/jobs/summary?limit=100");
   const jobs = d.jobs || [];
   setMain({
     title: "任务", sub: "PG 队列 · 幂等 + 租约 + checkpoint",
-    top: `<div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
+    top: `<div class="right"><span class="pill" id="jobstotal">已显示 ${jobs.length} / 共 ${d.total || 0} 个任务</span></div>`,
     body: `<div class="card">
       <div class="toolbar">
         <input id="job_pid" placeholder="项目 ID" style="max-width:220px">
@@ -1158,13 +1293,23 @@ async function viewJobs() {
           <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
         <button class="btn" onclick="submitJob()">入队任务</button>
       </div></div>
-    <h2>任务列表</h2>
-    ${jobs.length ? `<div class="card"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>
-      ${jobs.map(j => `<tr><td>${j.id}</td><td>${esc(j.project)}</td><td>${esc(j.type)}</td>
-        <td><span class="pill ${JOB_STATUS_COLOR[j.status] || "muted"}">${esc(j.status)}</span></td>
-        <td>${j.status === "failed" ? `<button class="btn ghost sm" onclick="jobRetry(${j.id})">重试</button>` : "—"}</td></tr>`).join("")}
-      </tbody></table></div>` : `<div class="card empty">${ico("list")}<div>队列为空</div><div class="muted" style="font-size:12.5px;margin-top:4px">填项目 ID + 选择任务类型入队</div></div>`}`,
+    <h2>任务列表 <span class="hint">每 5 秒刷新 · 进度/失败原因来自队列真实字段</span></h2>
+    <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
+      <tbody id="jobstbl">${jobRowsHtml(jobs)}</tbody></table></div>`,
   }, true);
+  stopJobsPoll();
+  _jobsTimer = setInterval(refreshJobRows, 5000);
+}
+async function refreshJobRows() {
+  if (document.hidden || document.querySelector(".modal")) return;
+  try {
+    const d = await api("/api/jobs/summary?limit=100");
+    const jobs = d.jobs || [];
+    const t = $("#jobstbl"); if (!t) { stopJobsPoll(); return; }
+    t.innerHTML = jobRowsHtml(jobs);
+    const tot = $("#jobstotal");
+    if (tot) tot.textContent = `已显示 ${jobs.length} / 共 ${d.total || 0} 个任务`;
+  } catch (e) { /* 轮询失败保留上次好数据，不打断操作 */ }
 }
 async function submitJob(btn) {
   const pid = ($("#job_pid") || {}).value, type = ($("#job_type") || {}).value;
@@ -1178,6 +1323,27 @@ async function jobRetry(id) {
   try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("已重试"); viewJobs(); }
   catch (e) { toast("" + e.message); }
 }
+async function jobCancel(id, epoch) {
+  confirmDialog("取消任务？", "任务 #" + id + " 将被标记为已取消（epoch " + epoch + "）；如需继续可重新入队。",
+    async () => {
+      try {
+        await api("/api/drama-jobs/" + id + "/cancel", { method: "POST",
+          headers: { "Content-Type": "application/json" }, body: JSON.stringify({ epoch }) });
+        toast("已取消"); viewJobs();
+      } catch (e) { toast("取消失败：" + e.message); }
+    }, "确认取消");
+}
+async function jobResolve(id, approve) {
+  try {
+    await api("/api/drama-jobs/" + id + "/resolve", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approve, reason_code: approve ? null : "operator_reject" }) });
+    toast(approve ? "已通过" : "已驳回"); viewJobs();
+  } catch (e) { toast("操作失败：" + e.message); }
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && $("#jobstbl")) refreshJobRows();
+});
 
 async function downloadReceipt() {
   try { const d = await api("/api/dramas/" + CUR.id + "/receipt", { method: "POST" });
@@ -1292,7 +1458,13 @@ function viewSettings() {
 }
 
 /* ---------- 启动 ---------- */
-function boot() { applyTheme(); if (!hasToken()) return renderLogin(); go("overview"); }
+function boot() {
+  applyTheme();
+  if (!hasToken()) return renderLogin();
+  const r = parseHash();
+  if (r.name === "project") CUR.stage = r.stage || null;
+  navigate(r.name, r.name === "project" ? r.param : undefined).catch(viewError);
+}
 boot();
 
 /* ── 模块参数（每个模块关键输入 + 推荐值） ── */
@@ -1395,9 +1567,9 @@ async function seedDemo() {
 /* C5：命令面板（⌘K） */
 let _cmdData = null, _cmdIdx = 0, _cmdItems = [];
 async function openCommand() {
-  let projs = [], assets = null;
-  try { projs = await api("/api/dramas"); } catch (e) {}
-  try { assets = await api("/api/assets/summary?limit=60"); } catch (e) {}
+  let projs = [], assets = null, loadErr = "";
+  try { projs = await api("/api/dramas"); } catch (e) { loadErr = e.message; }
+  try { assets = await api("/api/assets/summary?limit=60"); } catch (e) { loadErr = loadErr || e.message; }
   const cmds = [
     { label: "概览", kind: "页面", act: () => go("overview") },
     { label: "项目", kind: "页面", act: () => go("projects") },
@@ -1410,6 +1582,7 @@ async function openCommand() {
     { label: "创建示例项目", kind: "操作", act: () => seedDemo() },
     ...projs.map(p => ({ label: p.title, kind: "项目", act: () => go("project:" + p.id) })),
     ...((assets && assets.characters) || []).map(c => ({ label: c.name, kind: "角色 · " + c.project, act: () => go("assets") })),
+    ...(loadErr ? [{ label: "项目/资产加载失败：" + loadErr, kind: "错误 · 点击重试", act: () => { closeModal(); openCommand(); } }] : []),
   ];
   _cmdData = cmds; _cmdIdx = 0;
   const modal = document.createElement("div"); modal.className = "modal cmd-modal"; modal.id = "cmdmodal";
@@ -1472,7 +1645,11 @@ function row(k, v) { return `<div class="dv-row"><span class="dv-k">${esc(k)}</s
 /* D6：版本历史（真实 Run 记录） */
 async function renderVersions() {
   const box = $("#versionbox"); if (!box) return;
-  let d; try { d = await api("/api/dramas/" + CUR.id + "/versions"); } catch (e) { return; }
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/versions"); } catch (e) {
+    box.innerHTML = `<div class="muted" style="color:var(--bad);font-size:12px">版本历史加载失败：${esc(e.message)}
+      <button class="btn ghost sm" style="margin-left:8px" onclick="renderVersions()">重试</button></div>`;
+    return;
+  }
   if (!d.versions || !d.versions.length) return;
   box.innerHTML = `<div class="dv-sec" style="margin-top:0">版本历史 <span class="muted">· ${esc(d.source)}</span></div>
     <div class="dv-versions">${d.versions.slice(0, 8).map(v =>
