@@ -271,8 +271,8 @@ body.dark{color-scheme:dark;
 
 /* ── E2 项目卡电影感封面 ── */
 .project-card{padding:0;overflow:hidden}
-.cover{position:relative;aspect-ratio:16/9;max-height:170px;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:16px 18px;color:#fff;overflow:hidden}
+.cover{position:relative;height:96px;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:14px 18px;color:#fff;overflow:hidden}
 .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.28))}
 .cover .cv-title{position:relative;z-index:1;font-family:var(--serif);font-size:var(--fs-h2);line-height:1.1;letter-spacing:-.01em;
   text-wrap:balance;word-break:keep-all;text-shadow:0 1px 12px rgba(0,0,0,.22)}
