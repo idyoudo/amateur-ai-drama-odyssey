@@ -158,7 +158,15 @@ function setMain(html, wide) {
   const head = html.hero ? "" :
     (html.title ? `<h1 class="page-title">${html.title}</h1>` : "") +
     (html.sub ? `<p class="page-sub">${html.sub}</p>` : "");
-  m.innerHTML = `<div class="topbar">${html.top}</div><div class="view ${wide ? "wide" : ""}">${head}${html.body}</div>`;
+  let top = String(html.top || "");
+  const helpBtn = `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
+  if (top.includes("</div>")) {
+    const i = top.lastIndexOf("</div>");
+    top = top.slice(0, i) + helpBtn + top.slice(i);
+  } else {
+    top = `<div class="right">${helpBtn}</div>` + top;
+  }
+  m.innerHTML = `<div class="topbar">${top}</div><div class="view ${wide ? "wide" : ""}">${head}${html.body}</div>`;
 }
 async function go(route) {
   const parts = String(route).split(":");
@@ -383,8 +391,11 @@ async function _renderStageDetail(st) {
   if (!st) { el.innerHTML = `<div class="detail empty">${ico("play")}<div>该阶段尚无运行结果</div><div class="muted" style="font-size:12.5px;margin-top:4px">点击右上角「运行流水线」生成</div></div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
   const art = st.artifact || {};
+  const modCode = (st.stage.match(/^M\d+/) || [""])[0];
   const head = `<div class="head"><h2>${st.stage}</h2>
-      <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></div>`;
+      <span style="display:flex;gap:8px;align-items:center">
+        <button class="btn ghost sm" onclick="openHelp('${modCode}')">本模块指南</button>
+        <span class="pill ${st.status === "passed" ? "ok" : "bad"}">${st.status === "passed" ? "✓ 通过" : "✗ 失败"}</span></span></div>`;
   const viol = (st.violations && st.violations.length) ? `<div style="margin-top:12px;color:var(--bad)">违规：${st.violations.map(esc).join("；")}</div>` : "";
   // 供应商阶段 → 三段式追踪
   if (/供应商/.test(st.stage)) {
@@ -1225,4 +1236,45 @@ async function attachParams(st) {
       toast("参数已保存");
     } catch (e) { toast("保存失败：" + e.message); }
   };
+}
+
+/* ── 使用指南 ── */
+let HELP_CUR = "_intro";
+function helpItemHtml(id, label) {
+  return `<div class="help-item ${id === HELP_CUR ? "on" : ""}" data-g="${id}" onclick="pickHelp('${id}')">${esc(label)}</div>`;
+}
+function renderHelpContent() {
+  const g = (window.GUIDES || {})[HELP_CUR] || {};
+  const list = (arr, cls) => (arr || []).map(x => `<li>${esc(x)}</li>`).join("");
+  $("#helpcontent").innerHTML = `
+    <div class="help-eyebrow">${esc(window.GUIDES[HELP_CUR] ? (HELP_CUR === "_intro" ? "GETTING STARTED" : HELP_CUR) : "")}</div>
+    <h2 class="help-title">${esc(g.title || "")}</h2>
+    <p class="help-what">${esc(g.what || "")}</p>
+    ${g.steps ? `<div class="help-sec"><div class="help-sec-t">怎么用</div><ol>${list(g.steps)}</ol></div>` : ""}
+    ${g.params ? `<div class="help-sec"><div class="help-sec-t">参数与调优</div><ul>${list(g.params)}</ul></div>` : ""}
+    ${g.tips ? `<div class="help-sec"><div class="help-sec-t">要点</div><ul>${list(g.tips)}</ul></div>` : ""}
+    ${g.pitfalls ? `<div class="help-sec"><div class="help-sec-t">注意</div><ul>${list(g.pitfalls)}</ul></div>` : ""}`;
+}
+function pickHelp(id) {
+  HELP_CUR = id;
+  $$("#helpmodal .help-item").forEach(x => x.classList.toggle("on", x.dataset.g === id));
+  renderHelpContent();
+}
+function openHelp(module) {
+  const G = window.GUIDES || {};
+  if (module && G[module]) HELP_CUR = module;
+  else if (!G[HELP_CUR]) HELP_CUR = "_intro";
+  const order = ["_intro", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12", "M13", "M14", "M15", "M16", "M17", "M18", "M19"];
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "helpmodal";
+  modal.innerHTML = `<div class="box help">
+    <div class="mhead"><h2>使用指南</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="help-body">
+      <nav class="help-nav">
+        ${order.map(id => helpItemHtml(id, id === "_intro" ? "总览 · 快速开始" : (G[id] ? `${id} ${G[id].title}` : id))).join("")}
+      </nav>
+      <div class="help-content" id="helpcontent"></div>
+    </div></div>`;
+  document.body.appendChild(modal);
+  renderHelpContent();
 }

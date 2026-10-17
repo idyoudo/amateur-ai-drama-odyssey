@@ -325,3 +325,24 @@ body.dark{color-scheme:dark;
 .params[open] summary::before{transform:rotate(90deg)}
 .params .fld small{margin-bottom:4px}
 .params input,.params select{height:36px;padding:0 10px;font-size:12.5px}
+
+/* ── 使用指南 ── */
+.help-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);
+  color:var(--dim);font-weight:600;font-size:13px;line-height:1;display:inline-flex;align-items:center;justify-content:center;
+  transition:.15s var(--ease);margin-left:4px}
+.help-btn:hover{color:var(--ink);border-color:var(--dim-2);background:var(--surface-2)}
+.modal .box.help{max-width:940px}
+.help-body{display:grid;grid-template-columns:220px 1fr;min-height:460px}
+.help-nav{border-right:1px solid var(--line);padding:14px 10px;overflow-y:auto;max-height:76vh}
+.help-item{padding:7px 11px;border-radius:6px;font-size:12.5px;color:var(--dim);cursor:pointer;transition:.13s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.help-item:hover{background:var(--surface-2);color:var(--ink)}
+.help-item.on{background:var(--accent-soft);color:var(--accent);font-weight:550}
+.help-content{padding:22px 26px;overflow-y:auto;max-height:76vh}
+.help-eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dim-2);margin-bottom:8px}
+.help-title{font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:-.02em;margin:0 0 8px;text-transform:none;color:var(--ink)}
+.help-what{font-size:13.5px;color:var(--ink-2);line-height:1.7;margin:0 0 20px}
+.help-sec{margin-bottom:18px}
+.help-sec-t{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2);margin-bottom:8px}
+.help-sec ol,.help-sec ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);line-height:1.75}
+.help-sec li{margin-bottom:5px}
+@media (max-width:860px){.help-body{grid-template-columns:1fr}.help-nav{display:flex;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line);max-height:none}.help-item{white-space:normal}}
