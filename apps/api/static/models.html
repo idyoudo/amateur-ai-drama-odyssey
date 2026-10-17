@@ -4,34 +4,42 @@
 <meta charset="utf-8">
 <title>AADO 模型参数配置</title>
 <style>
-body{font-family:system-ui,sans-serif;margin:2em;max-width:720px}
-table{border-collapse:collapse;width:100%}
-td,th{border:1px solid #ccc;padding:6px;text-align:left}
-input{width:100%;box-sizing:border-box}
-button{margin-top:1em;padding:6px 14px}
-pre{background:#f4f4f4;padding:8px;font-size:12px}
+body{font-family:"Inter",system-ui,-apple-system,"PingFang SC",sans-serif;margin:0;background:#F7F8F7;color:#18181B}
+.wrap{max-width:820px;margin:0 auto;padding:40px 24px}
+h1{font-size:20px;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}
+p.sub{color:#71717A;font-size:13px;margin:0 0 22px}
+table{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:1px solid #E4E4E7;border-radius:14px;overflow:hidden}
+td,th{border-bottom:1px solid #E4E4E7;padding:12px 14px;text-align:left;font-size:13px}
+th{background:#F4F5F6;color:#71717A;font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+input,select{width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #D4D4D8;border-radius:9px;font-size:13px;background:#fff;color:#18181B;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:#4F46E5;box-shadow:0 0 0 3px #EEF0FE}
+button{margin-top:18px;padding:9px 18px;background:#18181B;color:#fff;border:0;border-radius:9px;font-weight:550;font-size:13px;cursor:pointer}
+button:hover{background:#000}
+pre{background:#F4F5F6;border:1px solid #E4E4E7;border-radius:10px;padding:12px;font-size:12px;color:#52525B;overflow:auto}
+code{font-family:"JetBrains Mono",ui-monospace,monospace}
 </style>
 </head>
 <body>
-<div id="login" style="position:fixed;inset:0;background:rgba(5,8,13,.97);display:flex;align-items:center;justify-content:center;z-index:99">
-  <div style="background:#1a2029;border:1px solid #2a3442;border-radius:14px;padding:24px;width:320px">
-    <h1 style="margin:0 0 16px">登录 AADO</h1>
+<div id="login" style="position:fixed;inset:0;background:#F7F8F7;display:flex;align-items:center;justify-content:center;z-index:99">
+  <div style="background:#fff;border:1px solid #E4E4E7;border-radius:16px;padding:28px;width:340px;box-shadow:0 8px 32px rgba(24,24,27,.1)">
+    <h1 style="margin:0 0 16px;font-size:16px">登录 AADO</h1>
     <form id="loginform" style="display:flex;flex-direction:column;gap:10px">
-      <input name="username" placeholder="用户名" value="admin">
-      <input name="password" type="password" placeholder="密码">
-      <button type="submit">登录</button>
-      <div id="loginerr" style="color:#e06c6c;font-size:12px;display:none"></div>
+      <input name="username" placeholder="用户名" value="admin" style="margin:8px 0">
+      <input name="password" type="password" placeholder="密码" style="margin:8px 0">
+      <button type="submit" style="width:100%;margin-top:6px">登录</button>
+      <div id="loginerr" style="color:#EF4444;font-size:12px;display:none"></div>
     </form>
   </div>
 </div>
-<h1>模型参数配置</h1>
-<p>model + API Key 齐备则该类型走真实供应商；缺一则走 Mock（自证链路）。</p>
+<div class="wrap"><h1>模型参数配置</h1>
+<p class="sub">model + API Key 齐备则该类型走真实供应商；缺一则走 Mock（自证链路）。从下拉选厂商即自动填 URL 与推荐模型。</p>
 <table>
 <thead><tr><th>类型</th><th>模型名</th><th>API Key</th><th>API URL</th></tr></thead>
 <tbody id="rows"></tbody>
 </table>
 <button onclick="save()">保存</button>
-<pre id="status"></pre>
+<pre id="status"></pre></div>
 <script>
 const KINDS=["video","image","tts","music","lipsync"];
 const TK="aado_token";

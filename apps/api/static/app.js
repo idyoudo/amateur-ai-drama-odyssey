@@ -42,12 +42,13 @@ function skeleton(n) {
     <div class="cards">${Array.from({length: n || 6}, () => '<div class="skeleton card"></div>').join("")}</div></div>`;
 }
 function applyTheme() {
-  const t = localStorage.getItem("aado_theme") || "dark";
-  document.body.classList.toggle("light", t === "light");
+  const t = localStorage.getItem("aado_theme") || "light";
+  document.body.classList.toggle("dark", t === "dark");
 }
 function toggleTheme() {
-  const t = (localStorage.getItem("aado_theme") === "light") ? "dark" : "light";
-  localStorage.setItem("aado_theme", t); applyTheme(); toast("主题：" + (t === "light" ? "浅色" : "深色"));
+  const t = (localStorage.getItem("aado_theme") === "dark") ? "light" : "dark";
+  localStorage.setItem("aado_theme", t); applyTheme();
+  toast("主题：" + (t === "dark" ? "深色" : "浅色"));
 }
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { const m = document.querySelector(".modal"); if (m) m.remove(); }
@@ -1086,7 +1087,7 @@ function viewSettings() {
         <div class="k">登录账户</div><div>admin</div>
         <div class="k">API 文档</div><div><a href="/docs" target="_blank">/docs</a></div>
         <div class="k">健康检查</div><div><a href="/health" target="_blank">/health</a></div>
-      </div><div style="margin-top:18px"><button class="btn ghost" onclick="toggleTheme()">切换深色/浅色主题</button>
+      </div><div style="margin-top:18px"><button class="btn ghost" onclick="toggleTheme()">切换深色 / 浅色</button>
         <button class="btn ghost" onclick="logout()">退出登录</button></div></div>`,
   });
 }
