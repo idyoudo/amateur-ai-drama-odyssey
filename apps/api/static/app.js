@@ -155,7 +155,10 @@ function shell(active) {
 }
 function setMain(html, wide) {
   const m = $("#main");
-  m.innerHTML = `<div class="topbar">${html.top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
+  const head = html.hero ? "" :
+    (html.title ? `<h1 class="page-title">${html.title}</h1>` : "") +
+    (html.sub ? `<p class="page-sub">${html.sub}</p>` : "");
+  m.innerHTML = `<div class="topbar">${html.top}</div><div class="view ${wide ? "wide" : ""}">${head}${html.body}</div>`;
 }
 async function go(route) {
   const parts = String(route).split(":");
@@ -183,11 +186,12 @@ async function viewOverview() {
   const [cfg, projs] = await Promise.all([api("/api/models/config"), api("/api/dramas")]);
   const configured = cfg.available.length;
   setMain({
-    top: `<h1>概览</h1>
+    top: `<span class="crumbs">AADO · Drama Odyssey</span>
       <div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
       <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "Mock 模式"}</span></div>`,
+    hero: true,
     body: `
-    <section class="hero">
+    <section class="hero-full">
       <div class="eyebrow">AADO · Drama Odyssey</div>
       <h1>从一部小说，<br>到一季好莱坞级短剧。</h1>
       <p>剧本、选角、分镜、摄影、配音、母版、交付——19 个模块在同一条可审计的流水线上完成，每一帧都有据可查。</p>
@@ -201,7 +205,7 @@ async function viewOverview() {
     <h2>制作流程 <span class="hint">19 模块 · Development → Delivery</span></h2>
     <div class="card">
       ${SEGMENTS.map(([seg, mods]) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
-        <div style="flex:0 0 150px;font-size:12px;color:var(--gold2)">${seg}</div>
+        <div style="flex:0 0 150px;font-size:12px;color:var(--accent)">${seg}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${mods.map(m => {
           const meta = STAGES.find(x => x[0] === m) || ["", m, ""];
           return `<span class="pill" style="font-size:11px">${meta[1]}</span>`; }).join("")}</div></div>`).join("")}
@@ -211,21 +215,37 @@ async function viewOverview() {
       : `<div class="card empty">${ico("film")}<div>还没有项目</div><div class="muted" style="font-size:12.5px;margin-top:4px">到「项目」页创建第一部剧，点「一键全流程」查看 19 阶段成果</div></div>`}`,
   });
 }
+/* E2：低饱和电影感封面（按 id 确定性取色，禁止彩虹） */
+const COVERS = [
+  ["#2E3440", "#4A5568"], ["#1F3A34", "#2F5D50"], ["#3A2E2A", "#5C463E"],
+  ["#2A2F45", "#3F4A73"], ["#3B2F3F", "#5A4560"], ["#33302A", "#55503F"],
+];
+function coverFor(p) {
+  const key = String(p.id || p.title || "x");
+  let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  const [a, b] = COVERS[h % COVERS.length];
+  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+}
 function projectCard(p) {
   const badge = p.deliverable ? `<span class="pill ok"><i class="dot ok"></i>可交付</span>`
     : (p.stages_passed ? `<span class="pill gold">${p.stages_passed}/19 阶段</span>` : `<span class="pill">未制作</span>`);
-  return `<div class="card click" onclick="go('project:${p.id}')">
-    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-      <h4 style="margin:0 0 6px;font-size:15px">${esc(p.title)}</h4>${badge}</div>
-    <div class="muted" style="font-size:12px;min-height:32px">${esc(p.logline || "")}</div>
-    <div class="muted" style="font-size:11px;margin-top:8px">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div></div>`;
+  return `<div class="card click project-card" onclick="go('project:${p.id}')">
+    <div class="cover" style="background:${coverFor(p)}">
+      <div class="cv-title">${esc(p.title)}</div>
+      <div class="cv-meta">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div>
+    </div>
+    <div class="pbody">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+        <div class="muted" style="font-size:12px;min-height:32px;line-height:1.6">${esc(p.logline || "")}</div>${badge}</div>
+    </div></div>`;
 }
 
 /* ---------- 项目列表 ---------- */
 async function viewProjects() {
   const projs = await api("/api/dramas");
   setMain({
-    top: `<h1>项目 <span class="crumbs">立项与工作台</span></h1><div class="right"><span class="pill">${projs.length} 个项目</span></div>`,
+    title: "项目", sub: "立项与工作台",
+    top: `<div class="right"><span class="pill">${projs.length} 个项目</span></div>`,
     body: `
     <h2>创建项目</h2>
     <form class="stack" id="pf">
@@ -286,12 +306,13 @@ async function viewProject(id) {
       <div class="s">${st ? `<i class="dot ${cls}"></i> ${txt}` : txt}</div></div>`;
   };
   const stepper = SEGMENTS.map(([seg, mods]) => `<div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--gold2);letter-spacing:.5px;margin-bottom:6px">${seg}</div>
+      <div style="font-size:11px;color:var(--accent);letter-spacing:.5px;margin-bottom:6px">${seg}</div>
       <div class="stepper">${mods.map(stepCard).join("")}</div></div>`).join("");
 
   const passed = run ? run.summary.passed : 0, total = 19;
   setMain({
-    top: `<h1><span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目 ›</span> <span class="t">${esc(p.title)}</span></h1>
+    title: esc(p.title), sub: `${esc(p.rating || "")} · ${esc(p.genre || "")} · ${p.episodes} 集 × ${p.minutes} 分钟`,
+    top: `<span class="crumbs" style="cursor:pointer" onclick="go('projects')">项目</span>
       <div class="right">
         <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
@@ -326,13 +347,13 @@ async function viewProject(id) {
     for (let n = 1; n <= ep.episodes; n++) {
       let sc = 0; try { sc = (await api("/api/dramas/" + id + "/script?episode=" + n)).scenes.length; } catch (e) {}
       const cnt = ep.breakdown[String(n)] || 0;
-      cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--gold)" : ""}" onclick="pickEp(${id},${n})">
+      cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--accent)" : ""}" onclick="pickEp(${id},${n})">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <b style="font-size:13px">第 ${n} 集</b>
           ${n === CUR_EP ? '<span class="pill gold" style="font-size:10px">当前</span>' : ""}</div>
         <div class="muted" style="font-size:11px;margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
     }
-    bar.innerHTML = `<div style="font-size:12px;color:var(--gold2);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
+    bar.innerHTML = `<div style="font-size:12px;color:var(--accent);margin-bottom:6px">分集看板 · ${ep.episodes} 集 × ${ep.minutes} 分钟</div>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
   }).catch(() => {});
   // 制作统计（异步，按当前集）
@@ -434,7 +455,7 @@ async function renderStoryboard() {
 }
 function sbCard(s) {
   const sel = SBSEL.has(String(s.id));
-  return `<div class="asset sbcard" data-id="${s.id}" data-no="${s.shot_no}" style="cursor:pointer;${sel ? "border-color:var(--gold)" : ""}">
+  return `<div class="asset sbcard" data-id="${s.id}" data-no="${s.shot_no}" style="cursor:pointer;${sel ? "border-color:var(--accent)" : ""}">
     <div class="thumb">${ico(s.status === "已生成" ? "frame" : "film")}
       <span class="tag">镜 ${s.shot_no}</span>
       <input type="checkbox" ${sel ? "checked" : ""} style="position:absolute;top:8px;right:8px;width:auto" onclick="event.stopPropagation();sbToggle('${s.id}')"></div>
@@ -446,7 +467,7 @@ function sbCard(s) {
 function sbToggle(id) {
   id = String(id); if (SBSEL.has(id)) SBSEL.delete(id); else SBSEL.add(id);
   const c = $(`.sbcard[data-id="${id}"]`);
-  if (c) { c.style.borderColor = SBSEL.has(id) ? "var(--gold)" : ""; const cb = c.querySelector("input"); if (cb) cb.checked = SBSEL.has(id); }
+  if (c) { c.style.borderColor = SBSEL.has(id) ? "var(--accent)" : ""; const cb = c.querySelector("input"); if (cb) cb.checked = SBSEL.has(id); }
 }
 async function sbSelect(mode) {
   const shots = await api("/api/dramas/" + CUR.id + "/shots?episode=" + CUR_EP);
@@ -729,7 +750,7 @@ async function renderTimeline() {
     const w = (sh.duration / total * 100);
     return `<div title="镜${sh.shot_no} ${sh.size} ${sh.move} ${sh.duration}s" style="flex:0 0 ${w}%;height:44px;background:${SIZE_COLOR[sh.size]||"#4a5f7d"};border-right:1px solid #0a0c10;display:flex;align-items:center;justify-content:center;font-size:9px;color:#cdd7e5;overflow:hidden">${sh.shot_no}</div>`;
   }).join("");
-  const markers = d.acts.map(a => `<div style="position:absolute;left:${a.at / total * 100}%;top:-6px;bottom:-20px;border-left:1px dashed var(--gold);font-size:9px;color:var(--gold2);padding-left:3px;white-space:nowrap">${esc(a.name)}</div>`).join("");
+  const markers = d.acts.map(a => `<div style="position:absolute;left:${a.at / total * 100}%;top:-6px;bottom:-20px;border-left:1px dashed var(--accent);font-size:9px;color:var(--accent);padding-left:3px;white-space:nowrap">${esc(a.name)}</div>`).join("");
   box.innerHTML = `
     <div class="stats" style="margin-bottom:16px">
       <div class="stat"><div class="k">${total}s</div><div class="l">成片时长</div></div>
@@ -793,7 +814,7 @@ function stageBody(stage, art) {
     const derived = ["2.39:1 主母版", "16:9 平台版", "9:16 竖屏衍生", "HDR10（可选）", "5.1 环绕（可选）", "48fps（可选）"];
     return `<div class="muted" style="margin-bottom:12px">一次生成、多端派生：所有版本由同一生成母版派生，禁止单画幅重复生成（EL-01）。</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <div class="card" style="border-color:var(--gold);background:linear-gradient(135deg,rgba(212,162,76,.1),transparent)">
+        <div class="card" style="border-color:var(--accent);background:var(--accent-soft)">
           <b>${ico("master")} 生成母版</b> <span class="pill gold">${esc(art.master)}</span>
           <div class="muted" style="font-size:11px;margin-top:4px">唯一 · 16:9 open gate 最高可用分辨率</div></div>
         <div style="text-align:center;color:var(--dim);font-size:16px">↓ 派生</div>
@@ -979,8 +1000,8 @@ async function viewAssets() {
     } catch (e) {}
   }
   setMain({
-    top: `<h1>资产库 <span class="crumbs">跨项目角色与镜头</span></h1>
-      <div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
+    title: "资产库", sub: "跨项目角色与镜头",
+    top: `<div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
     body: `${chars.length ? `<h2>角色 <span class="hint">定妆锚点 + 音色</span></h2>
       <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb">${ico("face")}<span class="tag">${esc(c.project)}</span></div>
         <div class="body"><h4>${esc(c.name)}</h4>
@@ -1004,7 +1025,8 @@ async function viewJobs() {
   }
   jobs.sort((a, b) => b.id - a.id);
   setMain({
-    top: `<h1>任务 <span class="crumbs">PG 队列 · 幂等 + 租约 + checkpoint</span></h1><div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
+    title: "任务", sub: "PG 队列 · 幂等 + 租约 + checkpoint",
+    top: `<div class="right"><span class="pill">${jobs.length} 个任务</span></div>`,
     body: `<div class="card">
       <div class="stack" style="max-width:520px">
         <div class="row2"><input id="job_pid" placeholder="项目 ID"><select id="job_type">
@@ -1068,7 +1090,8 @@ async function viewPlayground() {
   const d = await api("/api/playground/kinds");
   const tasks = await api("/api/playground/tasks");
   setMain({
-    top: `<h1>生成台 <span class="crumbs">独立生成工具台 · 即开即用</span></h1><div class="right"><span class="pill">${tasks.length} 次生成</span></div>`,
+    title: "生成台", sub: "独立生成工具台 · 即开即用",
+    top: `<div class="right"><span class="pill">${tasks.length} 次生成</span></div>`,
     body: `
     <div class="card">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
@@ -1100,8 +1123,8 @@ async function pgGenerate() {
 async function viewModels() {
   const d = await api("/api/models/config");
   setMain({
-    top: `<h1>模型配置 <span class="crumbs">填 model + Key 走真实供应商，缺一走 Mock</span></h1>
-      <div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
+    title: "模型配置", sub: "填 model + Key 走真实供应商，缺一走 Mock",
+    top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
     body: `<div class="cards">${Object.entries(d.config).map(([k, c]) => {
       const on = c.model && c.api_key;
       return `<div class="asset"><div class="thumb">${ico({ text: "doc", video: "film", image: "frame", tts: "wave", music: "music", lipsync: "face" }[k] || "route")}</div>
@@ -1133,7 +1156,8 @@ async function viewModels() {
 /* ---------- 设置 ---------- */
 function viewSettings() {
   setMain({
-    top: `<h1>设置 <span class="crumbs">账户与系统</span></h1>`,
+    title: "设置", sub: "账户与系统",
+    top: `<div class="right"></div>`,
     body: `<div class="card"><div class="kv">
         <div class="k">登录账户</div><div>admin</div>
         <div class="k">API 文档</div><div><a href="/docs" target="_blank">/docs</a></div>
