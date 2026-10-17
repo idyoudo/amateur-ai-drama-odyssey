@@ -378,14 +378,35 @@ function setProjView(v) {
   $("#viewboard").classList.toggle("acc", v === "board");
   if (v === "board") renderBoard();
 }
+function lifecycleActions(p) {
+  const lc = p.lifecycle || "立项";
+  const id = p.id;
+  const b = (status, label, ghost) => `<button class="btn ${ghost ? "ghost " : ""}sm" onclick="event.stopPropagation();setLifecycle(${id},'${status}','${label}')">${label}</button>`;
+  if (lc === "归档") return b("draft", "恢复", true);
+  const acts = [];
+  if (lc === "立项" || lc === "制作中" || lc === "可交付") acts.push(b("pending_review", "提交审核", true));
+  if (lc === "待审") acts.push(b("delivered", "标记交付", false));
+  acts.push(b("archived", "归档", true));
+  return acts.join("");
+}
 function renderBoard() {
-  const order = ["立项", "制作中", "可交付", "归档"];
+  const order = ["立项", "制作中", "可交付", "待审", "已交付", "归档"];
   const list = window._PROJS || [];
   const col = (name) => `<div class="board-col"><div class="board-col-t">${name}<span class="muted">${list.filter(p => (p.lifecycle || "立项") === name).length}</span></div>
     <div class="board-cards">${list.filter(p => (p.lifecycle || "立项") === name).map(p =>
       `<div class="board-card" onclick="go('project:${p.id}')"><div class="bc-title">${esc(p.title)}</div>
-        <div class="bc-meta">${p.episodes || 6} 集 · ${p.shots || 0} 镜</div></div>`).join("") || `<div class="muted" style="font-size:11.5px;padding:6px 2px">—</div>`}</div></div>`;
+        <div class="bc-meta">${p.episodes || 6} 集 · ${p.shots || 0} 镜</div>
+        <div class="bc-actions">${lifecycleActions(p)}</div></div>`).join("") || `<div class="muted" style="font-size:11.5px;padding:6px 2px">—</div>`}</div></div>`;
   $("#pboard").innerHTML = `<div class="board">${order.map(col).join("")}</div>`;
+}
+async function setLifecycle(id, status, label) {
+  try {
+    await api("/api/dramas/" + id + "/lifecycle", { method: "PATCH",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    toast("已" + (label || "更新"));
+    const projs = await api("/api/dramas"); window._PROJS = projs;
+    if (PROJ_VIEW === "board") renderBoard(); else go("projects");
+  } catch (e) { toast("操作失败：" + e.message); }
 }
 
 /* ---------- 项目工作台 ---------- */
@@ -535,6 +556,8 @@ async function _renderStageDetail(st) {
     return renderStoryboard();
   }
   el.innerHTML = `<div class="detail">${head}${stageBody(st.stage, art)}${viol}</div>`;
+  // 交付阶段 → 版本历史（真实 Run 记录）
+  if (/交付/.test(st.stage)) return renderVersions();
 }
 
 /* ---------- 分镜工作台（参考 LumenX Storyboard / Toonflow 批量网格） ---------- */
@@ -1032,8 +1055,10 @@ function stageBody(stage, art) {
     const versions = [
       { n: "2.39:1 主母版", s: "保证" }, { n: "16:9 平台版", s: "保证" }, { n: "9:16 竖屏衍生", s: "保证" },
       { n: "HDR10", s: "可选" }, { n: "5.1 环绕", s: "可选" }, { n: "48fps", s: "可选" }];
-    return `<div style="margin-bottom:12px"><button class="btn" onclick="downloadSheet()">${ico("download")} 下载交付单</button>
-        <button class="btn ghost" onclick="downloadReceipt()" style="margin-left:8px">${ico("shield")} 生成签名收据</button></div>
+    return `<div style="margin-bottom:12px"><button class="btn" onclick="previewSheet()">在线预览交付单</button>
+        <button class="btn ghost" onclick="downloadSheet()" style="margin-left:8px">${ico("download")} 下载</button>
+        <button class="btn ghost" onclick="downloadReceipt()" style="margin-left:8px">${ico("shield")} 签名收据</button></div>
+      <div id="versionbox" style="margin-bottom:16px"></div>
       <div class="muted" style="margin-bottom:10px">交付版本清单（标注保证 / 可选 / 需确认，EL-11）</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">
         ${versions.map(v => `<div class="card" style="padding:12px"><div style="font-size:12.5px">${esc(v.n)}</div>
@@ -1418,4 +1443,40 @@ function cmdRun(item) {
   if (!item) return;
   closeModal();
   item.act();
+}
+
+/* D6：交付单在线预览（数据来自 /delivery-sheet，标注 Mock 状态） */
+async function previewSheet() {
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/delivery-sheet"); } catch (e) { return toast("加载失败"); }
+  const spec = d.spec || {};
+  const modal = document.createElement("div"); modal.className = "modal"; modal.id = "sheetmodal";
+  modal.innerHTML = `<div class="box" style="max-width:640px">
+    <div class="mhead"><h2>交付单 · ${esc((d.project || {}).title || "")}</h2>
+      <div><span class="pill">Mock 数据</span><button class="btn ghost sm" style="margin-left:8px" onclick="closeModal()">关闭</button></div></div>
+    <div class="mbody">
+      <div class="dv-sec">规格</div>
+      ${row("主母版", spec.master)}${row("平台版", spec.platform)}${row("衍生版", spec.derived)}
+      ${row("可选交付", (spec.optional || []).join("、") || "—")}${row("帧率", spec.fps)}${row("响度", spec.loudness)}${row("真峰值", spec.true_peak)}
+      <div class="dv-sec">内容</div>
+      ${row("镜头数", (d.content || {}).shots)}${row("总时长", ((d.content || {}).duration_sec || 0) + " 秒")}${row("ASL", (d.content || {}).asl + " 秒")}
+      <div class="dv-sec">合规</div>
+      ${row("权利状态", d.rights_status)}${row("AI 标识", d.ai_label)}${row("分级", d.rating)}${row("语言", d.language)}${row("色彩标签", d.color_tag)}
+      <div class="dv-sec">可选交付标注</div>
+      ${Object.entries(d.optional_delivery || {}).map(([k, v]) => row(k, v)).join("")}
+      <div class="muted" style="font-size:11px;margin-top:14px">生成时间：${esc(d.generated_at)} · 未接入真实供应商时为 Mock/模拟数据</div>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+function row(k, v) { return `<div class="dv-row"><span class="dv-k">${esc(k)}</span><span class="dv-v">${esc(v == null ? "—" : v)}</span></div>`; }
+
+/* D6：版本历史（真实 Run 记录） */
+async function renderVersions() {
+  const box = $("#versionbox"); if (!box) return;
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/versions"); } catch (e) { return; }
+  if (!d.versions || !d.versions.length) return;
+  box.innerHTML = `<div class="dv-sec" style="margin-top:0">版本历史 <span class="muted">· ${esc(d.source)}</span></div>
+    <div class="dv-versions">${d.versions.slice(0, 8).map(v =>
+      `<div class="dv-ver"><span class="pill ${v.deliverable ? "ok" : "gold"}">${esc(v.version)}</span>
+        <span class="muted">${esc((v.created_at || "").replace("T", " ").slice(0, 19))}</span>
+        <span class="muted">${v.passed}/${v.total} 阶段</span></div>`).join("")}</div>`;
 }

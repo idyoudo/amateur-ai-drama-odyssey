@@ -16,7 +16,12 @@ from film.suppliers import config as sup_config
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=_connect_args)
+_engine_kwargs = {"connect_args": _connect_args}
+if DATABASE_URL in ("sqlite://", "sqlite:///:memory:"):
+    # 内存库默认每线程一个空库；静态池让线程池共享同一连接
+    from sqlalchemy.pool import StaticPool
+    _engine_kwargs["poolclass"] = StaticPool
+engine = create_engine(DATABASE_URL, **_engine_kwargs)
 jobs_db.Base.metadata.create_all(engine)
 
 # create_all 不会给已存在的表补索引；这里幂等补齐（SQLite/PG 均支持 IF NOT EXISTS）
@@ -178,6 +183,51 @@ def create_project(body: CreateProject):
                 "package": p["package"], "delivery_spec": p["delivery_spec"]}
 
 
+LIFECYCLE_LABELS = {"draft": "立项", "in_progress": "制作中", "pending_review": "待审",
+                    "delivered": "已交付", "archived": "归档"}
+# 合法流转（显式状态机，fail-closed）
+LIFECYCLE_TRANSITIONS = {
+    "draft": {"in_progress", "archived"},
+    "in_progress": {"pending_review", "archived"},
+    "pending_review": {"delivered", "in_progress", "archived"},
+    "delivered": {"archived"},
+    "archived": {"draft"},
+}
+
+
+def _lifecycle_of(status, has_run, deliverable):
+    """显式 status 优先；draft 且有 run 时按产出展示。"""
+    if status == "archived":
+        return "归档"
+    if status == "delivered":
+        return "已交付"
+    if status == "pending_review":
+        return "待审"
+    if not has_run:
+        return "立项"
+    return "可交付" if deliverable else "制作中"
+
+
+@app.patch("/api/dramas/{project_id}/lifecycle")
+def set_lifecycle(project_id: int, body: dict):
+    """显式流转项目生命周期（归档/恢复/提交审核/标记交付）。"""
+    target = body.get("status")
+    if target not in LIFECYCLE_LABELS:
+        raise HTTPException(status_code=422, detail="非法状态：%r" % (target,))
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        cur = p.status or "draft"
+        if cur == target:
+            return {"id": project_id, "status": cur, "lifecycle": LIFECYCLE_LABELS[cur]}
+        if target not in LIFECYCLE_TRANSITIONS.get(cur, set()):
+            raise HTTPException(status_code=409, detail="非法流转：%s → %s" % (cur, target))
+        p.status = target
+        s.commit()
+    return {"id": project_id, "status": target, "lifecycle": LIFECYCLE_LABELS[target]}
+
+
 @app.get("/api/dramas")
 def list_projects():
     out = []
@@ -188,14 +238,7 @@ def list_projects():
                 jobs_db.Run.project_id == r.id).order_by(jobs_db.Run.id.desc())).first()
             n_shots = s.query(jobs_db.Shot).filter(jobs_db.Shot.project_id == r.id).count()
             deliverable = bool(run and run.result.get("summary", {}).get("deliverable"))
-            if r.status == "archived":
-                lifecycle = "归档"
-            elif run is None:
-                lifecycle = "立项"
-            elif deliverable:
-                lifecycle = "可交付"
-            else:
-                lifecycle = "制作中"
+            lifecycle = _lifecycle_of(r.status, run is not None, deliverable)
             out.append({"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
                         "lifecycle": lifecycle,
                         "episodes": r.episodes, "minutes": r.minutes,
@@ -280,6 +323,8 @@ def update_project(project_id: int, body: UpdateProject):
         p = s.get(jobs_db.Project, project_id)
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
+        if p.status == "archived":
+            raise HTTPException(status_code=409, detail="项目已归档，恢复后才能编辑")
         for f in ("title", "logline", "platform", "rating", "genre", "style"):
             if getattr(body, f, None):
                 setattr(p, f, getattr(body, f))
@@ -298,7 +343,11 @@ def run_project(project_id: int):
         p = s.get(jobs_db.Project, project_id)
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
+        if p.status == "archived":
+            raise HTTPException(status_code=409, detail="项目已归档，恢复后才能运行")
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre)
+        if (p.status or "draft") == "draft":
+            p.status = "in_progress"
         s.add(jobs_db.Run(project_id=project_id, result=result))
         # 记录供应商三段式调用（M17.5-F02）
         s.query(jobs_db.ProviderCall).filter(jobs_db.ProviderCall.project_id == project_id).delete()
@@ -568,6 +617,22 @@ def produce(project_id: int):
             "shots": n_shots, "candidates_per_shot": 4,
             "total_duration": tl["total_duration"], "asl": tl["asl"],
             "deliverable": run["summary"]["deliverable"]}
+
+
+@app.get("/api/dramas/{project_id}/versions")
+def list_versions(project_id: int):
+    """版本历史（真实 Run 记录，非伪造）。"""
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.Run).where(
+            jobs_db.Run.project_id == project_id).order_by(jobs_db.Run.id.desc())).all()
+    out = []
+    for i, r in enumerate(rows, 1):
+        summ = (r.result or {}).get("summary", {})
+        out.append({"run_id": r.id, "version": "v%d" % (len(rows) - i + 1),
+                    "created_at": r.created_at.isoformat() if r.created_at else "",
+                    "passed": summ.get("passed", 0), "total": summ.get("total", 0),
+                    "deliverable": bool(summ.get("deliverable"))})
+    return {"versions": out, "count": len(out), "source": "runs（真实记录）"}
 
 
 @app.get("/api/dramas/{project_id}/qc-report")
