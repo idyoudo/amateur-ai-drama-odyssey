@@ -19,12 +19,13 @@ def _stage(name, violations, artifact=None):
             "violations": violations, "artifact": artifact or {}}
 
 
-def run_pipeline(title, logline, platform, rating, genre, model_config=None):
+def run_pipeline(title, logline, platform, rating, genre, model_config=None,
+                 episodes=6, minutes=30):
     cfg = model_config or sup_config.load_from_env()
     adapters = {k: sup_adapter.make_adapter(k, cfg.get(k, {})) for k in sup_config.MODEL_KINDS}
     stages = []
 
-    p = m1.make_project(title, logline, platform, rating, genre)
+    p = m1.make_project(title, logline, platform, rating, genre, episodes, minutes)
     stages.append(_stage("M1 立项", m1.validate_project(p),
                          {"title": p["title"], "package": "%d 集×%d 分" % (p["package"]["episodes"], p["package"]["minutes"])}))
 
@@ -57,7 +58,7 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None):
                          {"codec": "ProRes 422 HQ", "audio": "24-bit/48kHz", "tc": m11m.enums.TC_START,
                           "color_de": "镜头≤3/肤色≤2", "subtitle_rule": "5–7s · ≤2 行 · ≤23 字"}))
 
-    sheet = {"spec": "2.39:1", "version": "v1", "duration": 1800, "qc_conclusion": "pass",
+    sheet = {"spec": "2.39:1", "version": "v1", "duration": minutes * 60, "qc_conclusion": "pass",
              "rights_status": "ok", "ai_label": "AI 生成", "rating": rating,
              "language": "zh", "color_tag": "Rec.709", "optional_items": []}
     m12_violations = m12sh.validate_delivery_sheet(sheet) + m12p.validate_master_spec("2.39:1", 24, -23.0, -1.5)

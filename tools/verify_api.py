@@ -56,6 +56,38 @@ r = client.get("/api/dramas", headers=H)
 check("项目列表含回声", r.status_code == 200 and any(p["title"] == "回声" for p in r.json()))
 pid = r.json()[0]["id"]
 
+# ---------------- 分集格式与小说改编 ----------------
+r = client.get("/api/formats", headers=H)
+check("格式预设 6 平台", r.status_code == 200 and len(r.json()["platforms"]) == 6)
+r = client.post("/api/formats/recommend", headers=H,
+                json={"platform_key": "hongguo", "source_type": "novel",
+                      "chapters": 300, "genre": "悬疑"})
+d = r.json()
+check("红果 300 章建议", r.status_code == 200 and d["aspect"] == "9:16"
+      and d["episodes"] == 100 and d["seasons"] == 2)
+check("红果单集 1 分钟", d["episode_seconds"] == 60)
+r = client.post("/api/formats/recommend", headers=H,
+                json={"platform_key": "youtube", "source_type": "novel", "chapters": 300})
+d = r.json()
+check("YouTube 长视频建议", d["aspect"] == "16:9" and d["episode_seconds"] == 600)
+r = client.post("/api/dramas", headers=H,
+                json={"title": "长夜回声", "logline": "小说改编测试故事", "platform": "红果漫剧",
+                      "rating": "12+", "genre": "悬疑", "platform_key": "hongguo",
+                      "source_type": "novel",
+                      "source_meta": {"author": "作者", "words_wan": 300, "chapters": 300},
+                      "episodes": 100, "episode_seconds": 60, "aspect": "9:16", "minutes": 1})
+d = r.json()
+check("小说改编立项 200", r.status_code == 200 and d["package"]["episodes"] == 100)
+check("小说改编画幅 9:16", d["delivery_spec"]["master"] == "9:16")
+check("小说改编来源入库", d["source_meta"].get("type") == "novel"
+      and d["source_meta"].get("chapters") == 300)
+check("小说改编单集秒数", d["episode_seconds"] == 60)
+novel_id = d["id"]
+r = client.post("/api/dramas/%d/run" % novel_id, headers=H)
+check("小说项目流水线 19 阶段", r.status_code == 200 and len(r.json()["stages"]) == 19)
+check("短剧包型进入 M1",
+      any(s["artifact"].get("package") == "100 集×1 分" for s in r.json()["stages"]))
+
 # ---------------- 入队 + 幂等 ----------------
 r1 = client.post("/api/drama-jobs", headers=H, json={"project_id": "p1", "type": "shot_video",
                                                      "idempotency_key": "p1:1:1:shot_video:fp1"})

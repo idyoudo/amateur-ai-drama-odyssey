@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
+from film import formats as fmt
 from film.jobs import db as jobs_db
 from film.projects import project as proj_mod
 from film.suppliers import config as sup_config
@@ -39,6 +40,18 @@ with engine.begin() as _c:
             _c.execute(_text(_sql))
         except Exception:  # noqa: BLE001
             pass
+
+# create_all 不会给已存在的表补列：幂等补 projects 的新增列（SQLite/PG 通用）
+try:
+    from sqlalchemy import inspect as _inspect, text as _text2
+    _project_cols = {c["name"] for c in _inspect(engine).get_columns("projects")}
+    _ADD_COLS = {"episode_seconds": "INTEGER", "source_meta": "JSON"}
+    with engine.begin() as _c:
+        for _name, _typ in _ADD_COLS.items():
+            if _name not in _project_cols:
+                _c.execute(_text2("ALTER TABLE projects ADD COLUMN %s %s" % (_name, _typ)))
+except Exception:  # noqa: BLE001
+    pass
 Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 app = FastAPI(title="AADO API", version="0.1.0")
@@ -93,6 +106,11 @@ class CreateProject(BaseModel):
     genre: str
     episodes: int = 6
     minutes: int = 30
+    episode_seconds: Optional[int] = None
+    aspect: Optional[str] = None
+    platform_key: Optional[str] = None
+    source_type: Optional[str] = None
+    source_meta: Optional[dict] = None
 
 
 class UpdateProject(BaseModel):
@@ -244,25 +262,75 @@ def update_model_config(body: dict):
             "persistence": _persistence_info()}
 
 
+@app.get("/api/formats")
+def list_formats():
+    """平台分集格式预设（红果漫剧/抖音/快手/YouTube 等）。"""
+    return fmt.public_presets()
+
+
+@app.post("/api/formats/recommend")
+def recommend_format(body: dict):
+    """按平台、原著规模与题材给出分集建议（可手动覆盖）。"""
+    try:
+        words = float(body.get("words_wan") or 0)
+        chapters = int(body.get("chapters") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="字数/章节数格式不正确")
+    return fmt.recommend(platform=str(body.get("platform_key") or "hongguo"),
+                         source_type=str(body.get("source_type") or "original"),
+                         words_wan=words, chapters=chapters,
+                         genre=str(body.get("genre") or ""))
+
+
 @app.post("/api/dramas")
 def create_project(body: CreateProject):
+    aspect = (body.aspect or "").strip()
+    if aspect and aspect not in ("9:16", "16:9", "2.39:1"):
+        raise HTTPException(status_code=422, detail="画幅非法：%r" % aspect)
+    if not (1 <= body.episodes <= 200):
+        raise HTTPException(status_code=422, detail="集数需在 1–200")
+    seconds = body.episode_seconds
+    if seconds is not None and not (15 <= seconds <= 2700):
+        raise HTTPException(status_code=422, detail="单集时长需在 15–2700 秒")
+    minutes = int(round(seconds / 60.0)) if seconds else body.minutes
+    minutes = max(1, minutes)
+    if minutes not in (1, 2, 3, 5, 8, 10, 15, 22, 30, 45):
+        raise HTTPException(status_code=422, detail="单集时长档非法：%r" % minutes)
+
     p = proj_mod.make_project(body.title, body.logline, body.platform,
-                              body.rating, body.genre, body.episodes, body.minutes)
+                              body.rating, body.genre, body.episodes, minutes)
+    optional = (p.get("delivery_spec") or {}).get("optional", [])
+    if aspect == "9:16":
+        p["delivery_spec"] = {"master": "9:16", "platform": "9:16",
+                              "derived": "16:9", "optional": optional}
+    elif aspect == "16:9":
+        p["delivery_spec"] = {"master": "16:9", "platform": "16:9",
+                              "derived": "9:16", "optional": optional}
     violations = proj_mod.validate_project(p)
     if violations:
         raise HTTPException(status_code=422, detail=violations)
+    source_meta = {}
+    if body.source_type == "novel":
+        raw = body.source_meta or {}
+        for k in ("title", "author", "words_wan", "chapters", "source_url"):
+            if raw.get(k) not in (None, ""):
+                source_meta[k] = raw.get(k)
+        source_meta["type"] = "novel"
     with Session() as s:
         row = jobs_db.Project(title=p["title"], logline=p["logline"],
                               platform=p["platform"], rating=p["rating"],
                               genre=p["genre"], style=p["style"],
                               episodes=p["package"]["episodes"],
                               minutes=p["package"]["minutes"],
+                              episode_seconds=seconds or minutes * 60,
+                              source_meta=source_meta,
                               delivery_spec=p["delivery_spec"],
                               pilot_mode=p["pilot_mode"])
         s.add(row)
         s.commit()
         return {"id": row.id, "title": row.title, "status": row.status,
-                "package": p["package"], "delivery_spec": p["delivery_spec"]}
+                "package": p["package"], "delivery_spec": p["delivery_spec"],
+                "episode_seconds": row.episode_seconds, "source_meta": row.source_meta or {}}
 
 
 LIFECYCLE_LABELS = {"draft": "立项", "in_progress": "制作中", "pending_review": "待审",
@@ -324,6 +392,9 @@ def list_projects():
             out.append({"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
                         "lifecycle": lifecycle,
                         "episodes": r.episodes, "minutes": r.minutes,
+                        "episode_seconds": r.episode_seconds,
+                        "source_meta": r.source_meta or {},
+                        "aspect": (r.delivery_spec or {}).get("master"),
                         "deliverable": deliverable,
                         "stages_passed": (run.result.get("summary", {}).get("passed") if run else 0) or 0,
                         "shots": n_shots})
@@ -393,6 +464,8 @@ def get_project(project_id: int):
         return {"id": p.id, "title": p.title, "logline": p.logline,
                 "platform": p.platform, "rating": p.rating, "genre": p.genre,
                 "style": p.style, "episodes": p.episodes, "minutes": p.minutes,
+                "episode_seconds": p.episode_seconds,
+                "source_meta": p.source_meta or {},
                 "delivery_spec": p.delivery_spec, "pilot_mode": p.pilot_mode,
                 "status": p.status,
                 "last_run": run.result if run else None}
@@ -414,6 +487,7 @@ def update_project(project_id: int, body: UpdateProject):
             p.episodes = body.episodes
         if body.minutes:
             p.minutes = body.minutes
+            p.episode_seconds = body.minutes * 60
         s.commit()
     return {"id": project_id, "title": p.title, "platform": p.platform}
 
@@ -428,7 +502,8 @@ def run_project(project_id: int):
         if p.status == "archived":
             raise HTTPException(status_code=409, detail="项目已归档，恢复后才能运行")
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre,
-                                       model_config=_model_config)
+                                       model_config=_model_config,
+                                       episodes=p.episodes or 6, minutes=p.minutes or 30)
         if (p.status or "draft") == "draft":
             p.status = "in_progress"
         s.add(jobs_db.Run(project_id=project_id, result=result))

@@ -62,6 +62,8 @@ class Project(Base):
     style: Mapped[str] = mapped_column(String(32), nullable=True)
     episodes: Mapped[int] = mapped_column(Integer, nullable=True)
     minutes: Mapped[int] = mapped_column(Integer, nullable=True)
+    episode_seconds: Mapped[int] = mapped_column(Integer, nullable=True)
+    source_meta: Mapped[dict] = mapped_column(JSON, default=dict)
     delivery_spec: Mapped[dict] = mapped_column(JSON, default=dict)
     pilot_mode: Mapped[bool] = mapped_column(default=False)
     status: Mapped[str] = mapped_column(String(32), default="draft")

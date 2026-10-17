@@ -346,35 +346,102 @@ async function viewOverview() {
 function projectCard(p) {
   const badge = p.deliverable ? `<span class="pill ok"><i class="dot ok"></i>可交付</span>`
     : (p.stages_passed ? `<span class="pill gold">${p.stages_passed}/19 阶段</span>` : `<span class="pill">未制作</span>`);
+  const dur = fmtDur(p.episode_seconds || (p.minutes || 30) * 60);
+  const aspect = p.aspect ? ` · ${esc(p.aspect)}` : "";
+  const src = (p.source_meta && p.source_meta.type === "novel") ? " · 小说改编" : "";
   return `<div class="card click project-card" onclick="go('project:${p.id}')">
     <div class="pbody">
       <div class="pc-head"><h3 class="pc-title">${esc(p.title)}</h3>${badge}</div>
-      <div class="pc-meta">${p.episodes || 6} 集 × ${p.minutes || 30} 分钟${p.shots ? " · " + p.shots + " 镜" : ""}</div>
+      <div class="pc-meta">${p.episodes || 6} 集 × ${dur}${aspect}${src}${p.shots ? " · " + p.shots + " 镜" : ""}</div>
       <div class="pc-logline">${esc(p.logline || "")}</div>
     </div></div>`;
 }
 
 /* ---------- 项目列表 ---------- */
+function fmtDur(sec) {
+  sec = Number(sec || 0);
+  if (!sec) return "—";
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+  return s ? `${m} 分 ${s} 秒` : `${m} 分钟`;
+}
+let _recSeq = 0, _recTimer = null;
+function scheduleFormatRec() { clearTimeout(_recTimer); _recTimer = setTimeout(refreshFormatRec, 250); }
+function setCreateMode(mode) {
+  const novel = mode === "novel";
+  $("#pf_source_type").value = mode;
+  $$(".mode-tab").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+  $$(".novel-only").forEach(e => e.classList.toggle("hide", !novel));
+  $("#pf_title").placeholder = novel ? "片名 / 小说名" : "片名";
+  refreshFormatRec();
+}
+async function refreshFormatRec() {
+  const box = $("#fmtbox"); if (!box) return;
+  const seq = ++_recSeq;
+  const body = {
+    platform_key: ($("#pf_platform") || {}).value || "hongguo",
+    source_type: ($("#pf_source_type") || {}).value || "original",
+    words_wan: Number(($("#pf_words") || {}).value || 0),
+    chapters: Number(($("#pf_chapters") || {}).value || 0),
+    genre: ($("#pf_genre") || {}).value || "",
+  };
+  box.innerHTML = `<span class="muted">正在获取分集建议…</span>`;
+  try {
+    const d = await api("/api/formats/recommend", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (seq !== _recSeq || !$("#fmtbox")) return;
+    box.innerHTML = `<div class="rec-head"><span class="pill gold">${esc(d.platform)}</span>
+        <b>${d.episodes} 集 × ${fmtDur(d.episode_seconds)}</b>
+        <span class="muted">${d.season_minutes} 分钟/季 · ${esc(d.aspect)}</span></div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">${esc(d.reason)}</div>`;
+    const eps = $("#pf_eps"), secs = $("#pf_secs"), asp = $("#pf_aspect");
+    if (eps) eps.value = d.episodes;
+    if (secs) secs.value = d.episode_seconds;
+    if (asp) asp.value = d.aspect;
+  } catch (e) {
+    if (seq === _recSeq) box.innerHTML = `<span style="color:var(--bad)">建议加载失败：${esc(e.message)}</span>`;
+  }
+}
 async function viewProjects() {
   const projs = await api("/api/dramas");
+  let fmts = { platforms: {} };
+  try { fmts = await api("/api/formats"); } catch (e) {}
+  const platformOpts = Object.entries(fmts.platforms || {}).map(([k, v]) =>
+    `<option value="${esc(k)}">${esc(v.name)}</option>`).join("");
   setMain({
     title: "项目",
     top: `<div class="right"><span class="pill">${projs.length} 个项目</span></div>`,
     body: `
     <h2>创建项目</h2>
     <form class="stack" id="pf">
-      <div class="grid3">
-        <input name="title" placeholder="片名" required>
-        <input name="logline" placeholder="一句话故事（logline，必填 ≤120 字）" required>
-        <input name="platform" placeholder="目标平台（如 短剧平台）" required>
+      <input type="hidden" name="source_type" id="pf_source_type" value="original">
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab on" data-mode="original" onclick="setCreateMode('original')">原创剧本</button>
+        <button type="button" class="mode-tab" data-mode="novel" onclick="setCreateMode('novel')">小说改编</button>
       </div>
       <div class="grid3">
-        <input name="genre" placeholder="题材" value="悬疑">
+        <input name="title" id="pf_title" placeholder="片名" required maxlength="128">
+        <input name="logline" id="pf_logline" placeholder="一句话故事（logline，必填 ≤120 字）" required maxlength="120">
+        <select name="platform_key" id="pf_platform" onchange="refreshFormatRec()">${platformOpts}</select>
+      </div>
+      <div class="grid3">
+        <input name="genre" id="pf_genre" placeholder="题材" value="悬疑" oninput="scheduleFormatRec()">
         <select name="rating"><option>全龄</option><option selected>12+</option><option>16+</option></select>
-        <select name="minutes"><option value="22">22 分钟/集</option><option value="30" selected>30 分钟/集</option><option value="45">45 分钟/集</option></select>
+        <input name="author" id="pf_author" class="novel-only hide" placeholder="原著作者（小说模式）">
+      </div>
+      <div class="grid3 novel-only hide" id="novel_row">
+        <input name="words_wan" id="pf_words" type="number" min="1" step="1" placeholder="原作字数（万字）" oninput="scheduleFormatRec()">
+        <input name="chapters" id="pf_chapters" type="number" min="1" step="1" placeholder="原作章节数" oninput="scheduleFormatRec()">
+        <input name="source_url" id="pf_source_url" placeholder="原著链接 / 授权编号（可选）">
+      </div>
+      <div class="rec-box" id="fmtbox"><span class="muted">正在获取分集建议…</span></div>
+      <div class="grid3">
+        <label class="fld"><small>分集数</small><input name="episodes" id="pf_eps" type="number" min="1" max="200" value="6"></label>
+        <label class="fld"><small>每集时长（秒）</small><input name="episode_seconds" id="pf_secs" type="number" min="15" max="2700" step="15" value="1800"></label>
+        <label class="fld"><small>画幅</small><select name="aspect" id="pf_aspect">
+          <option value="9:16">9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="2.39:1">2.39:1 宽银幕</option></select></label>
       </div>
       <div class="form-actions"><button class="btn" type="submit">创建立项</button>
-        <span class="muted" style="font-size:var(--fs-sm)">默认首季 6 集 × 30 分钟</span></div>
+        <span class="muted" style="font-size:var(--fs-sm)">建议值可手动覆盖；未填字段使用推荐值</span></div>
     </form>
     <h2>全部项目</h2>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
@@ -392,14 +459,29 @@ async function viewProjects() {
     ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>暂无项目</div><div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
   });
   window._PROJS = projs;
+  refreshFormatRec();
   const pf = $("#pf");
   if (pf) pf.onsubmit = async e => {
     e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target)); b.episodes = 6;
+    const fd = new FormData(e.target);
+    const b = {};
+    fd.forEach((v, k) => { if (String(v).trim() !== "") b[k] = v; });
+    ["episodes", "episode_seconds"].forEach(k => { if (b[k] !== undefined) b[k] = Number(b[k]); });
+    const sel = $("#pf_platform");
+    b.platform = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : (b.platform_key || "红果漫剧");
+    if (b.source_type === "novel") {
+      b.source_meta = { title: b.title, author: b.author || "",
+        words_wan: Number(b.words_wan || 0) || null,
+        chapters: Number(b.chapters || 0) || null, source_url: b.source_url || "" };
+    }
+    delete b.author; delete b.words_wan; delete b.chapters; delete b.source_url;
+    if (!b.minutes) b.minutes = Math.max(1, Math.round((b.episode_seconds || 1800) / 60));
     const btn = pf.querySelector("button[type=submit]");
     withLoading(btn, async () => {
-      const d = await api("/api/dramas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
-      toast("立项成功"); go("project:" + d.id);
+      const d = await api("/api/dramas", { method: "POST",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+      toast(`立项成功 · ${d.package.episodes} 集 × ${fmtDur(d.episode_seconds)}`);
+      go("project:" + d.id);
     });
   };
 }
@@ -479,6 +561,7 @@ async function viewProject(id) {
     return;
   }
   const run = p.last_run;
+  CUR.spec = p.delivery_spec || {};
   const stages = (run && run.stages) || [];
   const byName = {}; stages.forEach(s => byName[s.stage] = s);
   if (!CUR.stage || !STAGES.some(s => s[0] === CUR.stage)) CUR.stage = STAGES[0][0];
@@ -497,10 +580,16 @@ async function viewProject(id) {
       <div class="stepper">${mods.map(stepCard).join("")}</div></div>`).join("");
 
   const passed = run ? run.summary.passed : 0, total = 19;
+  const dur = fmtDur(p.episode_seconds || (p.minutes || 30) * 60);
+  const aspect = (p.delivery_spec || {}).master || "";
+  const sm = p.source_meta || {};
+  const srcRow = sm.type === "novel" ? `<div class="k">改编来源</div><div>《${esc(sm.title || p.title)}》${
+    sm.author ? " · " + esc(sm.author) : ""}${sm.words_wan ? " · 原作 " + esc(sm.words_wan) + " 万字" : ""}${
+    sm.chapters ? " / " + esc(sm.chapters) + " 章" : ""}</div>` : "";
   setMain({
     title: esc(p.title),
     top: `<div class="right">
-        <span class="pill">${p.episodes} 集 × ${p.minutes} 分钟</span>
+        <span class="pill">${p.episodes} 集 × ${dur}${aspect ? " · " + esc(aspect) : ""}</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
         <button class="btn ghost sm" id="setbtn">${ico("gear")} 设置</button>
         <button class="btn ghost" id="runbtn">${ico("play")} 运行流水线</button>
@@ -512,7 +601,9 @@ async function viewProject(id) {
       <div class="kv">
         <div class="k">Logline</div><div>${esc(p.logline)}</div>
         <div class="k">目标平台</div><div>${esc(p.platform || "—")}</div>
-        <div class="k">交付规格</div><div>${(p.delivery_spec && p.delivery_spec.master) ? `主母版 ${p.delivery_spec.master} · 平台版 ${p.delivery_spec.platform} · 竖屏 ${p.delivery_spec.derived}` : "—"}</div>
+        <div class="k">分集规格</div><div>${p.episodes} 集 × ${dur}${aspect ? " · " + esc(aspect) : ""}</div>
+        ${srcRow}
+        <div class="k">交付规格</div><div>${(p.delivery_spec && p.delivery_spec.master) ? `主母版 ${p.delivery_spec.master} · 平台版 ${p.delivery_spec.platform} · 衍生 ${p.delivery_spec.derived}` : "—"}</div>
         <div class="k">流水线</div><div>${run ? `<span class="pill ${run.summary.deliverable ? "ok" : "bad"}">${passed}/${total} 阶段通过 ${run.summary.deliverable ? "· 可交付" : ""}</span>` : `<span class="pill">尚未运行</span>`}</div>
       </div>
     </div>
@@ -1011,11 +1102,14 @@ function stageBody(stage, art) {
   }
   // 立项：包型 + 交付规格
   if (art.package !== undefined && art.title !== undefined) {
+    const ds = CUR.spec || {};
+    const target = ds.master ? `${ds.master} 主母版 · ${ds.platform} 平台版 · ${ds.derived} 衍生（EL-01）`
+      : "2.39:1 主母版 · 16:9 平台版 · 9:16 衍生（EL-01）";
     return `<div class="kv">
         <div class="k">片名</div><div>${esc(art.title)}</div>
         <div class="k">包型</div><div><span class="pill gold">${esc(art.package)}</span></div>
-        <div class="k">交付目标</div><div>2.39:1 主母版 · 16:9 平台版 · 9:16 竖屏衍生（EL-01）</div>
-        <div class="k">生成母版口径</div><div>16:9 open gate 唯一生成母版，禁止单画幅重复生成</div>
+        <div class="k">交付目标</div><div>${esc(target)}</div>
+        <div class="k">生成母版口径</div><div>16:9 open gate 唯一生成母版，其他画幅由同一素材派生</div>
       </div>`;
   }
   // 存储：母版唯一 + 派生血缘树
@@ -1128,8 +1222,10 @@ function stageBody(stage, art) {
   }
   // 交付：交付单视图
   if (art.spec && art.release) {
+    const ds = CUR.spec || {};
+    const master = ds.master || "2.39:1", plat = ds.platform || "16:9", derived = ds.derived || "9:16";
     const versions = [
-      { n: "2.39:1 主母版", s: "保证" }, { n: "16:9 平台版", s: "保证" }, { n: "9:16 竖屏衍生", s: "保证" },
+      { n: `${master} 主母版`, s: "保证" }, { n: `${plat} 平台版`, s: "保证" }, { n: `${derived} 衍生`, s: "保证" },
       { n: "HDR10", s: "可选" }, { n: "5.1 环绕", s: "可选" }, { n: "48fps", s: "可选" }];
     return `<div style="margin-bottom:12px"><button class="btn" onclick="previewSheet()">在线预览交付单</button>
         <button class="btn ghost" onclick="downloadSheet()" style="margin-left:8px">${ico("download")} 下载</button>
@@ -1141,7 +1237,7 @@ function stageBody(stage, art) {
           <span class="pill ${v.s === "保证" ? "ok" : "gold"}" style="font-size:var(--fs-micro);margin-top:6px">${esc(v.s)}</span></div>`).join("")}
       </div>
       <div class="kv">
-        <div class="k">交付画幅</div><div><span class="pill gold">${esc(art.spec)}</span></div>
+        <div class="k">交付画幅</div><div><span class="pill gold">${esc(master)}</span> 主母版 · <span class="pill">${esc(plat)}</span> 平台版</div>
         <div class="k">分发放行</div><div><span class="pill ok">${esc(art.release)}</span></div>
         <div class="k">可选交付标注</div><div>保证 / 可选 / 需确认（EL-11）</div>
         <div class="k">交付单字段</div><div>规格 · 版本 · 时长 · QC 结论 · 权利 · AI 标识 · 分级 · 语言 · 色彩标签（齐备）</div>

@@ -3,10 +3,10 @@ from . import enums
 
 
 def make_package(episodes=6, minutes=30):
-    """默认包型「首季 6 集 × 30 分钟」，含 cold open 与 act breaks 结构标记（D2/EL-03）。"""
+    """包型：长剧 22/30/45 分钟，短剧 1–15 分钟；含 cold open 与幕间结构标记。"""
     if minutes not in enums.EPISODE_MINUTES:
         raise ValueError("单集时长档非法：%r（允许 %s）" % (minutes, enums.EPISODE_MINUTES))
-    act_breaks = {22: 2, 30: 3, 45: 4}[minutes]
+    act_breaks = {22: 2, 30: 3, 45: 4}.get(minutes, 0)
     return {
         "episodes": episodes,
         "minutes": minutes,

@@ -4,8 +4,8 @@
 RATINGS = ("全龄", "12+", "16+")
 # 风格预设（M1.1-F05）
 STYLES = ("写实", "日漫", "3D", "国风")
-# 单集时长三档（D2 / M1.0-F02）
-EPISODE_MINUTES = (22, 30, 45)
+# 单集时长档（长剧 22/30/45 + 短剧 1/2/3/5/8/10/15 分钟）
+EPISODE_MINUTES = (1, 2, 3, 5, 8, 10, 15, 22, 30, 45)
 # 模型档位（M1.4-F01）
 MODEL_TIERS = ("经济", "标准", "精品")
 # 交付画幅（D1 / M1.0-F03：三画幅必交）
@@ -15,5 +15,5 @@ OPTIONAL_DELIVERY = ("HDR10", "5.1", "48fps")
 
 # 参数边界（M1.1-F04）
 TITLE_MAX = 128
-EPISODES_MIN, EPISODES_MAX = 1, 50
+EPISODES_MIN, EPISODES_MAX = 1, 200
 SECONDS_MIN, SECONDS_MAX = 15, 2700

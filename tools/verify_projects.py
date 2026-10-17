@@ -34,8 +34,9 @@ except ValueError:
 
 # ---------------- 参数校验 ----------------
 check("合法参数", package.validate_params("标题", 6, 30) == [])
+check("短剧集数合法", package.validate_params("标题", 100, 1) == [])
 check("缺标题违规", package.validate_params("", 6, 30) != [])
-check("集数越界违规", package.validate_params("标题", 51, 30) != [])
+check("集数越界违规", package.validate_params("标题", 201, 30) != [])
 check("时长越界违规", package.validate_params("标题", 6, 46) != [])
 
 # ---------------- 交付规格 ----------------
