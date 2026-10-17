@@ -248,6 +248,20 @@ r = client.post("/api/dramas/%d/receipt" % pid, headers=H)
 check("收据 200", r.status_code == 200 and r.json()["release_lock"] is True)
 check("收据含签名", "signature" in r.json())
 
+# 模块参数
+r = client.get("/api/dramas/%d/module-params" % pid, headers=H)
+d = r.json()
+check("模块参数 19 个", r.status_code == 200 and len(d["modules"]) == 19)
+check("M1 有推荐默认值", d["modules"]["M1"]["values"]["episodes"] == 6)
+check("M1 有字段定义", len(d["modules"]["M1"]["fields"]) >= 5)
+r = client.put("/api/dramas/%d/module-params/M1" % pid, headers=H, json={"episodes": 12, "minutes": 22})
+check("保存 M1 参数 200", r.status_code == 200)
+r = client.get("/api/dramas/%d/module-params" % pid, headers=H)
+check("参数已持久化", r.json()["modules"]["M1"]["values"]["episodes"] == 12)
+r = client.put("/api/dramas/%d/module-params/M1" % pid, headers=H, json={"episodes": 999})
+check("非法参数 422", r.status_code == 422)
+check("未知模块 404", client.put("/api/dramas/%d/module-params/M99" % pid, headers=H, json={}).status_code == 404)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

@@ -70,7 +70,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 /* ── 主区 ── */
 .main{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
 .topbar{position:sticky;top:0;z-index:15;background:var(--topbar-bg);backdrop-filter:saturate(160%) blur(16px);
-  border-bottom:1px solid var(--line);padding:13px 56px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding:11px 52px;display:flex;align-items:center;justify-content:space-between;
   gap:16px;flex-wrap:wrap}
 .topbar h1{font-family:var(--serif);font-size:25px;font-weight:400;margin:0;letter-spacing:-.02em;line-height:1.1;
   display:flex;align-items:baseline;gap:12px;white-space:nowrap;min-width:0}
@@ -79,7 +79,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .topbar .crumbs:hover{color:var(--accent)}
 .topbar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
-.view{padding:30px 56px 92px;max-width:1180px;width:100%}
+.view{padding:22px 52px 80px;max-width:1180px;width:100%}
 .view.wide{max-width:none}
 
 /* 编辑式大标题 */
@@ -89,7 +89,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
   margin:0;max-width:22ch;text-wrap:balance;word-break:keep-all}
 .hero p{font-size:14.5px;color:var(--dim);margin:14px 0 0;max-width:56ch;line-height:1.7}
 
-h2{font-size:10.5px;font-weight:600;margin:42px 0 16px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2);
+h2{font-size:10.5px;font-weight:600;margin:30px 0 12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2);
   display:flex;align-items:baseline;gap:10px}
 h2 .hint{font-family:var(--sans);font-weight:450;color:var(--dim-2);font-size:12px;letter-spacing:0;text-transform:none}
 h2:first-child{margin-top:0}
@@ -117,15 +117,15 @@ h2:first-child{margin-top:0}
 .btn svg{width:15px;height:15px}
 
 /* 卡片 */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px;
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;
   transition:.18s var(--ease)}
 .card.click{cursor:pointer}
 .card.click:hover{border-color:var(--line-strong);box-shadow:var(--shadow-md);transform:translateY(-2px)}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px 20px 18px}
-.stat .k{font-family:var(--serif);font-size:34px;font-weight:400;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px 15px}
+.stat .k{font-family:var(--serif);font-size:30px;font-weight:400;color:var(--ink);line-height:1;letter-spacing:-.02em}
 .stat .l{font-size:10.5px;color:var(--dim-2);margin-top:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 
 /* 资产卡 */
 .asset{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;
@@ -155,14 +155,16 @@ tbody tr:last-child td{border-bottom:0}
 td.num,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 /* 表单 */
-input,select,textarea{width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--line-strong);
+input,select,textarea{width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--line-strong);
   border-radius:var(--radius);color:var(--ink);font-size:13.5px;font-family:inherit;transition:.15s;
   letter-spacing:inherit}
 input:hover,select:hover{border-color:var(--dim-2)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 input::placeholder{color:var(--dim-2)}
-form.stack{display:flex;flex-direction:column;gap:16px;max-width:600px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+form.stack{display:flex;flex-direction:column;gap:12px;max-width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 
 /* 步骤条 */
 .stepper{display:flex;gap:10px;overflow-x:auto;padding:3px 0 14px}
@@ -175,8 +177,8 @@ form.stack{display:flex;flex-direction:column;gap:16px;max-width:600px}
 .step .s{font-size:10.5px;margin-top:9px;color:var(--dim)}
 
 /* 详情 */
-.detail{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-xl);padding:28px;
-  margin-top:18px}
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-xl);padding:22px;
+  margin-top:16px}
 .detail .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;gap:12px}
 .detail .head h2{font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:-.02em;margin:0;
   text-transform:none;color:var(--ink)}
@@ -264,8 +266,8 @@ body.dark{color-scheme:dark;
 }
 
 /* ── E1 全幅 Hero（仅概览） ── */
-.hero-full{position:relative;margin:-30px -56px 40px;padding:clamp(40px,7vh,76px) 56px clamp(32px,6vh,60px);
-  min-height:clamp(280px,38vh,400px);display:flex;flex-direction:column;justify-content:center;
+.hero-full{position:relative;margin:-22px -52px 30px;padding:clamp(30px,5vh,56px) 52px clamp(24px,4vh,44px);
+  min-height:clamp(220px,30vh,320px);display:flex;flex-direction:column;justify-content:center;
   border-bottom:1px solid var(--line);overflow:hidden;
   background:radial-gradient(900px 420px at 84% -20%, var(--accent-soft) 0%, transparent 62%), var(--bg)}
 .hero-full::after{content:"";position:absolute;left:56px;right:56px;bottom:0;height:1px;
@@ -307,3 +309,19 @@ body.dark{color-scheme:dark;
 .toolbar > input,.toolbar > select{flex:1 1 180px;min-width:0}
 .toolbar > .btn{flex:0 0 auto;height:40px;padding:0 18px}
 .toolbar > input,.toolbar > select{height:40px;padding:0 12px}
+
+/* 紧凑参数表单 */
+.form-actions{display:flex;gap:10px;align-items:center;margin-top:2px}
+.fld-row{display:grid;gap:10px}
+.fld small{display:block;font-size:10.5px;color:var(--dim-2);letter-spacing:.04em;text-transform:uppercase;font-weight:600;margin-bottom:5px}
+.fld small .rec{color:var(--accent);text-transform:none;letter-spacing:0;font-weight:500;margin-left:6px}
+@media (max-width:860px){.grid3,.grid4{grid-template-columns:1fr 1fr}}
+
+/* 模块参数折叠面板 */
+.params{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.params summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
+.params summary::-webkit-details-marker{display:none}
+.params summary::before{content:"▸";color:var(--dim-2);transition:transform .15s var(--ease)}
+.params[open] summary::before{transform:rotate(90deg)}
+.params .fld small{margin-bottom:4px}
+.params input,.params select{height:36px;padding:0 10px;font-size:12.5px}

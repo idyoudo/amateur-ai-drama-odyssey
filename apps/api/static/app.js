@@ -249,14 +249,18 @@ async function viewProjects() {
     body: `
     <h2>创建项目</h2>
     <form class="stack" id="pf">
-      <div class="row2"><input name="title" placeholder="片名" required>
-        <input name="logline" placeholder="一句话故事（logline，必填 ≤120 字）" required></div>
-      <div class="row2"><input name="platform" placeholder="目标平台" required>
-        <input name="genre" placeholder="题材" value="悬疑"></div>
-      <div class="row2">
-        <select name="rating"><option>全龄</option><option>12+</option><option>16+</option></select>
-        <select name="minutes"><option value="30">30 分钟/集</option><option value="22">22 分钟/集</option><option value="45">45 分钟/集</option></select></div>
-      <div><button class="btn" type="submit">创建立项</button></div>
+      <div class="grid3">
+        <input name="title" placeholder="片名" required>
+        <input name="logline" placeholder="一句话故事（logline，必填 ≤120 字）" required>
+        <input name="platform" placeholder="目标平台（如 短剧平台）" required>
+      </div>
+      <div class="grid3">
+        <input name="genre" placeholder="题材" value="悬疑">
+        <select name="rating"><option>全龄</option><option selected>12+</option><option>16+</option></select>
+        <select name="minutes"><option value="22">22 分钟/集</option><option value="30" selected>30 分钟/集</option><option value="45">45 分钟/集</option></select>
+      </div>
+      <div class="form-actions"><button class="btn" type="submit">创建立项</button>
+        <span class="muted" style="font-size:12px">默认首季 6 集 × 30 分钟</span></div>
     </form>
     <h2>全部项目 <span class="hint">${projs.length} 个</span></h2>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -371,6 +375,10 @@ async function viewProject(id) {
   window.pickStage = (n) => { CUR.stage = n; viewProject(id); };
 }
 async function renderStageDetail(st) {
+  await _renderStageDetail(st);
+  attachParams(st);
+}
+async function _renderStageDetail(st) {
   const el = $("#stagedetail"); if (!el) return;
   if (!st) { el.innerHTML = `<div class="detail empty">${ico("play")}<div>该阶段尚无运行结果</div><div class="muted" style="font-size:12.5px;margin-top:4px">点击右上角「运行流水线」生成</div></div>`; return; }
   const meta = STAGES.find(s => s[0] === st.stage) || ["", "", ""];
@@ -1171,3 +1179,50 @@ function viewSettings() {
 /* ---------- 启动 ---------- */
 function boot() { applyTheme(); if (!hasToken()) return renderLogin(); go("overview"); }
 boot();
+
+/* ── 模块参数（每个模块关键输入 + 推荐值） ── */
+function fieldHtml(f, val) {
+  const v = val === undefined ? f.default : val;
+  const rec = f.rec ? `<span class="rec">· ${esc(f.rec)}</span>` : "";
+  let control;
+  if (f.type === "select") {
+    control = `<select data-pk="${esc(f.key)}">${(f.options || []).map(o =>
+      `<option value="${esc(o)}"${String(o) === String(v) ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  } else if (f.type === "bool") {
+    control = `<select data-pk="${esc(f.key)}"><option value="true"${v ? " selected" : ""}>是</option><option value="false"${!v ? " selected" : ""}>否</option></select>`;
+  } else if (f.type === "number") {
+    control = `<input type="number" data-pk="${esc(f.key)}" value="${esc(v)}"${f.min !== undefined ? ` min="${f.min}"` : ""}${f.max !== undefined ? ` max="${f.max}"` : ""}>`;
+  } else {
+    control = `<input data-pk="${esc(f.key)}" value="${esc(v)}">`;
+  }
+  return `<div class="fld"><small>${esc(f.label)}${rec}</small>${control}</div>`;
+}
+async function attachParams(st) {
+  if (!st) return;
+  const el = $("#stagedetail"); if (!el) return;
+  const mod = (st.stage.match(/^M\d+/) || [""])[0];
+  let d; try { d = await api("/api/dramas/" + CUR.id + "/module-params"); } catch (e) { return; }
+  const spec = d.modules[mod]; if (!spec) return;
+  const panel = document.createElement("details");
+  panel.className = "params"; panel.open = false;
+  panel.innerHTML = `<summary>参数设置 <span class="muted">· ${esc(spec.title)} · 未填用推荐默认值</span></summary>
+    <div class="grid3" style="margin-top:12px">${spec.fields.map(f => fieldHtml(f, spec.values[f.key])).join("")}</div>
+    <div class="form-actions"><button class="btn sm" id="pmsave">保存参数</button>
+      <span class="muted" style="font-size:11.5px">参数参与该模块生成；留空使用推荐值</span></div>`;
+  const detail = el.querySelector(".detail") || el;
+  detail.appendChild(panel);
+  panel.querySelector("#pmsave").onclick = async () => {
+    const values = {};
+    panel.querySelectorAll("[data-pk]").forEach(inp => {
+      const k = inp.dataset.pk; let v = inp.value;
+      const f = spec.fields.find(x => x.key === k);
+      if (f && f.type === "number") v = Number(v);
+      else if (f && f.type === "bool") v = (v === "true");
+      values[k] = v;
+    });
+    try { await api("/api/dramas/" + CUR.id + "/module-params/" + mod, { method: "PUT",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ values }) });
+      toast("参数已保存");
+    } catch (e) { toast("保存失败：" + e.message); }
+  };
+}

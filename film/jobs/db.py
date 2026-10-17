@@ -154,6 +154,16 @@ class ProviderCall(Base):
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 
+class ModuleParams(Base):
+    """项目级模块参数（每个模块的关键输入，未填用推荐默认值）。"""
+    __tablename__ = "module_params"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Run(Base):
     """流水线运行记录（每次 run_pipeline 落一行，供工作台回看）。"""
     __tablename__ = "runs"

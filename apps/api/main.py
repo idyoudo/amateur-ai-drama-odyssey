@@ -588,6 +588,53 @@ def delivery_sheet(project_id: int):
     }
 
 
+@app.get("/api/dramas/{project_id}/module-params")
+def get_module_params(project_id: int):
+    """返回 19 个模块的参数定义 + 推荐默认值 + 已保存值。"""
+    from film import module_params as mp
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        row = s.scalars(select(jobs_db.ModuleParams).where(
+            jobs_db.ModuleParams.project_id == project_id)).first()
+        saved = (row.data if row else {}) or {}
+    out = {}
+    for m, spec in mp.MODULE_PARAMS.items():
+        base = mp.defaults(m)
+        vals = dict(base); vals.update(saved.get(m, {}))
+        out[m] = {"title": spec["title"], "fields": spec["fields"],
+                  "values": vals, "defaults": base}
+    return {"modules": out}
+
+
+@app.put("/api/dramas/{project_id}/module-params/{module}")
+def put_module_params(project_id: int, module: str, body: dict):
+    """保存某模块参数（fail-closed 校验）。"""
+    from film import module_params as mp
+    if module not in mp.MODULE_PARAMS:
+        raise HTTPException(status_code=404, detail="未知模块")
+    values = body.get("values") or body
+    viol = mp.validate_module(module, values)
+    if viol:
+        raise HTTPException(status_code=422, detail=viol)
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        row = s.scalars(select(jobs_db.ModuleParams).where(
+            jobs_db.ModuleParams.project_id == project_id)).first()
+        if row is None:
+            row = jobs_db.ModuleParams(project_id=project_id, data={})
+            s.add(row)
+        import copy as _cp
+        data = _cp.deepcopy(row.data or {})
+        data[module] = values
+        row.data = data
+        s.commit()
+    return {"module": module, "values": values}
+
+
 @app.get("/api/dramas/{project_id}/memory")
 def get_memory(project_id: int):
     """C1 四层连贯性记忆 + C2 因果链（跨集上下文）。"""
