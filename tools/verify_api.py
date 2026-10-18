@@ -596,6 +596,27 @@ check("新增案例", r.status_code == 200 and r.json()["title"] == "测试案�
 r = client.delete("/api/hits/%d" % hid, headers=H)
 check("删除案例", r.status_code == 200 and r.json()["deleted"] is True)
 
+r = client.get("/api/hits?limit=2&offset=0", headers=H)
+d = r.json()
+check("案例分页", r.status_code == 200 and len(d["items"]) == 2 and d["total"] >= 3)
+r = client.get("/api/hits?q=%E7%A9%B7%E9%AA%A8", headers=H)
+check("案例搜索", r.status_code == 200
+      and any(x["title"] == "穷骨荒神" for x in r.json()["items"]))
+r = client.post("/api/hits/analyze", headers=H,
+                json={"title": "测试爆款分析", "platform": "红果漫剧",
+                      "genre": "玄幻/逆袭",
+                      "summary": "穷骨少年被逐出家族，觉醒荒神残魂，当场打脸，结尾妖王降临。"})
+d = r.json()
+check("输入分析", r.status_code == 200
+      and d["formula"]["key"] == "underdog"
+      and d["suggested_case"]["score"] > 0)
+r = client.post("/api/hits", headers=H, json=d["suggested_case"])
+d2 = r.json()
+check("分析结果入库", r.status_code == 200 and d2["score"] is not None
+      and d2["confidence"] is not None)
+r = client.delete("/api/hits/%d" % d2["id"], headers=H)
+check("删除分析案例", r.status_code == 200)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

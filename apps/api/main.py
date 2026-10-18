@@ -60,6 +60,13 @@ try:
     if "source_meta" not in _char_cols:
         with engine.begin() as _c:
             _c.execute(_text2("ALTER TABLE characters ADD COLUMN source_meta JSON"))
+    _hit_cols = {c["name"] for c in _inspect(engine).get_columns("hit_cases")}
+    _HIT_ADD = {"summary": "VARCHAR(4000)", "score": "INTEGER",
+                "grade": "VARCHAR(4)", "analysis_meta": "JSON"}
+    with engine.begin() as _c:
+        for _name, _typ in _HIT_ADD.items():
+            if _name not in _hit_cols:
+                _c.execute(_text2("ALTER TABLE hit_cases ADD COLUMN %s %s" % (_name, _typ)))
 except Exception:  # noqa: BLE001
     pass
 Session = sessionmaker(bind=engine, expire_on_commit=False)
@@ -2026,17 +2033,24 @@ def marketing_zip(project_id: int):
                     headers={"Content-Disposition": 'attachment; filename="%s"' % filename})
 
 
-def _hit_json(c):
+def _hit_json(c, full=False):
     f = hits_mod.FORMULAS.get(c.formula or "", {})
-    return {"id": c.id, "title": c.title, "platform": c.platform, "genre": c.genre,
-            "heat_note": c.heat_note or "", "play_count": c.play_count,
-            "verified": bool(c.verified),
-            "formula": c.formula or "", "formula_name": f.get("name", ""),
-            "formula_desc": f.get("desc", ""),
-            "hook_type": c.hook_type or "", "cliffhanger_type": c.cliffhanger_type or "",
-            "structure": c.structure or {}, "visual": c.visual or "",
-            "why": c.why_text or "", "source_note": c.source_note or "",
-            "updated_at": c.updated_at.isoformat() if c.updated_at else ""}
+    d = {"id": c.id, "title": c.title, "platform": c.platform, "genre": c.genre,
+         "heat_note": c.heat_note or "", "play_count": c.play_count,
+         "verified": bool(c.verified),
+         "formula": c.formula or "", "formula_name": f.get("name", ""),
+         "formula_desc": f.get("desc", ""),
+         "hook_type": c.hook_type or "", "cliffhanger_type": c.cliffhanger_type or "",
+         "structure": c.structure or {}, "visual": c.visual or "",
+         "why": c.why_text or "", "source_note": c.source_note or "",
+         "score": c.score, "grade": c.grade or "",
+         "confidence": (c.analysis_meta or {}).get("confidence"),
+         "has_summary": bool(c.summary),
+         "updated_at": c.updated_at.isoformat() if c.updated_at else ""}
+    if full:
+        d["summary"] = c.summary or ""
+        d["analysis_meta"] = c.analysis_meta or {}
+    return d
 
 
 def _hit_payload(body):
@@ -2051,6 +2065,14 @@ def _hit_payload(body):
             raise HTTPException(status_code=422, detail="播放量需为非负整数")
     else:
         play_count = None
+    score = body.get("score")
+    if score not in (None, ""):
+        try:
+            score = max(0, min(100, int(score)))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="评分需为 0–100")
+    else:
+        score = None
     return {"title": str(body.get("title") or "").strip()[:128],
             "platform": str(body.get("platform") or "红果漫剧")[:64],
             "genre": str(body.get("genre") or "")[:64],
@@ -2062,14 +2084,64 @@ def _hit_payload(body):
             "structure": body.get("structure") if isinstance(body.get("structure"), dict) else {},
             "visual": str(body.get("visual") or "")[:512],
             "why_text": str(body.get("why") or body.get("why_text") or "")[:1024],
-            "source_note": str(body.get("source_note") or "")[:512]}
+            "source_note": str(body.get("source_note") or "")[:512],
+            "summary": str(body.get("summary") or "")[:4000],
+            "score": score,
+            "grade": str(body.get("grade") or "")[:4],
+            "analysis_meta": body.get("analysis_meta") if isinstance(body.get("analysis_meta"), dict) else {}}
 
 
 @app.get("/api/hits")
-def list_hits():
+def list_hits(q: str = "", genre: str = "", formula: str = "",
+              limit: int = 12, offset: int = 0):
+    limit = max(1, min(limit, 50))
+    offset = max(0, offset)
+    conds = []
+    if q.strip():
+        like = "%" + q.strip() + "%"
+        conds.append(or_(jobs_db.HitCase.title.ilike(like),
+                         jobs_db.HitCase.genre.ilike(like),
+                         jobs_db.HitCase.why_text.ilike(like)))
+    if genre.strip():
+        conds.append(jobs_db.HitCase.genre.ilike("%" + genre.strip() + "%"))
+    if formula:
+        conds.append(jobs_db.HitCase.formula == formula)
     with Session() as s:
-        rows = s.scalars(select(jobs_db.HitCase).order_by(jobs_db.HitCase.id)).all()
-    return {"items": [_hit_json(c) for c in rows], "playbook": hits_mod.playbook()}
+        total = s.scalar(select(func.count()).select_from(jobs_db.HitCase)
+                         .where(*conds)) or 0
+        rows = s.scalars(select(jobs_db.HitCase).where(*conds)
+                         .order_by(jobs_db.HitCase.updated_at.desc())
+                         .offset(offset).limit(limit)).all()
+        genres = [g for g in s.scalars(select(jobs_db.HitCase.genre).distinct()).all() if g]
+    return {"items": [_hit_json(c) for c in rows], "total": total,
+            "limit": limit, "offset": offset,
+            "filters": {"genres": genres,
+                        "formulas": [{"key": k, "name": v["name"]}
+                                     for k, v in hits_mod.FORMULAS.items()]},
+            "playbook": hits_mod.playbook()}
+
+
+@app.post("/api/hits/analyze")
+def analyze_hit(body: dict):
+    import base64
+    title = str(body.get("title") or "").strip()[:128]
+    platform = str(body.get("platform") or "红果漫剧")[:64]
+    genre = str(body.get("genre") or "")[:64]
+    summary = str(body.get("summary") or "")[:4000]
+    script_text = str(body.get("script_text") or "")[:200000]
+    if body.get("content_b64"):
+        try:
+            data = base64.b64decode(str(body["content_b64"]), validate=False)
+        except Exception:  # noqa: BLE001
+            raise HTTPException(status_code=422, detail="文件内容不是有效的 base64")
+        if len(data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="文件过大（上限 5 MB）")
+        text, _enc = novel_parser.decode_bytes(data)
+        script_text = (script_text + "\n" + text)[-200000:]
+    if not (summary or script_text):
+        raise HTTPException(status_code=422, detail="请填写简介或导入剧本文本")
+    return hits_mod.analyze_submission(title, platform, genre, summary,
+                                       script_text, str(body.get("filename") or ""))
 
 
 @app.get("/api/hits/playbook")
@@ -2083,7 +2155,7 @@ def get_hit(hit_id: int):
         c = s.get(jobs_db.HitCase, hit_id)
         if c is None:
             raise HTTPException(status_code=404, detail="案例不存在")
-        return _hit_json(c)
+        return _hit_json(c, full=True)
 
 
 @app.post("/api/hits")
@@ -2095,7 +2167,7 @@ def create_hit(body: dict):
         c = jobs_db.HitCase(**data)
         s.add(c)
         s.commit()
-        return _hit_json(c)
+        return _hit_json(c, full=True)
 
 
 @app.patch("/api/hits/{hit_id}")
@@ -2110,7 +2182,7 @@ def update_hit(hit_id: int, body: dict):
                 continue
             setattr(c, k, v)
         s.commit()
-        return _hit_json(c)
+        return _hit_json(c, full=True)
 
 
 @app.delete("/api/hits/{hit_id}")

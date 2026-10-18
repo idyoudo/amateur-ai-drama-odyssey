@@ -97,6 +97,108 @@ def formula_for_genre(genre):
     return {"key": "underdog", **FORMULAS["underdog"]}
 
 
+FORMULA_SIGNALS = {
+    "underdog": ("废柴", "穷骨", "受辱", "逐出", "打脸", "逆袭", "翻盘", "最低点", "看不起"),
+    "revenge": ("灭门", "复仇", "归来", "血债", "仇人", "家族", "报仇"),
+    "identity": ("身份", "隐藏", "大佬", "真实身份", "伪装", "马甲"),
+    "system": ("系统", "升级", "进化", "吞噬", "签到", "面板", "属性"),
+    "monster": ("妖", "镇妖", "封印", "鬼", "怪", "刀", "妖王"),
+    "forbidden": ("招惹", "禁忌", "暧昧", "少年", "偏执", "危险关系", "拉扯", "占有"),
+}
+
+HOOK_SIGNALS = {
+    "冲突爆发": ("辱", "逐出", "逼", "追杀", "冲突", "打", "杀", "威胁"),
+    "悬念提问": ("？", "?", "为什么", "是谁", "你确定", "难道"),
+    "身份揭露": ("身份", "真实", "竟是", "原来", "隐藏"),
+    "结果前置": ("一刀", "当场", "开局", "结果", "已经", "瞬间"),
+    "倒计时/绝境": ("三天", "倒计时", "最后", "绝境", "必死", "只剩"),
+}
+
+CLIFF_SIGNALS = {
+    "绝境反转": ("反杀", "觉醒", "逆转", "翻盘", "重生"),
+    "身份暴露": ("身份", "揭穿", "暴露", "认亲"),
+    "新敌登场": ("妖王", "更强", "新敌", "出现", "降临"),
+    "真相半揭": ("真相", "秘密", "半揭", "线索"),
+    "情感决裂": ("决裂", "误会", "背叛", "分手", "退婚"),
+}
+
+CADENCE = {
+    "underdog": "每 2–3 集一次打脸/突破；每集结尾留一个力量或身份悬念",
+    "revenge": "每 3–5 集解决一个复仇对象；结尾抛更大的幕后黑手",
+    "identity": "每集用一次身份反差；结尾卡在身份即将暴露",
+    "system": "每集一次可见的能力跃迁；结尾抛下一阶段任务",
+    "monster": "每集一只妖/一次出刀；结尾必有更强敌人或封印异动",
+    "forbidden": "每集一个暧昧/对抗点；结尾卡在关系被撞破/身份被揭穿",
+}
+
+VISUAL = {
+    "underdog": "破败底层 vs 金色力量/法相；俯拍大全景与大招特写对比",
+    "revenge": "冷色压抑与血色回闪；归来时装/场景反差",
+    "identity": "低调日常与高光身份的服装/构图反差",
+    "system": "面板/数值可视化与技能特效；升级瞬间强光",
+    "monster": "刀光、妖形、广角压迫；动作镜头与大全景交替",
+    "forbidden": "近景/特写为主，冷暖对比；眼神、手指、距离感",
+}
+
+
+def _pick(text, signals, default):
+    best, best_hits = default, 0
+    for name, words in signals.items():
+        hits = sum(text.count(w) for w in words)
+        if hits > best_hits:
+            best, best_hits = name, hits
+    return best, best_hits
+
+
+def analyze_submission(title, platform="红果漫剧", genre="", summary="",
+                       script_text="", filename=""):
+    text = " ".join([str(title or ""), str(genre or ""), str(summary or ""),
+                     str(script_text or "")])
+    formula_key, formula_hits = _pick(text, FORMULA_SIGNALS, "")
+    if not formula_key:
+        formula_key = formula_for_genre(genre)["key"]
+    formula = {"key": formula_key, **FORMULAS[formula_key]}
+    hook, hook_hits = _pick(text, HOOK_SIGNALS, "冲突爆发")
+    cliff, cliff_hits = _pick(text, CLIFF_SIGNALS, "绝境反转")
+    clauses = _clauses(summary or script_text or title)
+    opening = clauses[0] if clauses else "—"
+    progression = " → ".join(clauses[1:4]) if len(clauses) > 1 else formula["desc"]
+    structure = {"opening": opening, "progression": progression,
+                 "cadence": CADENCE.get(formula_key, "每集一个冲突点，结尾留钩子")}
+    visual = VISUAL.get(formula_key, "强反差构图与近景/大全景对比")
+    scene_rows = [{"event": c, "conflict": c, "result": c} for c in clauses[:8]]
+    project = {"id": None, "title": title, "genre": genre,
+               "logline": summary or " ".join(clauses[:2])}
+    analysis = analyze_project(project, scene_rows, [])
+    confidence = min(95, 40 + 10 * (formula_hits + hook_hits + cliff_hits))
+    if not summary and not script_text:
+        confidence = max(35, confidence - 25)
+    why = ("采用「%s」配方；以「%s」开场，用「%s」断章；%s"
+           % (formula["name"], hook, cliff, structure["cadence"]))
+    suggested = {
+        "title": title or "未命名案例", "platform": platform, "genre": genre,
+        "summary": (summary or script_text)[:4000],
+        "formula": formula_key, "hook_type": hook, "cliffhanger_type": cliff,
+        "structure": structure, "visual": visual, "why": why,
+        "score": analysis["overall"], "grade": analysis["grade"],
+        "heat_note": "本地规则分析生成；播放量待平台后台/用户补充。",
+        "verified": False,
+        "source_note": "由输入文本按爆款公式规则分析；结论需以真实数据复核。",
+        "analysis_meta": {"confidence": confidence,
+                          "signals": {"formula_hits": formula_hits,
+                                      "hook_hits": hook_hits,
+                                      "cliffhanger_hits": cliff_hits},
+                          "dimensions": analysis["dimensions"],
+                          "suggestions": analysis["suggestions"]},
+    }
+    return {"formula": formula, "hook_type": hook, "cliffhanger_type": cliff,
+            "structure": structure, "visual": visual, "why": why,
+            "confidence": confidence, "analysis": analysis,
+            "signals": suggested["analysis_meta"]["signals"],
+            "suggested_case": suggested,
+            "note": "规则分析，不代表真实播放量；保存后可继续人工修订。"}
+
+
 HOOK_WORDS = ("真相", "命案", "失忆", "复仇", "追杀", "背叛", "秘密", "失踪",
               "重生", "退婚", "逐出", "死", "妖", "系统", "觉醒", "招惹")
 CONFLICT_WORDS = ("冲突", "对抗", "拒绝", "威胁", "追杀", "命案", "背叛", "决裂",

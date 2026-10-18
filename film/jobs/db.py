@@ -244,6 +244,10 @@ class HitCase(Base):
     visual: Mapped[str] = mapped_column(String(512), nullable=True)
     why_text: Mapped[str] = mapped_column(String(1024), nullable=True)
     source_note: Mapped[str] = mapped_column(String(512), nullable=True)
+    summary: Mapped[str] = mapped_column(String(4000), nullable=True)
+    score: Mapped[int] = mapped_column(Integer, nullable=True)
+    grade: Mapped[str] = mapped_column(String(4), nullable=True)
+    analysis_meta: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 

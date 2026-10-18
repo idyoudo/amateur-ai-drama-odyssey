@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "hits", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -288,7 +288,8 @@ async function navigate(name, param) {
     });
     return;
   }
-  shell(name === "project" || name === "new-project" ? "projects" : name);
+  shell(name === "project" || name === "new-project" ? "projects"
+    : name === "hit-analyze" ? "hits" : name);
   if (SKELETON_ROUTES.has(name)) skeleton();
   return routeView(name, param);
 }
@@ -298,6 +299,7 @@ async function routeView(name, param) {
   if (name === "project") return viewProject(param);
   if (name === "new-project") return viewProjectCreate();
   if (name === "hits") return viewHits();
+  if (name === "hit-analyze") return viewHitAnalyze();
   if (name === "assets") return viewAssets();
   if (name === "subtitles") return viewSubtitles();
   if (name === "templates") return viewTemplates();
@@ -1508,12 +1510,20 @@ async function runPipeline(id) {
 
 /* ---------- 资产库 ---------- */
 /* ---------- 爆款分析 ---------- */
-const HITS = { cases: [], playbook: {}, projects: [], project_id: "", check: null };
+const HITS = { cases: [], playbook: {}, projects: [], project_id: "", check: null,
+  total: 0, page: 1, pages: 1, limit: 12, q: "", genre: "", formula: "",
+  filters: { genres: [], formulas: [] } };
+let _hitTimer = null;
+function scheduleHitSearch() { clearTimeout(_hitTimer); _hitTimer = setTimeout(reloadHits, 300); }
 async function viewHits() {
   try {
-    const [d, projs] = await Promise.all([api("/api/hits"), api("/api/dramas")]);
+    const [d, projs] = await Promise.all([api("/api/hits?limit=12&offset=0"), api("/api/dramas")]);
     HITS.cases = d.items || [];
+    HITS.total = d.total || 0;
+    HITS.filters = d.filters || { genres: [], formulas: [] };
     HITS.playbook = d.playbook || {};
+    HITS.pages = Math.max(1, Math.ceil(HITS.total / HITS.limit));
+    HITS.page = 1;
     HITS.projects = projs;
   } catch (e) {
     return setMain({ title: "爆款分析", body: `<div class="card empty">爆款数据加载失败：${esc(e.message)}</div>` });
@@ -1525,6 +1535,64 @@ async function viewHits() {
   if (!HITS.project_id) HITS.project_id = String(window._HIT_PROJECT || HITS.projects[0].id);
   await runHitCheck(false);
   renderHits();
+}
+async function loadHits() {
+  const params = new URLSearchParams({ limit: String(HITS.limit),
+    offset: String((HITS.page - 1) * HITS.limit) });
+  if (HITS.q) params.set("q", HITS.q);
+  if (HITS.genre) params.set("genre", HITS.genre);
+  if (HITS.formula) params.set("formula", HITS.formula);
+  const d = await api("/api/hits?" + params.toString());
+  HITS.cases = d.items || [];
+  HITS.total = d.total || 0;
+  HITS.filters = d.filters || HITS.filters;
+  HITS.playbook = d.playbook || HITS.playbook;
+  HITS.pages = Math.max(1, Math.ceil(HITS.total / HITS.limit));
+  if (HITS.page > HITS.pages) HITS.page = HITS.pages;
+  renderHits();
+}
+async function reloadHits() {
+  HITS.q = ($("#hit_q") || {}).value || "";
+  HITS.genre = ($("#hit_genre") || {}).value || "";
+  HITS.formula = ($("#hit_formula") || {}).value || "";
+  HITS.page = 1;
+  try { await loadHits(); } catch (e) { toast("案例加载失败：" + e.message); }
+}
+function resetHitFilters() {
+  HITS.q = ""; HITS.genre = ""; HITS.formula = ""; HITS.page = 1;
+  const q = $("#hit_q"), g = $("#hit_genre"), f = $("#hit_formula");
+  if (q) q.value = "";
+  if (g) g.value = "";
+  if (f) f.value = "";
+  loadHits().catch(e => toast("案例加载失败：" + e.message));
+}
+async function hitPage(n) {
+  if (n < 1 || n > HITS.pages || n === HITS.page) return;
+  HITS.page = n;
+  try {
+    await loadHits();
+    const el = $("#hitcases"); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+  } catch (e) { toast("案例加载失败：" + e.message); }
+}
+function hitPager() {
+  if (HITS.pages <= 1) return "";
+  const cur = HITS.page, pages = HITS.pages, nums = [];
+  const push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
+  push(1);
+  for (let n = cur - 2; n <= cur + 2; n++) push(n);
+  push(pages);
+  nums.sort((a, b) => a - b);
+  let mid = "", prev = 0;
+  nums.forEach(n => {
+    if (n - prev > 1) mid += `<span class="muted">…</span>`;
+    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="hitPage(${n})">${n}</button>`;
+    prev = n;
+  });
+  return `<div class="pager">
+    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="hitPage(${cur - 1})">上一页</button>
+    ${mid}
+    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="hitPage(${cur + 1})">下一页</button>
+  </div>`;
 }
 async function runHitCheck(render) {
   try { HITS.check = await api("/api/dramas/" + HITS.project_id + "/hit-check"); }
@@ -1539,10 +1607,11 @@ function renderHits() {
   const pb = HITS.playbook || {};
   setMain({
     title: "爆款分析",
-    top: `<div class="right"><span class="pill">案例 ${HITS.cases.length}</span></div>`,
+    top: `<div class="right"><button class="btn sm" onclick="go('hit-analyze')">录入并分析</button>
+      <span class="pill">案例 ${HITS.total}</span></div>`,
     body: `
     <div class="stats" style="margin-bottom:14px">
-      <div class="stat"><div class="k">${HITS.cases.length}</div><div class="l">爆款案例</div></div>
+      <div class="stat"><div class="k">${HITS.total}</div><div class="l">爆款案例</div></div>
       <div class="stat"><div class="k">${(pb.formulas || []).length}</div><div class="l">爆款配方</div></div>
       <div class="stat"><div class="k">${(pb.hooks || []).length}</div><div class="l">前 3 秒钩子</div></div>
       <div class="stat"><div class="k">${(pb.cliffhangers || []).length}</div><div class="l">断章类型</div></div>
@@ -1570,15 +1639,25 @@ function renderHits() {
         <p>${esc(d.suggestion)}</p></div>`).join("")}</div>` : ""}
     </div>
 
-    <h2>爆款案例 <span class="hint">点击查看结构拆解</span></h2>
-    <div class="cards">${HITS.cases.map(x => `<div class="card click hit-case" onclick="openHitCase(${x.id})">
+    <h2>爆款案例 <span class="hint">共 ${HITS.total} 条 · 第 ${HITS.page}/${HITS.pages} 页</span></h2>
+    <div class="card" style="margin-bottom:14px"><div class="toolbar">
+      <input id="hit_q" placeholder="搜索标题 / 题材 / 分析" value="${esc(HITS.q)}" oninput="scheduleHitSearch()">
+      <select id="hit_genre" onchange="reloadHits()"><option value="">全部题材</option>
+        ${(HITS.filters.genres || []).map(g => `<option value="${esc(g)}" ${HITS.genre === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select>
+      <select id="hit_formula" onchange="reloadHits()"><option value="">全部配方</option>
+        ${(HITS.filters.formulas || []).map(f => `<option value="${esc(f.key)}" ${HITS.formula === f.key ? "selected" : ""}>${esc(f.name)}</option>`).join("")}</select>
+      <button class="btn ghost" onclick="resetHitFilters()">重置</button>
+    </div></div>
+    <div id="hitcases" class="cards">${HITS.cases.map(x => `<div class="card click hit-case" onclick="openHitCase(${x.id})">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
         <h3 class="pc-title" style="margin:0">${esc(x.title)}</h3>
         <span class="pill gold">${esc(x.formula_name || "—")}</span></div>
       <div class="pc-meta">${esc(x.genre || "")} · ${esc(x.platform || "")}</div>
       <p class="muted" style="font-size:var(--fs-sm);line-height:1.5;margin:8px 0 0">${esc(x.heat_note || "")}</p>
-      <div class="meta" style="margin-top:10px"><span>钩子 ${esc(x.hook_type || "—")}</span><span>断章 ${esc(x.cliffhanger_type || "—")}</span></div>
-    </div>`).join("")}</div>
+      <div class="meta" style="margin-top:10px">${x.score != null ? `<span>体检 ${esc(x.grade || "")} · ${x.score}</span>` : `<span>未体检</span>`}
+        <span>钩子 ${esc(x.hook_type || "—")}</span><span>断章 ${esc(x.cliffhanger_type || "—")}</span></div>
+    </div>`).join("") || `<div class="card empty">没有匹配的案例，试试重置筛选或录入新案例。</div>`}</div>
+    ${hitPager()}
 
     <h2>爆款配方库</h2>
     <div class="cards">${(pb.formulas || []).map(f => `<div class="card">
@@ -1631,6 +1710,99 @@ async function openHitCase(id) {
       <div class="muted" style="font-size:var(--fs-sm);margin-top:16px">${esc(c.source_note || "")}</div>
     </div></div>`;
   document.body.appendChild(modal);
+}
+
+const HITA = { result: null, fileB64: "", filename: "" };
+const HIT_PLATFORMS = ["红果漫剧", "抖音短剧", "快手星芒", "YouTube Shorts", "YouTube 长视频"];
+function viewHitAnalyze() {
+  HITA.result = null; HITA.fileB64 = ""; HITA.filename = "";
+  setMain({
+    title: "录入并分析",
+    top: `<div class="right"><button class="btn ghost sm" onclick="go('hits')">返回爆款分析</button></div>`,
+    body: `<div class="sub-layout">
+      <section class="card"><div class="stack">
+        <h2 style="margin-top:0">案例输入</h2>
+        <div class="row2">
+          <input id="ha_title" placeholder="作品标题">
+          <select id="ha_platform">${HIT_PLATFORMS.map(p => `<option>${esc(p)}</option>`).join("")}</select>
+        </div>
+        <input id="ha_genre" placeholder="题材，如 玄幻/逆袭、言情/禁忌">
+        <textarea id="ha_summary" rows="5" placeholder="剧情简介 / 爆点概要（必填其一）"></textarea>
+        <textarea id="ha_script" rows="9" placeholder="粘贴剧本文本或前几集梗概（可选，越长分析越准）"></textarea>
+        <div class="sub-actions">
+          <button class="btn ghost sm" onclick="$('#ha_file').click()">导入 TXT</button>
+          <input type="file" id="ha_file" accept=".txt,text/plain" class="hide">
+          <span id="ha_filename" class="muted" style="font-size:var(--fs-sm)">未选择文件</span>
+        </div>
+        <div class="form-actions"><button class="btn" onclick="analyzeHitSubmission()">开始分析</button>
+          <span class="muted" style="font-size:var(--fs-sm)">规则分析，保存后可继续人工修订</span></div>
+      </div></section>
+      <aside class="card" id="hitanalysis"><div class="empty">${ico("pulse")}<div>填写左侧内容后开始分析</div></div></aside>
+    </div>`,
+  }, true);
+  const f = $("#ha_file");
+  if (f) f.onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    HITA.filename = file.name;
+    HITA.fileB64 = bufToB64(await file.arrayBuffer());
+    const el = $("#ha_filename"); if (el) el.textContent = file.name;
+    e.target.value = "";
+  };
+}
+async function analyzeHitSubmission() {
+  const body = {
+    title: ($("#ha_title") || {}).value || "",
+    platform: ($("#ha_platform") || {}).value || "红果漫剧",
+    genre: ($("#ha_genre") || {}).value || "",
+    summary: ($("#ha_summary") || {}).value || "",
+    script_text: ($("#ha_script") || {}).value || "",
+    filename: HITA.filename || "",
+    content_b64: HITA.fileB64 || "",
+  };
+  if (!body.summary && !body.script_text && !body.content_b64)
+    return toast("填写简介或导入剧本文本");
+  try {
+    HITA.result = await api("/api/hits/analyze", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    renderHitAnalysis();
+  } catch (e) { toast("分析失败：" + e.message); }
+}
+function renderHitAnalysis() {
+  const box = $("#hitanalysis"); const r = HITA.result;
+  if (!box || !r) return;
+  const a = r.analysis || {}, st = r.structure || {};
+  box.innerHTML = `<div class="sub-editor-head"><h2>分析结果</h2>
+      <button class="btn" onclick="saveAnalyzedCase()">保存到案例库</button></div>
+    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:14px">
+      <div style="text-align:center"><div class="hit-grade">${esc(a.grade || "—")}</div>
+        <div class="muted" style="font-size:var(--fs-sm)">综合 ${a.overall || 0} · 置信度 ${r.confidence}%</div></div>
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:var(--fs-table)"><b>${esc((r.formula || {}).name || "")}</b>
+          <span class="muted"> · ${esc((r.formula || {}).desc || "")}</span></div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">前 3 秒：${esc(r.hook_type)} · 断章：${esc(r.cliffhanger_type)}</div>
+      </div></div>
+    <h2 style="margin-top:20px">结构拆解</h2>
+    <div class="kv"><div class="k">开局</div><div>${esc(st.opening || "—")}</div>
+      <div class="k">推进</div><div>${esc(st.progression || "—")}</div>
+      <div class="k">节奏</div><div>${esc(st.cadence || "—")}</div></div>
+    <h2 style="margin-top:20px">视觉与吸量</h2>
+    <div class="muted" style="font-size:var(--fs-table);line-height:1.7">${esc(r.visual || "—")}</div>
+    <div class="hit-dims">${(a.dimensions || []).map(d => `<div class="hit-dim">
+      <div class="hd-head"><span>${esc(d.label)}</span><b>${d.score}</b></div>
+      <div class="bar-track"><i style="width:${d.score}%"></i></div>
+      <p>${esc(d.suggestion)}</p></div>`).join("")}</div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(r.note || "")}</div>`;
+}
+async function saveAnalyzedCase() {
+  const r = HITA.result; if (!r || !r.suggested_case) return;
+  try {
+    const d = await api("/api/hits", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(r.suggested_case) });
+    toast("已保存案例：" + d.title);
+    HITA.result = null;
+    go("hits");
+  } catch (e) { toast("保存失败：" + e.message); }
 }
 
 /* ---------- 资产库（角色 + 镜头：筛选 / 详情 / 复用 / 导出） ---------- */
