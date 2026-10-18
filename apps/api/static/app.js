@@ -1865,8 +1865,8 @@ function pagerBar(state, goFn) {
   const end = Math.min(total, page * limit);
   return `<div class="pagerbar">
     <div class="pagerbar-info">
+      <span class="pagerbar-total">总共 ${total} 条 · ${total ? "当前 " + start + "-" + end + " 条" : "当前 0 条"}</span>
       <span>第 ${page} 页，共 ${pages} 页</span>
-      <span class="pagerbar-total">共 ${total} 条 · ${total ? "当前 " + start + "-" + end + " 条" : "当前 0 条"}</span>
     </div>
     <div class="pagerbar-ctrl">
       <button class="btn ghost sm" ${page <= 1 ? "disabled" : ""} onclick="${goFn}(${page - 1})">上一页</button>
