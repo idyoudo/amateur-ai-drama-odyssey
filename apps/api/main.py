@@ -1987,7 +1987,8 @@ def _marketing_kit(project_id):
                   "characters": sh.characters or [], "dialogue": sh.dialogue,
                   "prompt": sh.prompt, "duration": sh.duration,
                   "status": sh.status} for sh in shots]
-    scenes = [sc for script in scripts for sc in (script.scenes or [])]
+    scenes = [{**sc, "episode_id": script.episode_id}
+              for script in scripts for sc in (script.scenes or [])]
     return marketing_mod.build_kit(project, scenes, shot_rows)
 
 
@@ -2043,8 +2044,10 @@ def _hit_json(c, full=False):
          "hook_type": c.hook_type or "", "cliffhanger_type": c.cliffhanger_type or "",
          "structure": c.structure or {}, "visual": c.visual or "",
          "why": c.why_text or "", "source_note": c.source_note or "",
-         "score": c.score, "grade": c.grade or "",
          "confidence": (c.analysis_meta or {}).get("confidence"),
+         "assessed": bool((c.analysis_meta or {}).get("bands")),
+         "assessable": (c.analysis_meta or {}).get("assessable"),
+         "missing": (c.analysis_meta or {}).get("missing", []),
          "has_summary": bool(c.summary),
          "updated_at": c.updated_at.isoformat() if c.updated_at else ""}
     if full:
@@ -2065,14 +2068,6 @@ def _hit_payload(body):
             raise HTTPException(status_code=422, detail="播放量需为非负整数")
     else:
         play_count = None
-    score = body.get("score")
-    if score not in (None, ""):
-        try:
-            score = max(0, min(100, int(score)))
-        except (TypeError, ValueError):
-            raise HTTPException(status_code=422, detail="评分需为 0–100")
-    else:
-        score = None
     return {"title": str(body.get("title") or "").strip()[:128],
             "platform": str(body.get("platform") or "红果漫剧")[:64],
             "genre": str(body.get("genre") or "")[:64],
@@ -2086,8 +2081,6 @@ def _hit_payload(body):
             "why_text": str(body.get("why") or body.get("why_text") or "")[:1024],
             "source_note": str(body.get("source_note") or "")[:512],
             "summary": str(body.get("summary") or "")[:4000],
-            "score": score,
-            "grade": str(body.get("grade") or "")[:4],
             "analysis_meta": body.get("analysis_meta") if isinstance(body.get("analysis_meta"), dict) else {}}
 
 
@@ -2209,7 +2202,8 @@ def hit_check(project_id: int):
     project = {"id": p.id, "title": p.title, "logline": p.logline, "genre": p.genre,
                "episodes": p.episodes, "minutes": p.minutes,
                "delivery_spec": p.delivery_spec or {}}
-    scenes = [sc for script in scripts for sc in (script.scenes or [])]
+    scenes = [{**sc, "episode_id": script.episode_id}
+              for script in scripts for sc in (script.scenes or [])]
     shot_rows = [{"size": sh.size, "move": sh.move, "duration": sh.duration,
                   "characters": sh.characters or []} for sh in shots]
     return hits_mod.analyze_project(project, scenes, shot_rows)

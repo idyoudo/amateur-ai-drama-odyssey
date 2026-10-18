@@ -586,8 +586,16 @@ check("爆款案例库", r.status_code == 200 and len(d["items"]) >= 3
 check("爆款配方 6 个", len(d["playbook"]["formulas"]) == 6)
 r = client.get("/api/dramas/%d/hit-check" % p2, headers=H)
 d = r.json()
-check("爆款体检", r.status_code == 200 and "overall" in d
-      and len(d["dimensions"]) == 6)
+check("结构体检", r.status_code == 200 and "facts" in d
+      and len(d["dimensions"]) == 6
+      and "overall" not in d and "grade" not in d)
+_empty_pid = client.post("/api/dramas", headers=H,
+                         json={"title": "空项目", "logline": "一个尚未运行的项目",
+                               "platform": "p", "rating": "全龄", "genre": "悬疑"}).json()["id"]
+r = client.get("/api/dramas/%d/hit-check" % _empty_pid, headers=H)
+d_empty = r.json()
+check("缺数据不评分", r.status_code == 200 and d_empty["assessable"] == 2
+      and len(d_empty["missing"]) == 4)
 r = client.post("/api/hits", headers=H,
                 json={"title": "测试案例", "genre": "悬疑",
                       "formula": "underdog", "heat_note": "测试"})
@@ -609,11 +617,12 @@ r = client.post("/api/hits/analyze", headers=H,
 d = r.json()
 check("输入分析", r.status_code == 200
       and d["formula"]["key"] == "underdog"
-      and d["suggested_case"]["score"] > 0)
+      and d["bands"]["hook"] in ("强", "中", "弱")
+      and "score" not in d["suggested_case"])
 r = client.post("/api/hits", headers=H, json=d["suggested_case"])
 d2 = r.json()
-check("分析结果入库", r.status_code == 200 and d2["score"] is not None
-      and d2["confidence"] is not None)
+check("分析结果入库", r.status_code == 200 and d2["assessed"] is True
+      and d2["assessable"] >= 3 and "score" not in d2)
 r = client.delete("/api/hits/%d" % d2["id"], headers=H)
 check("删除分析案例", r.status_code == 200)
 

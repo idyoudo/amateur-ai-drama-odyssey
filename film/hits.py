@@ -170,17 +170,18 @@ def analyze_submission(title, platform="红果漫剧", genre="", summary="",
     project = {"id": None, "title": title, "genre": genre,
                "logline": summary or " ".join(clauses[:2])}
     analysis = analyze_project(project, scene_rows, [])
+    bands = {d["key"]: d["band"] for d in analysis["dimensions"]}
     confidence = min(95, 40 + 10 * (formula_hits + hook_hits + cliff_hits))
     if not summary and not script_text:
         confidence = max(35, confidence - 25)
-    why = ("采用「%s」配方；以「%s」开场，用「%s」断章；%s"
-           % (formula["name"], hook, cliff, structure["cadence"]))
+    why = ("采用「%s」配方；钩子：%s；断章：%s；%s"
+           % (formula["name"], bands.get("hook", "—"),
+              bands.get("cliffhanger", "—"), structure["cadence"]))
     suggested = {
         "title": title or "未命名案例", "platform": platform, "genre": genre,
         "summary": (summary or script_text)[:4000],
         "formula": formula_key, "hook_type": hook, "cliffhanger_type": cliff,
         "structure": structure, "visual": visual, "why": why,
-        "score": analysis["overall"], "grade": analysis["grade"],
         "heat_note": "本地规则分析生成；播放量待平台后台/用户补充。",
         "verified": False,
         "source_note": "由输入文本按爆款公式规则分析；结论需以真实数据复核。",
@@ -188,12 +189,13 @@ def analyze_submission(title, platform="红果漫剧", genre="", summary="",
                           "signals": {"formula_hits": formula_hits,
                                       "hook_hits": hook_hits,
                                       "cliffhanger_hits": cliff_hits},
-                          "dimensions": analysis["dimensions"],
-                          "suggestions": analysis["suggestions"]},
+                          "bands": bands,
+                          "assessable": analysis["assessable"],
+                          "missing": analysis["missing"]},
     }
     return {"formula": formula, "hook_type": hook, "cliffhanger_type": cliff,
             "structure": structure, "visual": visual, "why": why,
-            "confidence": confidence, "analysis": analysis,
+            "confidence": confidence, "analysis": analysis, "bands": bands,
             "signals": suggested["analysis_meta"]["signals"],
             "suggested_case": suggested,
             "note": "规则分析，不代表真实播放量；保存后可继续人工修订。"}
@@ -212,114 +214,176 @@ def _clauses(text):
     return [p.strip("。 ") for p in str(text or "").replace("；", "，").split("，") if p.strip("。 ")]
 
 
-def _score_hook(logline):
-    clauses = _clauses(logline)
-    first = clauses[0] if clauses else ""
-    score = 35
-    if first:
-        score += 15
-    if any(w in first for w in HOOK_WORDS):
-        score += 25
-    if len(first) <= 24:
-        score += 15
-    if "？" in str(logline) or "！" in str(logline):
-        score += 10
-    return min(100, score)
+def _band(v, strong, mid):
+    return "强" if v >= strong else "中" if v >= mid else "弱"
 
 
-def _score_conflict(logline, scenes):
-    text = str(logline or "") + " " + " ".join(
-        str(sc.get("conflict") or "") + str(sc.get("event") or "") for sc in (scenes or []))
-    hits = sum(text.count(w) for w in CONFLICT_WORDS)
-    score = 35 + min(45, hits * 8)
-    if len(scenes or []) >= 3:
-        score += 10
-    if len(scenes or []) >= 6:
-        score += 10
-    return min(100, score)
+def _episodes(scenes):
+    by = {}
+    for sc in scenes or []:
+        ep = sc.get("episode_id") or 1
+        by.setdefault(ep, []).append(sc)
+    return by
 
 
-def _score_cliffhanger(scenes):
-    if not scenes:
-        return 45
-    last = scenes[-1]
-    tail = str(last.get("result") or "") + str(last.get("conflict") or "")
-    score = 50
-    if any(w in tail for w in CLIFF_WORDS):
-        score += 25
-    if len(scenes) >= 2:
-        score += 10
-    return min(100, score)
+def _facts(project, scenes, shots):
+    by_ep = _episodes(scenes)
+    avg_conflict = None
+    if by_ep:
+        counts = [sum(1 for sc in rows if str(sc.get("conflict") or "").strip())
+                  for rows in by_ep.values()]
+        avg_conflict = round(sum(counts) / len(counts), 1)
+    sizes = {}
+    for sh in shots or []:
+        s = sh.get("size")
+        if s:
+            sizes[s] = sizes.get(s, 0) + 1
+    size_text = " · ".join("%s %d" % (k, v) for k, v in
+                           sorted(sizes.items(), key=lambda x: -x[1])[:5]) or None
+    facts = [
+        {"key": "episodes", "label": "集数",
+         "value": ("%d 集" % project.get("episodes")) if project.get("episodes") else None},
+        {"key": "script_episodes", "label": "已落剧本",
+         "value": ("%d 集" % len(by_ep)) if by_ep else None},
+        {"key": "scenes", "label": "场景数",
+         "value": ("%d 场" % len(scenes)) if scenes else None},
+        {"key": "conflict_per_ep", "label": "每集冲突升级",
+         "value": ("%.1f 次/集" % avg_conflict) if avg_conflict is not None else None},
+        {"key": "shots", "label": "镜头数",
+         "value": ("%d 镜" % len(shots)) if shots else None},
+        {"key": "shot_sizes", "label": "景别分布", "value": size_text},
+        {"key": "title_len", "label": "标题字数",
+         "value": ("%d 字" % len(project.get("title") or "")) if project.get("title") else None},
+    ]
+    return facts, by_ep, avg_conflict
 
 
-def _score_payoff(genre, logline):
-    text = str(genre or "") + " " + str(logline or "")
-    hits = sum(text.count(w) for w in PAYOFF_WORDS)
-    score = 40 + min(40, hits * 8)
-    if formula_for_genre(genre)["key"] in ("underdog", "system", "revenge"):
-        score += 10
-    return min(100, score)
+def _dim(key, label, band, evidence, suggestion, status="ok"):
+    return {"key": key, "label": label, "band": band, "status": status,
+            "evidence": evidence, "suggestion": suggestion}
 
 
-def _score_title(title, genre):
-    t = str(title or "")
-    score = 40
-    if 2 <= len(t) <= 10:
-        score += 20
-    if any(w in t for w in ("神", "妖", "骨", "少年", "镇", "横刀", "荒")):
-        score += 15
-    if any(w in str(genre or "") for w in ("玄幻", "逆袭", "悬疑", "言情")):
-        score += 10
-    if any(c in t for c in ("：", "·", "！", "？")):
-        score += 5
-    return min(100, score)
-
-
-def _score_spectacle(shots):
-    if not shots:
-        return 50
-    score = 50
-    if len(shots) >= 30:
-        score += 15
-    if len(shots) >= 100:
-        score += 15
-    sizes = {sh.get("size") for sh in shots}
-    if len(sizes) >= 3:
-        score += 10
-    if any(sh.get("move") for sh in shots):
-        score += 5
-    return min(100, score)
+def _missing(key, label, suggestion):
+    return _dim(key, label, "数据不足", ["缺少可核验的场景/镜头数据"],
+                suggestion, "missing")
 
 
 def analyze_project(project, scenes=None, shots=None):
-    title = project.get("title")
-    genre = project.get("genre")
-    logline = project.get("logline")
-    dims = [
-        {"key": "hook", "label": "前 3 秒钩子", "score": _score_hook(logline),
-         "suggestion": "第一句直接给冲突、结果或身份反差；删掉背景铺垫。"},
-        {"key": "conflict", "label": "冲突密度", "score": _score_conflict(logline, scenes),
-         "suggestion": "每集至少 2 次对抗升级，避免连续解释设定。"},
-        {"key": "cliffhanger", "label": "断章强度", "score": _score_cliffhanger(scenes),
-         "suggestion": "结尾用身份暴露/新敌登场/真相半揭，不要平收。"},
-        {"key": "payoff", "label": "情绪回报", "score": _score_payoff(genre, logline),
-         "suggestion": "每 2–3 集给一次明确爽点或情绪释放，让观众有追更理由。"},
-        {"key": "title", "label": "标题/封面", "score": _score_title(title, genre),
-         "suggestion": "标题控制在 2–10 字，含题材关键词与冲突意象。"},
-        {"key": "spectacle", "label": "视觉奇观", "score": _score_spectacle(shots),
-         "suggestion": "增加大全景/特写对比、动作镜头与力量/妖形奇观。"},
-    ]
-    weights = {"hook": .25, "conflict": .2, "cliffhanger": .2,
-               "payoff": .15, "title": .1, "spectacle": .1}
-    overall = round(sum(d["score"] * weights[d["key"]] for d in dims))
-    grade = "S" if overall >= 85 else "A" if overall >= 75 else "B" if overall >= 60 else "C"
-    formula = formula_for_genre(genre)
-    gaps = [d for d in dims if d["score"] < 70]
+    title = project.get("title") or ""
+    genre = project.get("genre") or ""
+    logline = project.get("logline") or ""
+    scenes = scenes or []
+    shots = shots or []
+    facts, by_ep, avg_conflict = _facts(project, scenes, shots)
+    dims = []
+
+    clauses = _clauses(logline)
+    if not logline.strip():
+        dims.append(_missing("hook", "前 3 秒钩子", "补充 logline 后再评估。"))
+    else:
+        first = clauses[0] if clauses else ""
+        hits = [w for w in HOOK_WORDS if w in first]
+        if hits and len(first) <= 24:
+            band = "强"
+        elif first and (hits or len(first) <= 30):
+            band = "中"
+        else:
+            band = "弱"
+        ev = ["首句：%s" % (first or "—")]
+        if hits:
+            ev.append("命中钩子词：%s" % "、".join(hits))
+        dims.append(_dim("hook", "前 3 秒钩子", band, ev,
+                         "第一句直接给冲突、结果或身份反差；删掉背景铺垫。"))
+
+    if not scenes:
+        dims.append(_missing("conflict", "冲突密度", "补齐分集剧本后再评估。"))
+    else:
+        band = _band(avg_conflict or 0, 3, 2)
+        covered = len(by_ep)
+        total_eps = project.get("episodes") or covered
+        ev = ["平均 %.1f 次/集（覆盖 %d/%d 集）" % (avg_conflict or 0, covered, total_eps)]
+        sample = [sc for ep in list(by_ep)[:2] for sc in by_ep[ep]
+                  if str(sc.get("conflict") or "").strip()][:2]
+        for sc in sample:
+            ev.append("E%s：%s" % (sc.get("episode_id") or 1,
+                                   str(sc.get("conflict"))[:40]))
+        dims.append(_dim("conflict", "冲突密度", band, ev,
+                         "每集至少 2 次对抗升级，避免连续解释设定。"))
+
+    if not scenes:
+        dims.append(_missing("cliffhanger", "断章强度", "补齐分集剧本后再评估。"))
+    else:
+        hit_eps, samples = 0, []
+        for ep, rows in by_ep.items():
+            last = rows[-1] if rows else {}
+            tail = str(last.get("result") or "") + str(last.get("conflict") or "")
+            hit = [w for w in CLIFF_WORDS if w in tail]
+            if hit:
+                hit_eps += 1
+                if len(samples) < 2:
+                    samples.append("E%s：%s" % (ep, tail[:40]))
+        ratio = hit_eps / max(1, len(by_ep))
+        band = _band(ratio, 0.6, 0.3)
+        ev = ["%d/%d 集结尾命中断章信号" % (hit_eps, len(by_ep))] + samples
+        dims.append(_dim("cliffhanger", "断章强度", band, ev,
+                         "结尾用身份暴露/新敌登场/真相半揭，不要平收。"))
+
+    if not scenes:
+        dims.append(_missing("payoff", "情绪回报", "补齐分集剧本后再评估。"))
+    else:
+        counts = []
+        for rows in by_ep.values():
+            counts.append(sum(1 for sc in rows
+                              if any(w in str(sc.get("event") or "") + str(sc.get("result") or "")
+                                     for w in PAYOFF_WORDS)))
+        avg_payoff = round(sum(counts) / max(1, len(counts)), 1)
+        band = _band(avg_payoff, 2, 1)
+        dims.append(_dim("payoff", "情绪回报", band,
+                         ["平均 %.1f 次/集有明确情绪回报" % avg_payoff],
+                         "每 2–3 集给一次明确爽点或情绪释放，让观众有追更理由。"))
+
+    if not title:
+        dims.append(_missing("title", "标题/封面", "补充片名后再评估。"))
+    else:
+        genre_hit = any(w in genre for w in ("玄幻", "逆袭", "悬疑", "言情", "古装"))
+        if 2 <= len(title) <= 10 and genre_hit:
+            band = "强"
+        elif 2 <= len(title) <= 12:
+            band = "中"
+        else:
+            band = "弱"
+        ev = ["标题 %d 字" % len(title)]
+        if genre_hit:
+            ev.append("含题材关键词")
+        dims.append(_dim("title", "标题/封面", band, ev,
+                         "标题控制在 2–10 字，含题材关键词与冲突意象。"))
+
+    if not shots:
+        dims.append(_missing("spectacle", "视觉奇观", "补齐分镜/镜头后再评估。"))
+    else:
+        sizes = {sh.get("size") for sh in shots if sh.get("size")}
+        moves = {sh.get("move") for sh in shots if sh.get("move")}
+        if len(shots) >= 100 and len(sizes) >= 3:
+            band = "强"
+        elif len(shots) >= 30 and len(sizes) >= 2:
+            band = "中"
+        else:
+            band = "弱"
+        dims.append(_dim("spectacle", "视觉奇观", band,
+                         ["%d 镜 · %d 种景别 · %d 种运镜" % (len(shots), len(sizes), len(moves))],
+                         "增加大全景/特写对比、动作镜头与力量/妖形奇观。"))
+
+    assessable = sum(1 for d in dims if d["status"] == "ok")
+    missing = [d["label"] for d in dims if d["status"] == "missing"]
+    suggestions = [d["suggestion"] for d in dims if d["band"] in ("弱", "数据不足")]
     return {
         "project": {"id": project.get("id"), "title": title, "genre": genre},
-        "overall": overall, "grade": grade, "dimensions": dims,
-        "formula": formula,
-        "hook_suggestion": "前 3 秒：%s" % ((_clauses(logline) or ["故事冲突"])[0][:28]),
-        "suggestions": [d["suggestion"] for d in gaps] or ["保持当前结构，继续强化每集结尾钩子。"],
-        "note": "评分为结构启发式，不代表真实播放量；上线后需用平台数据复核。",
+        "facts": facts,
+        "dimensions": dims,
+        "assessable": assessable,
+        "missing": missing,
+        "formula": formula_for_genre(genre),
+        "hook_suggestion": "前 3 秒：%s" % ((clauses or ["故事冲突"])[0][:28]),
+        "suggestions": suggestions or ["保持当前结构，继续强化每集结尾钩子。"],
+        "note": "结构体检，非播放预测；仅依据项目现有场景/镜头/文本，数据不足的维度不评分。",
     }

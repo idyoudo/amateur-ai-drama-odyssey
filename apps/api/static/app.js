@@ -755,7 +755,7 @@ async function viewProject(id) {
     top: `<div class="right">
         <span class="pill">${p.episodes} 集 × ${dur}${aspect ? " · " + esc(aspect) : ""}</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
-        <button class="btn ghost sm" id="hitbtn">${ico("pulse")} 爆款体检</button>
+        <button class="btn ghost sm" id="hitbtn">${ico("pulse")} 结构体检</button>
         <button class="btn ghost sm" id="mktbtn">${ico("sparkle")} 营销素材</button>
         <button class="btn ghost sm" id="setbtn">${ico("gear")} 设置</button>
         <button class="btn ghost" id="runbtn">${ico("play")} 运行流水线</button>
@@ -1602,6 +1602,9 @@ async function runHitCheck(render) {
 function hitsProjectOptions() {
   return HITS.projects.map(p => `<option value="${p.id}" ${String(HITS.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
 }
+function hitBandClass(band) {
+  return band === "强" ? "ok" : band === "中" ? "gold" : band === "弱" ? "bad" : "";
+}
 function renderHits() {
   const c = HITS.check;
   const pb = HITS.playbook || {};
@@ -1622,21 +1625,21 @@ function renderHits() {
         <button class="btn" onclick="switchHitProject()">重新体检</button>
         <span class="muted" style="font-size:var(--fs-sm)">结构启发式评分，不代表真实播放量；上线后用平台数据复核。</span>
       </div>
-      ${c ? `<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:18px">
-        <div style="text-align:center"><div class="hit-grade">${esc(c.grade)}</div>
-          <div class="muted" style="font-size:var(--fs-sm)">综合 ${c.overall}</div></div>
-        <div style="flex:1;min-width:260px">
-          <div style="font-size:var(--fs-table)"><b>${esc((c.formula || {}).name || "")}</b>
-            <span class="muted"> · ${esc((c.formula || {}).desc || "")}</span></div>
-          <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">${esc(c.hook_suggestion || "")}</div>
-          <ul class="muted" style="font-size:var(--fs-sm);margin:8px 0 0;padding-left:18px">
-            ${(c.suggestions || []).map(s => `<li>${esc(s)}</li>`).join("")}</ul>
-        </div>
+      ${c ? `<div class="muted" style="font-size:var(--fs-sm);margin-top:12px">结构体检（非播放预测） · ${c.assessable || 0}/6 项可评估${(c.missing && c.missing.length) ? " · 数据不足：" + esc(c.missing.join("、")) : ""}</div>
+      <div class="hit-facts">${(c.facts || []).map(f => `<div class="hit-fact">
+        <span>${esc(f.label)}</span><b>${f.value ? esc(f.value) : "数据不足"}</b></div>`).join("")}</div>
+      <div style="margin-top:16px">
+        <div style="font-size:var(--fs-table)"><b>${esc((c.formula || {}).name || "")}</b>
+          <span class="muted"> · ${esc((c.formula || {}).desc || "")}</span></div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">${esc(c.hook_suggestion || "")}</div>
+        <ul class="muted" style="font-size:var(--fs-sm);margin:8px 0 0;padding-left:18px">
+          ${(c.suggestions || []).map(s => `<li>${esc(s)}</li>`).join("")}</ul>
       </div>
-      <div class="hit-dims">${(c.dimensions || []).map(d => `<div class="hit-dim">
-        <div class="hd-head"><span>${esc(d.label)}</span><b>${d.score}</b></div>
-        <div class="bar-track"><i style="width:${d.score}%"></i></div>
-        <p>${esc(d.suggestion)}</p></div>`).join("")}</div>` : ""}
+      <div class="hit-dims">${(c.dimensions || []).map(d => `<div class="hit-dim ${d.status === "missing" ? "missing" : ""}">
+        <div class="hd-head"><span>${esc(d.label)}</span>
+          <span class="pill ${hitBandClass(d.band)}">${esc(d.band)}</span></div>
+        <ul class="hit-evidence">${(d.evidence || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul>
+        ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>` : ""}
     </div>
 
     <h2>爆款案例 <span class="hint">共 ${HITS.total} 条 · 第 ${HITS.page}/${HITS.pages} 页</span></h2>
@@ -1654,7 +1657,7 @@ function renderHits() {
         <span class="pill gold">${esc(x.formula_name || "—")}</span></div>
       <div class="pc-meta">${esc(x.genre || "")} · ${esc(x.platform || "")}</div>
       <p class="muted" style="font-size:var(--fs-sm);line-height:1.5;margin:8px 0 0">${esc(x.heat_note || "")}</p>
-      <div class="meta" style="margin-top:10px">${x.score != null ? `<span>体检 ${esc(x.grade || "")} · ${x.score}</span>` : `<span>未体检</span>`}
+      <div class="meta" style="margin-top:10px">${x.assessed ? `<span>已体检 · ${x.assessable || 0}/6 项可评估${(x.missing && x.missing.length) ? " · " + x.missing.length + " 项数据不足" : ""}</span>` : `<span>未体检</span>`}
         <span>钩子 ${esc(x.hook_type || "—")}</span><span>断章 ${esc(x.cliffhanger_type || "—")}</span></div>
     </div>`).join("") || `<div class="card empty">没有匹配的案例，试试重置筛选或录入新案例。</div>`}</div>
     ${hitPager()}
@@ -1771,26 +1774,27 @@ function renderHitAnalysis() {
   const box = $("#hitanalysis"); const r = HITA.result;
   if (!box || !r) return;
   const a = r.analysis || {}, st = r.structure || {};
-  box.innerHTML = `<div class="sub-editor-head"><h2>分析结果</h2>
+  box.innerHTML = `<div class="sub-editor-head"><h2>结构体检（非播放预测）</h2>
       <button class="btn" onclick="saveAnalyzedCase()">保存到案例库</button></div>
-    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:14px">
-      <div style="text-align:center"><div class="hit-grade">${esc(a.grade || "—")}</div>
-        <div class="muted" style="font-size:var(--fs-sm)">综合 ${a.overall || 0} · 置信度 ${r.confidence}%</div></div>
-      <div style="flex:1;min-width:240px">
-        <div style="font-size:var(--fs-table)"><b>${esc((r.formula || {}).name || "")}</b>
-          <span class="muted"> · ${esc((r.formula || {}).desc || "")}</span></div>
-        <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">前 3 秒：${esc(r.hook_type)} · 断章：${esc(r.cliffhanger_type)}</div>
-      </div></div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">${a.assessable || 0}/6 项可评估 · 置信度 ${r.confidence}%${(a.missing && a.missing.length) ? " · 数据不足：" + esc(a.missing.join("、")) : ""}</div>
+    <div class="hit-facts">${(a.facts || []).map(f => `<div class="hit-fact">
+      <span>${esc(f.label)}</span><b>${f.value ? esc(f.value) : "数据不足"}</b></div>`).join("")}</div>
+    <div style="margin-top:14px">
+      <div style="font-size:var(--fs-table)"><b>${esc((r.formula || {}).name || "")}</b>
+        <span class="muted"> · ${esc((r.formula || {}).desc || "")}</span></div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">前 3 秒：${esc(r.hook_type)} · 断章：${esc(r.cliffhanger_type)}</div>
+    </div>
     <h2 style="margin-top:20px">结构拆解</h2>
     <div class="kv"><div class="k">开局</div><div>${esc(st.opening || "—")}</div>
       <div class="k">推进</div><div>${esc(st.progression || "—")}</div>
       <div class="k">节奏</div><div>${esc(st.cadence || "—")}</div></div>
     <h2 style="margin-top:20px">视觉与吸量</h2>
     <div class="muted" style="font-size:var(--fs-table);line-height:1.7">${esc(r.visual || "—")}</div>
-    <div class="hit-dims">${(a.dimensions || []).map(d => `<div class="hit-dim">
-      <div class="hd-head"><span>${esc(d.label)}</span><b>${d.score}</b></div>
-      <div class="bar-track"><i style="width:${d.score}%"></i></div>
-      <p>${esc(d.suggestion)}</p></div>`).join("")}</div>
+    <div class="hit-dims">${(a.dimensions || []).map(d => `<div class="hit-dim ${d.status === "missing" ? "missing" : ""}">
+      <div class="hd-head"><span>${esc(d.label)}</span>
+        <span class="pill ${hitBandClass(d.band)}">${esc(d.band)}</span></div>
+      <ul class="hit-evidence">${(d.evidence || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul>
+      ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>
     <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(r.note || "")}</div>`;
 }
 async function saveAnalyzedCase() {
