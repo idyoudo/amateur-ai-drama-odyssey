@@ -612,6 +612,7 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .model-add{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .model-add-head{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-bottom:8px}
 .model-add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.model-add-grid .btn{height:38px}
+.model-add-grid input,.model-add-grid select,.model-add-grid .btn{height:40px;box-sizing:border-box}
+.model-add-grid .btn{grid-column:1/-1;width:100%}
 @media (max-width:860px){.model-add-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.model-add-grid{grid-template-columns:1fr}}
