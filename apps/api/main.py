@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
 from film import formats as fmt
+from film import hits as hits_mod
 from film import marketing as marketing_mod
 from film import novels as novel_parser
 from film import subtitles as subtitle_mod
@@ -92,6 +93,24 @@ def _bootstrap_admin():
 
 
 _bootstrap_admin()
+
+
+def _seed_hit_cases():
+    with Session() as s:
+        if s.query(jobs_db.HitCase).count():
+            return
+        for c in hits_mod.SEED_CASES:
+            s.add(jobs_db.HitCase(title=c["title"], platform=c["platform"],
+                                  genre=c["genre"], heat_note=c["heat_note"],
+                                  verified=False, formula=c["formula"],
+                                  hook_type=c["hook_type"],
+                                  cliffhanger_type=c["cliffhanger_type"],
+                                  structure=c["structure"], visual=c["visual"],
+                                  why_text=c["why"], source_note=c["source_note"]))
+        s.commit()
+
+
+_seed_hit_cases()
 
 
 def _role_for(username):
@@ -2005,6 +2024,123 @@ def marketing_zip(project_id: int):
     filename = "marketing-%s.zip" % project_id
     return Response(buf.getvalue(), media_type="application/zip",
                     headers={"Content-Disposition": 'attachment; filename="%s"' % filename})
+
+
+def _hit_json(c):
+    f = hits_mod.FORMULAS.get(c.formula or "", {})
+    return {"id": c.id, "title": c.title, "platform": c.platform, "genre": c.genre,
+            "heat_note": c.heat_note or "", "play_count": c.play_count,
+            "verified": bool(c.verified),
+            "formula": c.formula or "", "formula_name": f.get("name", ""),
+            "formula_desc": f.get("desc", ""),
+            "hook_type": c.hook_type or "", "cliffhanger_type": c.cliffhanger_type or "",
+            "structure": c.structure or {}, "visual": c.visual or "",
+            "why": c.why_text or "", "source_note": c.source_note or "",
+            "updated_at": c.updated_at.isoformat() if c.updated_at else ""}
+
+
+def _hit_payload(body):
+    formula = str(body.get("formula") or "")
+    if formula and formula not in hits_mod.FORMULAS:
+        raise HTTPException(status_code=422, detail="爆款配方非法")
+    play_count = body.get("play_count")
+    if play_count not in (None, ""):
+        try:
+            play_count = max(0, int(play_count))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="播放量需为非负整数")
+    else:
+        play_count = None
+    return {"title": str(body.get("title") or "").strip()[:128],
+            "platform": str(body.get("platform") or "红果漫剧")[:64],
+            "genre": str(body.get("genre") or "")[:64],
+            "heat_note": str(body.get("heat_note") or "")[:512],
+            "play_count": play_count, "verified": bool(body.get("verified")),
+            "formula": formula,
+            "hook_type": str(body.get("hook_type") or "")[:32],
+            "cliffhanger_type": str(body.get("cliffhanger_type") or "")[:32],
+            "structure": body.get("structure") if isinstance(body.get("structure"), dict) else {},
+            "visual": str(body.get("visual") or "")[:512],
+            "why_text": str(body.get("why") or body.get("why_text") or "")[:1024],
+            "source_note": str(body.get("source_note") or "")[:512]}
+
+
+@app.get("/api/hits")
+def list_hits():
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.HitCase).order_by(jobs_db.HitCase.id)).all()
+    return {"items": [_hit_json(c) for c in rows], "playbook": hits_mod.playbook()}
+
+
+@app.get("/api/hits/playbook")
+def hit_playbook():
+    return hits_mod.playbook()
+
+
+@app.get("/api/hits/{hit_id}")
+def get_hit(hit_id: int):
+    with Session() as s:
+        c = s.get(jobs_db.HitCase, hit_id)
+        if c is None:
+            raise HTTPException(status_code=404, detail="案例不存在")
+        return _hit_json(c)
+
+
+@app.post("/api/hits")
+def create_hit(body: dict):
+    data = _hit_payload(body)
+    if not data["title"]:
+        raise HTTPException(status_code=422, detail="案例标题必填")
+    with Session() as s:
+        c = jobs_db.HitCase(**data)
+        s.add(c)
+        s.commit()
+        return _hit_json(c)
+
+
+@app.patch("/api/hits/{hit_id}")
+def update_hit(hit_id: int, body: dict):
+    data = _hit_payload(body)
+    with Session() as s:
+        c = s.get(jobs_db.HitCase, hit_id)
+        if c is None:
+            raise HTTPException(status_code=404, detail="案例不存在")
+        for k, v in data.items():
+            if k == "title" and not v:
+                continue
+            setattr(c, k, v)
+        s.commit()
+        return _hit_json(c)
+
+
+@app.delete("/api/hits/{hit_id}")
+def delete_hit(hit_id: int):
+    with Session() as s:
+        c = s.get(jobs_db.HitCase, hit_id)
+        if c is None:
+            raise HTTPException(status_code=404, detail="案例不存在")
+        s.delete(c)
+        s.commit()
+    return {"deleted": True, "id": hit_id}
+
+
+@app.get("/api/dramas/{project_id}/hit-check")
+def hit_check(project_id: int):
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        scripts = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.episode_id)).all()
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id)).all()
+    project = {"id": p.id, "title": p.title, "logline": p.logline, "genre": p.genre,
+               "episodes": p.episodes, "minutes": p.minutes,
+               "delivery_spec": p.delivery_spec or {}}
+    scenes = [sc for script in scripts for sc in (script.scenes or [])]
+    shot_rows = [{"size": sh.size, "move": sh.move, "duration": sh.duration,
+                  "characters": sh.characters or []} for sh in shots]
+    return hits_mod.analyze_project(project, scenes, shot_rows)
 
 
 @app.get("/api/jobs/summary")

@@ -5,6 +5,8 @@
 import html
 import json
 
+from film import hits as hits_mod
+
 CHANNELS = [
     ("hongguo", "红果漫剧"), ("douyin", "抖音短剧"), ("kuaishou", "快手星芒"),
     ("youtube_shorts", "YouTube Shorts"), ("youtube", "YouTube 长视频"),
@@ -138,6 +140,8 @@ def build_kit(project, scenes=None, shots=None):
         "hooks": hooks,
         "captions": captions,
         "hashtags": _hashtags(project.get("genre")),
+        "formula": hits_mod.formula_for_genre(project.get("genre")),
+        "hook_types": [{"type": t, "desc": d} for t, d in hits_mod.HOOK_TYPES],
         "trailer": {"beats": beats, "total_seconds": total},
         "posters": {
             "portrait": _poster_svg(project, fmt, 1080, 1920, hooks[0] if hooks else ""),

@@ -67,6 +67,7 @@ d = r.json()
 check("红果 300 章建议", r.status_code == 200 and d["aspect"] == "9:16"
       and d["episodes"] == 100 and d["seasons"] == 2)
 check("红果单集 1 分钟", d["episode_seconds"] == 60)
+check("推荐含爆款配方", d.get("hit_formula", {}).get("name") == "极端反差 / 打脸")
 r = client.post("/api/formats/recommend", headers=H,
                 json={"platform_key": "youtube", "source_type": "novel", "chapters": 300})
 d = r.json()
@@ -576,6 +577,24 @@ r = client.get("/api/dramas/%d/marketing-kit.zip" % p2, headers=H)
 check("营销素材包", r.status_code == 200
       and r.headers["content-type"].startswith("application/zip")
       and len(r.content) > 1000)
+
+# 爆款分析
+r = client.get("/api/hits", headers=H)
+d = r.json()
+check("爆款案例库", r.status_code == 200 and len(d["items"]) >= 3
+      and any(x["title"] == "穷骨荒神" for x in d["items"]))
+check("爆款配方 6 个", len(d["playbook"]["formulas"]) == 6)
+r = client.get("/api/dramas/%d/hit-check" % p2, headers=H)
+d = r.json()
+check("爆款体检", r.status_code == 200 and "overall" in d
+      and len(d["dimensions"]) == 6)
+r = client.post("/api/hits", headers=H,
+                json={"title": "测试案例", "genre": "悬疑",
+                      "formula": "underdog", "heat_note": "测试"})
+hid = r.json().get("id")
+check("新增案例", r.status_code == 200 and r.json()["title"] == "测试案例")
+r = client.delete("/api/hits/%d" % hid, headers=H)
+check("删除案例", r.status_code == 200 and r.json()["deleted"] is True)
 
 total = _total[0]
 passed = total - len(_failed)

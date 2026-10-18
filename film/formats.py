@@ -11,6 +11,8 @@
 """
 import math
 
+from film import hits as hits_mod
+
 PLATFORMS = {
     "hongguo": {
         "name": "红果漫剧", "aspect": "9:16", "episode_seconds": 60,
@@ -108,6 +110,8 @@ def recommend(platform="hongguo", source_type="original", words_wan=0, chapters=
         "seasons": seasons,
         "reason": "；".join(reasons),
         "manual_allowed": True,
+        "hit_formula": hits_mod.formula_for_genre(genre),
+        "hook_types": [{"type": t, "desc": d} for t, d in hits_mod.HOOK_TYPES[:3]],
     }
 
 

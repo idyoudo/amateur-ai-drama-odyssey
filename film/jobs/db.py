@@ -226,6 +226,28 @@ class Distribution(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class HitCase(Base):
+    """爆款案例库：题材、配方、钩子/断章结构、热度备注与来源说明。"""
+    __tablename__ = "hit_cases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(128), nullable=False)
+    platform: Mapped[str] = mapped_column(String(64), default="红果漫剧")
+    genre: Mapped[str] = mapped_column(String(64), nullable=True)
+    heat_note: Mapped[str] = mapped_column(String(512), nullable=True)
+    play_count: Mapped[int] = mapped_column(Integer, nullable=True)
+    verified: Mapped[bool] = mapped_column(default=False)
+    formula: Mapped[str] = mapped_column(String(32), nullable=True)
+    hook_type: Mapped[str] = mapped_column(String(32), nullable=True)
+    cliffhanger_type: Mapped[str] = mapped_column(String(32), nullable=True)
+    structure: Mapped[dict] = mapped_column(JSON, default=dict)
+    visual: Mapped[str] = mapped_column(String(512), nullable=True)
+    why_text: Mapped[str] = mapped_column(String(1024), nullable=True)
+    source_note: Mapped[str] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Settlement(Base):
     """商业化结算台账：IAP/IAA/订阅/分成（本地登记，未接平台财务 API）。"""
     __tablename__ = "settlements"
