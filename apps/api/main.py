@@ -245,6 +245,16 @@ def _looks_like_mask(v):
     return ("…" in v) or ("••" in v) or ("***" in v)
 
 
+def _paginate(items, limit, offset):
+    """列表分页：limit 为空时保持全量返回（向后兼容），同时给出 total。"""
+    total = len(items)
+    if limit is None:
+        return items, total, None, 0
+    off = max(0, offset)
+    lim = max(1, min(200, limit))
+    return items[off:off + lim], total, lim, off
+
+
 class LoginBody(BaseModel):
     username: str
     password: str
@@ -291,10 +301,16 @@ def _active_admin_count(s):
 
 
 @app.get("/api/team")
-def list_team():
+def list_team(limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         users = s.scalars(select(jobs_db.User).order_by(jobs_db.User.id)).all()
-    return {"items": [_user_json(u) for u in users], "roles": ROLES}
+    items = [_user_json(u) for u in users]
+    page, total, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total, "limit": lim, "offset": off,
+            "summary": {"active": sum(1 for u in items if u["active"]),
+                        "admins": sum(1 for u in items if u["role"] == "admin"),
+                        "inactive": sum(1 for u in items if not u["active"])},
+            "roles": ROLES}
 
 
 @app.post("/api/team")
@@ -611,7 +627,8 @@ def set_lifecycle(project_id: int, body: dict):
 
 
 @app.get("/api/dramas")
-def list_projects(q: Optional[str] = None, limit: Optional[int] = None, offset: int = 0):
+def list_projects(q: Optional[str] = None, limit: Optional[int] = None, offset: int = 0,
+                  sort: str = "id"):
     out = []
     with Session() as s:
         rows = s.scalars(select(jobs_db.Project).order_by(jobs_db.Project.id.desc())).all()
@@ -630,15 +647,18 @@ def list_projects(q: Optional[str] = None, limit: Optional[int] = None, offset: 
                         "deliverable": deliverable,
                         "stages_passed": (run.result.get("summary", {}).get("passed") if run else 0) or 0,
                         "shots": n_shots})
+    if sort == "title":
+        out.sort(key=lambda p: ((p.get("title") or ""), -(p.get("id") or 0)))
+    elif sort == "deliverable":
+        out.sort(key=lambda p: (not p.get("deliverable"), -(p.get("id") or 0)))
     if limit is None:
         return out
     needle = str(q or "").strip().lower()
     if needle:
         out = [p for p in out if needle in " ".join(
             str(p.get(k) or "") for k in ("title", "logline", "genre", "platform", "status")).lower()]
-    off = max(0, offset)
-    lim = max(1, min(100, limit))
-    return {"items": out[off:off + lim], "total": len(out), "q": q or "",
+    page, total, lim, off = _paginate(out, limit, offset)
+    return {"items": page, "total": total, "q": q or "",
             "limit": lim, "offset": off}
 
 
@@ -834,8 +854,11 @@ def list_episodes(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         rows = s.query(jobs_db.Shot.episode_id, func.count(jobs_db.Shot.id)).filter(
             jobs_db.Shot.project_id == project_id).group_by(jobs_db.Shot.episode_id).all()
+        scripts = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id)).all()
+        scenes = {str(r.episode_id or 1): len(r.scenes or []) for r in scripts}
     return {"episodes": p.episodes or 6, "minutes": p.minutes or 30,
-            "breakdown": {str(r[0] or 1): r[1] for r in rows}}
+            "breakdown": {str(r[0] or 1): r[1] for r in rows}, "scenes": scenes}
 
 
 @app.get("/api/dramas/{project_id}/shots")
@@ -1324,7 +1347,7 @@ def _dist_json(r, projs):
 
 @app.get("/api/distributions")
 def list_distributions(project_id: Optional[int] = None, channel_key: str = "",
-                       status: str = ""):
+                       status: str = "", limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
         q = select(jobs_db.Distribution)
@@ -1345,8 +1368,10 @@ def list_distributions(project_id: Optional[int] = None, channel_key: str = "",
                            "count": len(sub),
                            "views": sum(i["metrics"]["views"] for i in sub),
                            "revenue": sum(i["metrics"]["revenue"] for i in sub)})
-    return {"items": items, "channels": fmt.public_channels()["channels"],
-            "summary": {"total": len(items),
+    page, total, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total, "limit": lim, "offset": off,
+            "channels": fmt.public_channels()["channels"],
+            "summary": {"total": total,
                         "published": sum(1 for i in items if i["status"] == "已发布"),
                         "scheduled": sum(1 for i in items if i["status"] == "已排期"),
                         "views": total_views, "revenue": round(total_revenue, 2),
@@ -1446,7 +1471,8 @@ def _review_json(r, projs):
 
 
 @app.get("/api/reviews")
-def list_reviews(project_id: Optional[int] = None, status: str = ""):
+def list_reviews(project_id: Optional[int] = None, status: str = "",
+                 limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
         q = select(jobs_db.Review)
@@ -1456,8 +1482,9 @@ def list_reviews(project_id: Optional[int] = None, status: str = ""):
             q = q.where(jobs_db.Review.status == status)
         rows = s.scalars(q.order_by(jobs_db.Review.updated_at.desc())).all()
         items = [_review_json(r, projs) for r in rows]
-    return {"items": items,
-            "summary": {"total": len(items),
+    page, total, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total, "limit": lim, "offset": off,
+            "summary": {"total": total,
                         "pending": sum(1 for i in items if i["status"] == "待审"),
                         "approved": sum(1 for i in items if i["status"] == "通过"),
                         "rejected": sum(1 for i in items if i["status"] == "驳回")}}
@@ -1542,7 +1569,8 @@ def _get_track(s, track_id):
 
 
 @app.get("/api/subtitles")
-def list_subtitles(project_id: Optional[int] = None, episode_id: Optional[int] = None):
+def list_subtitles(project_id: Optional[int] = None, episode_id: Optional[int] = None,
+                   limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
         q = select(jobs_db.SubtitleTrack)
@@ -1552,7 +1580,9 @@ def list_subtitles(project_id: Optional[int] = None, episode_id: Optional[int] =
             q = q.where(jobs_db.SubtitleTrack.episode_id == episode_id)
         rows = s.scalars(q.order_by(jobs_db.SubtitleTrack.updated_at.desc())).all()
         items = [_sub_json(t, projs) for t in rows]
-    return {"items": items, "languages": SUBTITLE_LANGUAGES, "statuses": list(SUBTITLE_STATUSES)}
+    page, total, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total, "limit": lim, "offset": off,
+            "languages": SUBTITLE_LANGUAGES, "statuses": list(SUBTITLE_STATUSES)}
 
 
 @app.get("/api/subtitles/{track_id}")
@@ -1792,7 +1822,8 @@ def _norm_tags(v):
 
 
 @app.get("/api/templates")
-def list_templates(q: str = "", category: str = ""):
+def list_templates(q: str = "", category: str = "",
+                   limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         query = select(jobs_db.Template)
         if q.strip():
@@ -1802,7 +1833,9 @@ def list_templates(q: str = "", category: str = ""):
         if category:
             query = query.where(jobs_db.Template.category == category)
         rows = s.scalars(query.order_by(jobs_db.Template.updated_at.desc())).all()
-    return {"items": [_template_json(t) for t in rows],
+    items = [_template_json(t) for t in rows]
+    page, total, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total, "limit": lim, "offset": off,
             "categories": list(TEMPLATE_CATEGORIES)}
 
 
@@ -1875,7 +1908,7 @@ def _settlement_json(s, projs):
 
 @app.get("/api/settlements")
 def list_settlements(project_id: Optional[int] = None, channel_key: str = "",
-                     period: str = ""):
+                     period: str = "", limit: Optional[int] = None, offset: int = 0):
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
         q = select(jobs_db.Settlement)
@@ -1895,8 +1928,11 @@ def list_settlements(project_id: Optional[int] = None, channel_key: str = "",
     for ch in fmt.DISTRIBUTION_CHANNELS:
         sub = [i for i in items if i["channel_key"] == ch]
         by_channel.append({"key": ch, "name": fmt.PLATFORMS[ch]["name"],
+                           "count": len(sub),
                            "amount": round(sum(i["amount"] for i in sub), 2)})
-    return {"items": items, "types": list(SETTLEMENT_TYPES),
+    page, total_count, lim, off = _paginate(items, limit, offset)
+    return {"items": page, "total": total_count, "limit": lim, "offset": off,
+            "types": list(SETTLEMENT_TYPES),
             "channels": fmt.public_channels()["channels"],
             "summary": {"total": total, "by_type": by_type, "by_channel": by_channel}}
 
@@ -2219,15 +2255,20 @@ def hit_check(project_id: int):
 
 
 @app.get("/api/jobs/summary")
-def jobs_summary(limit: int = 100, offset: int = 0):
+def jobs_summary(limit: int = 100, offset: int = 0, status: str = ""):
     """跨项目任务聚合：状态 + 真实进度 / 失败原因 / 尝试次数 / 租约 epoch。"""
     limit = max(1, min(limit, 200))
     offset = max(0, offset)
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
-        rows = s.scalars(select(jobs_db.Job).order_by(jobs_db.Job.id.desc())
+        q = select(jobs_db.Job)
+        cq = s.query(jobs_db.Job)
+        if status:
+            q = q.where(jobs_db.Job.status == status)
+            cq = cq.filter(jobs_db.Job.status == status)
+        rows = s.scalars(q.order_by(jobs_db.Job.id.desc())
                          .offset(offset).limit(limit)).all()
-        total = s.query(jobs_db.Job).count()
+        total = cq.count()
     def _title(pid):
         try:
             return projs.get(int(pid), "")

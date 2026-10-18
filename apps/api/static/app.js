@@ -325,7 +325,10 @@ window.addEventListener("hashchange", () => {
 
 /* ---------- 概览 ---------- */
 async function viewOverview() {
-  const [cfg, projs] = await Promise.all([api("/api/models/config"), api("/api/dramas")]);
+  const [cfg, d] = await Promise.all([api("/api/models/config"),
+    api("/api/dramas?limit=6&offset=0&sort=id")]);
+  const projs = d.items || [];
+  const projTotal = d.total || 0;
   const configured = cfg.available.length;
   setMain({
     title: "概览",
@@ -335,7 +338,7 @@ async function viewOverview() {
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
       <div class="stat"><div class="k">${configured}</div><div class="l">已配置模型</div></div>
-      <div class="stat"><div class="k">${projs.length}</div><div class="l">项目</div></div>
+      <div class="stat"><div class="k">${projTotal}</div><div class="l">项目</div></div>
     </div>
     <h2>制作流程</h2>
     <div class="card">
@@ -621,33 +624,72 @@ async function viewProjectCreate() {
   pickSource("original");
   refreshFormatRec();
 }
+const PROJS = { items: [], total: 0, page: 1, pages: 1, limit: 12, q: "", sort: "id" };
+let _projListTimer = null;
+function scheduleProjectSearch() { PROJS.page = 1; clearTimeout(_projListTimer); _projListTimer = setTimeout(reloadProjectsList, 300); }
+function changeProjectSort() { PROJS.page = 1; reloadProjectsList(); }
 async function viewProjects() {
-  const projs = await api("/api/dramas");
   let fmts = { platforms: {} };
   try { fmts = await api("/api/formats"); } catch (e) {}
   window._FMTS = fmts;
+  PROJS.page = 1; PROJS.q = ""; PROJS.sort = "id";
+  await reloadProjectsList();
+}
+async function reloadProjectsList() {
+  const q = $("#psearch"); if (q) PROJS.q = q.value || "";
+  const s = $("#psort"); if (s) PROJS.sort = s.value || "id";
+  const params = new URLSearchParams({ limit: String(PROJS.limit),
+    offset: String((PROJS.page - 1) * PROJS.limit), sort: PROJS.sort });
+  if (PROJS.q) params.set("q", PROJS.q);
+  let d;
+  try { d = await api("/api/dramas?" + params.toString()); }
+  catch (e) { toast("项目加载失败：" + e.message); return; }
+  PROJS.items = d.items || [];
+  PROJS.total = d.total || 0;
+  PROJS.pages = Math.max(1, Math.ceil(PROJS.total / PROJS.limit));
+  renderProjects();
+}
+async function projectsGoPage(n) {
+  if (n < 1 || n > PROJS.pages || n === PROJS.page) return;
+  PROJS.page = n;
+  await reloadProjectsList();
+}
+function renderProjects() {
+  const ae = document.activeElement;
+  const focusId = ae && ae.id ? ae.id : null;
+  const selStart = ae && typeof ae.selectionStart === "number" ? ae.selectionStart : null;
   setMain({
     title: "项目",
     top: `<div class="right"><button class="btn sm" onclick="go('new-project')">新建项目</button>
-      <span class="pill">${projs.length} 个项目</span></div>`,
+      <span class="pill">${PROJS.total} 个项目</span></div>`,
     body: `
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-      <input id="psearch" placeholder="搜索片名 / logline" style="max-width:260px" oninput="filterProjs()">
-      <select id="psort" style="max-width:170px" onchange="filterProjs()">
-        <option value="id">按创建时间</option><option value="title">按片名</option>
-        <option value="deliverable">可交付优先</option></select>
+      <input id="psearch" placeholder="搜索片名 / logline / 题材" style="max-width:260px" value="${esc(PROJS.q)}" oninput="scheduleProjectSearch()">
+      <select id="psort" style="max-width:170px" onchange="changeProjectSort()">
+        <option value="id" ${PROJS.sort === "id" ? "selected" : ""}>按创建时间</option>
+        <option value="title" ${PROJS.sort === "title" ? "selected" : ""}>按片名</option>
+        <option value="deliverable" ${PROJS.sort === "deliverable" ? "selected" : ""}>可交付优先</option></select>
+      <span class="muted" style="font-size:var(--fs-sm)">共 ${PROJS.total} 个 · 第 ${PROJS.page}/${PROJS.pages} 页</span>
       <div style="display:flex;gap:4px;margin-left:auto">
         <button class="btn ghost sm" id="viewlist" onclick="setProjView('list')">列表</button>
         <button class="btn ghost sm" id="viewboard" onclick="setProjView('board')">看板</button>
       </div>
     </div>
-    <div class="cards" id="plist">${projs.length ? projs.map(projectCard).join("") : ""}</div>
+    <div class="cards" id="plist">${PROJS.items.length ? PROJS.items.map(projectCard).join("") : ""}</div>
     <div id="pboard" class="hide"></div>
-    ${projs.length ? "" : `<div class="card empty">${ico("film")}<div>还没有项目</div>
-      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
-      <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div></div>`}`,
+    <div id="projpager">${pagerHtml(PROJS.page, PROJS.pages, "projectsGoPage")}</div>
+    ${PROJS.total ? "" : `<div class="card empty">${ico("film")}<div>${PROJS.q ? "无匹配项目" : "还没有项目"}</div>
+      ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
+      <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div>`}</div>`}`,
   });
-  window._PROJS = projs;
+  setProjView(PROJ_VIEW);
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) {
+      el.focus();
+      if (selStart !== null) { try { el.setSelectionRange(selStart, selStart); } catch (e) {} }
+    }
+  }
 }
 
 /* 异步按钮 loading 封装：执行期间禁用并显示"处理中…" */
@@ -660,23 +702,16 @@ async function withLoading(btn, fn) {
   catch (e) { toast("操作失败：" + e.message); }
   finally { btn.disabled = dis; btn.innerHTML = old; delete btn.dataset.loading; }
 }
-function filterProjs() {
-  const q = (($("#psearch") || {}).value || "").toLowerCase();
-  const sort = ($("#psort") || {}).value || "id";
-  let list = (window._PROJS || []).filter(p =>
-    !q || (p.title || "").toLowerCase().includes(q) || (p.logline || "").toLowerCase().includes(q));
-  if (sort === "title") list = list.slice().sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-  else if (sort === "deliverable") list = list.slice().sort((a, b) => (b.deliverable ? 1 : 0) - (a.deliverable ? 1 : 0));
-  $("#plist").innerHTML = list.length ? list.map(projectCard).join("") : `<div class="card empty">${ico("film")}<div>无匹配项目</div></div>`;
-}
 
 let PROJ_VIEW = "list";
 function setProjView(v) {
   PROJ_VIEW = v;
-  $("#plist").classList.toggle("hide", v !== "list");
-  $("#pboard").classList.toggle("hide", v !== "board");
-  $("#viewlist").classList.toggle("acc", v === "list");
-  $("#viewboard").classList.toggle("acc", v === "board");
+  const list = $("#plist"), board = $("#pboard"), pager = $("#projpager");
+  if (list) list.classList.toggle("hide", v !== "list");
+  if (board) board.classList.toggle("hide", v !== "board");
+  if (pager) pager.classList.toggle("hide", v !== "list");
+  if ($("#viewlist")) $("#viewlist").classList.toggle("acc", v === "list");
+  if ($("#viewboard")) $("#viewboard").classList.toggle("acc", v === "board");
   if (v === "board") renderBoard();
 }
 function lifecycleActions(p) {
@@ -690,23 +725,28 @@ function lifecycleActions(p) {
   acts.push(b("archived", "归档", true));
   return acts.join("");
 }
-function renderBoard() {
+async function renderBoard() {
+  const box = $("#pboard"); if (!box) return;
+  box.innerHTML = `<div class="skeleton" style="height:180px"></div>`;
+  let d;
+  try { d = await api("/api/dramas?limit=200&offset=0&sort=id"); }
+  catch (e) { box.innerHTML = `<div class="card empty">看板加载失败：${esc(e.message)}</div>`; return; }
+  const list = d.items || [];
   const order = ["立项", "制作中", "可交付", "待审", "已交付", "归档"];
-  const list = window._PROJS || [];
   const col = (name) => `<div class="board-col"><div class="board-col-t">${name}<span class="muted">${list.filter(p => (p.lifecycle || "立项") === name).length}</span></div>
     <div class="board-cards">${list.filter(p => (p.lifecycle || "立项") === name).map(p =>
       `<div class="board-card" onclick="go('project:${p.id}')"><div class="bc-title">${esc(p.title)}</div>
         <div class="bc-meta">${p.episodes || 6} 集 · ${p.shots || 0} 镜</div>
         <div class="bc-actions">${lifecycleActions(p)}</div></div>`).join("") || `<div class="muted" style="font-size:var(--fs-meta);padding:6px 2px">—</div>`}</div></div>`;
-  $("#pboard").innerHTML = `<div class="board">${order.map(col).join("")}</div>`;
+  box.innerHTML = `<div class="board">${order.map(col).join("")}</div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">看板最多显示最近 200 个项目${d.total > list.length ? "（共 " + d.total + " 个，更多请用列表搜索）" : ""}。翻页请切回列表。</div>`;
 }
 async function setLifecycle(id, status, label) {
   try {
     await api("/api/dramas/" + id + "/lifecycle", { method: "PATCH",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     toast("已" + (label || "更新"));
-    const projs = await api("/api/dramas"); window._PROJS = projs;
-    if (PROJ_VIEW === "board") renderBoard(); else go("projects");
+    if (PROJ_VIEW === "board") renderBoard(); else await reloadProjectsList();
   } catch (e) { toast("操作失败：" + e.message); }
 }
 
@@ -790,26 +830,8 @@ async function viewProject(id) {
   $("#hitbtn").onclick = () => { window._HIT_PROJECT = String(id); go("hits"); };
   renderStageDetail(byName[CUR.stage]);
   renderModelRouting(id);
-  // 分集看板（每集卡片：镜数 + 集内剧本场数）
-  api("/api/dramas/" + id + "/episodes").then(async ep => {
-    const bar = $("#epbar"); if (!bar) return;
-    const cards = [];
-    for (let n = 1; n <= ep.episodes; n++) {
-      let sc = 0; try { sc = (await api("/api/dramas/" + id + "/script?episode=" + n)).scenes.length; } catch (e) {}
-      const cnt = ep.breakdown[String(n)] || 0;
-      cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--accent)" : ""}" onclick="pickEp(${id},${n})">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <b style="font-size:var(--fs-table)">第 ${n} 集</b>
-          ${n === CUR_EP ? '<span class="pill gold" style="font-size:var(--fs-micro)">当前</span>' : ""}</div>
-        <div class="muted" style="font-size:var(--fs-meta);margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
-    }
-    bar.innerHTML = `<div style="font-size:var(--fs-sm);color:var(--accent);margin-bottom:6px">分集看板</div>
-      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>`;
-  }).catch(e => {
-    const bar = $("#epbar");
-    if (bar) bar.innerHTML = `<div class="muted" style="color:var(--bad);font-size:var(--fs-sm)">分集看板加载失败：${esc(e.message)}
-      <button class="btn ghost sm" style="margin-left:8px" onclick="viewProject(${id})">重试</button></div>`;
-  });
+  // 分集看板（每集卡片：镜数 + 集内剧本场数；分集多时按页展示）
+  loadEpisodeBoard(id);
   // 制作统计（异步，按当前集）
   api("/api/dramas/" + id + "/shots?episode=" + CUR_EP).then(sh => {
     const gen = sh.filter(x => x.status === "已生成" || x.status === "已选定").length;
@@ -828,6 +850,45 @@ async function viewProject(id) {
   });
   window.pickStage = (n) => { CUR.stage = n; syncHash(hashFor("project", id, n)); viewProject(id); };
   replaceHash(hashFor("project", id, CUR.stage));
+}
+const EPBOARD = { project_id: null, page: 1, limit: 24, episodes: 0 };
+async function loadEpisodeBoard(id) {
+  const bar = $("#epbar"); if (!bar) return;
+  if (EPBOARD.project_id !== String(id)) { EPBOARD.project_id = String(id); EPBOARD.page = 1; }
+  let ep;
+  try { ep = await api("/api/dramas/" + id + "/episodes"); }
+  catch (e) {
+    bar.innerHTML = `<div class="muted" style="color:var(--bad);font-size:var(--fs-sm)">分集看板加载失败：${esc(e.message)}
+      <button class="btn ghost sm" style="margin-left:8px" onclick="loadEpisodeBoard(${id})">重试</button></div>`;
+    return;
+  }
+  EPBOARD.episodes = ep.episodes || 6;
+  const pages = Math.max(1, Math.ceil(EPBOARD.episodes / EPBOARD.limit));
+  if (EPBOARD.page > pages) EPBOARD.page = pages;
+  const start = (EPBOARD.page - 1) * EPBOARD.limit + 1;
+  const end = Math.min(EPBOARD.episodes, EPBOARD.page * EPBOARD.limit);
+  const cards = [];
+  for (let n = start; n <= end; n++) {
+    const cnt = ep.breakdown[String(n)] || 0;
+    const sc = (ep.scenes || {})[String(n)] || 0;
+    cards.push(`<div class="card click" style="padding:12px;${n === CUR_EP ? "border-color:var(--accent)" : ""}" onclick="pickEp(${id},${n})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b style="font-size:var(--fs-table)">第 ${n} 集</b>
+        ${n === CUR_EP ? '<span class="pill gold" style="font-size:var(--fs-micro)">当前</span>' : ""}</div>
+      <div class="muted" style="font-size:var(--fs-meta);margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
+  }
+  bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:var(--fs-sm);color:var(--accent)">分集看板 <span class="muted">· 共 ${EPBOARD.episodes} 集 · 第 ${EPBOARD.page}/${pages} 页</span></div>
+      ${pages > 1 ? `<span class="muted" style="font-size:var(--fs-sm)">第 ${start}–${end} 集</span>` : ""}
+    </div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>
+    ${pagerHtml(EPBOARD.page, pages, "epBoardPage")}`;
+}
+async function epBoardPage(n) {
+  const pages = Math.max(1, Math.ceil(EPBOARD.episodes / EPBOARD.limit));
+  if (n < 1 || n > pages || n === EPBOARD.page) return;
+  EPBOARD.page = n;
+  await loadEpisodeBoard(EPBOARD.project_id);
 }
 async function renderModelRouting(projectId) {
   const box = $("#mroutebody"); if (!box) return;
@@ -2079,8 +2140,8 @@ function renderAssets() {
 }
 async function viewAssets() {
   try {
-    const projs = await api("/api/dramas");
-    ASSET.projects = projs;
+    const projs = await api("/api/dramas?limit=200&offset=0&sort=title");
+    ASSET.projects = projs.items || [];
     ASSET.page = 1;
     await fetchAssets();
   } catch (e) {
@@ -2173,7 +2234,7 @@ async function exportAssets() {
 const SUB = { projects: [], tracks: [], languages: {}, statuses: [], project_id: "",
   episode: 1, language: "zh", track: null };
 async function viewSubtitles() {
-  try { SUB.projects = await api("/api/dramas"); }
+  try { SUB.projects = (await api("/api/dramas?limit=200&offset=0&sort=title")).items || []; }
   catch (e) { return setMain({ title: "字幕", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
   if (!SUB.projects.length) {
     return setMain({ title: "字幕", body: `<div class="card empty">${ico("doc")}<div>还没有项目</div>
@@ -2350,26 +2411,43 @@ function deleteSubtitleTrack() {
 }
 
 /* ---------- 模板 / 提示词库 ---------- */
-const TPL = { items: [], categories: [], selected: null, draft: null, q: "", category: "" };
+const TPL = { items: [], categories: [], selected: null, draft: null, q: "", category: "",
+  total: 0, page: 1, pages: 1, limit: 12 };
 let _tplTimer = null;
-function scheduleTemplateSearch() { clearTimeout(_tplTimer); _tplTimer = setTimeout(reloadTemplates, 300); }
-async function viewTemplates() { await reloadTemplates(); }
+function scheduleTemplateSearch() {
+  TPL.page = 1;
+  clearTimeout(_tplTimer); _tplTimer = setTimeout(reloadTemplates, 300);
+}
+async function viewTemplates() {
+  TPL.page = 1; TPL.q = ""; TPL.category = "";
+  await reloadTemplates();
+}
 async function reloadTemplates() {
   TPL.q = ($("#tpl_q") || {}).value || TPL.q;
   TPL.category = ($("#tpl_cat") || {}).value || TPL.category;
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ limit: String(TPL.limit),
+    offset: String((TPL.page - 1) * TPL.limit) });
   if (TPL.q) params.set("q", TPL.q);
   if (TPL.category) params.set("category", TPL.category);
   try {
     const d = await api("/api/templates?" + params.toString());
     TPL.items = d.items || [];
+    TPL.total = d.total || 0;
     TPL.categories = d.categories || [];
+    TPL.pages = Math.max(1, Math.ceil(TPL.total / TPL.limit));
+    if (TPL.page > TPL.pages) { TPL.page = TPL.pages; return reloadTemplates(); }
   } catch (e) { return toast("模板加载失败：" + e.message); }
   if (TPL.selected && !TPL.items.find(t => t.id === TPL.selected.id)) TPL.selected = null;
   renderTemplates();
   const q = $("#tpl_q");
   if (q && TPL.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
 }
+async function tplGoPage(n) {
+  if (n < 1 || n > TPL.pages || n === TPL.page) return;
+  TPL.page = n;
+  await reloadTemplates();
+}
+function tplChangeFilter() { TPL.page = 1; reloadTemplates(); }
 function tplEditorData() {
   return TPL.selected || TPL.draft || { name: "", category: "分镜", tags: [], content: "" };
 }
@@ -2384,7 +2462,7 @@ function renderTemplates() {
       <aside class="sub-side">
         <div class="card"><div class="stack">
           <input id="tpl_q" placeholder="搜索模板名称 / 内容" value="${esc(TPL.q)}" oninput="scheduleTemplateSearch()">
-          <select id="tpl_cat" onchange="reloadTemplates()">
+          <select id="tpl_cat" onchange="tplChangeFilter()">
             <option value="">全部分类</option>
             ${cats.map(c => `<option value="${esc(c)}" ${TPL.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
           </select>
@@ -2394,6 +2472,8 @@ function renderTemplates() {
             <div class="sub-item-head"><b>${esc(t.name)}</b><span class="pill">${esc(t.category)}</span></div>
             <div class="sub-item-meta">${esc((t.content || "").slice(0, 60))}${(t.content || "").length > 60 ? "…" : ""}</div>
           </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击右上角「新建模板」</div>`}</div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${TPL.total} 条 · 第 ${TPL.page}/${TPL.pages} 页</div>
+        ${pagerHtml(TPL.page, TPL.pages, "tplGoPage")}
       </aside>
       <section class="card sub-editor"><div class="stack">
         <div class="row2">
@@ -2440,6 +2520,9 @@ async function saveTemplate() {
       toast("模板已创建");
     }
     TPL.selected = d; TPL.draft = null;
+    TPL.page = 1;
+    const q = $("#tpl_q"); if (q) q.value = "";
+    const c = $("#tpl_cat"); if (c) c.value = "";
     await reloadTemplates();
     await selectTemplate(d.id);
   } catch (e) { toast("保存失败：" + e.message); }
@@ -2455,21 +2538,37 @@ function deleteTemplate() {
 }
 
 /* ---------- 分发中心（渠道 / 排期 / 发布 / 运营数据） ---------- */
-const DIST = { items: [], summary: {}, channels: [], projects: [] };
+const DIST = { items: [], summary: {}, channels: [], projects: [],
+  total: 0, page: 1, pages: 1, limit: 20 };
 function fmtNum(n) { return Number(n || 0).toLocaleString("zh-CN"); }
 function fmtDateTime(s) { return s ? String(s).slice(0, 16).replace("T", " ") : "—"; }
 async function viewDistribution() {
+  DIST.page = 1;
+  await loadDistributions();
+}
+async function loadDistributions() {
   try {
-    const [d, projs] = await Promise.all([api("/api/distributions"), api("/api/dramas")]);
+    const [d, projs] = await Promise.all([
+      api("/api/distributions?limit=" + DIST.limit + "&offset=" + ((DIST.page - 1) * DIST.limit)),
+      api("/api/dramas?limit=200&offset=0&sort=title"),
+    ]);
     DIST.items = d.items || [];
+    DIST.total = d.total || 0;
     DIST.summary = d.summary || {};
     DIST.channels = d.channels || [];
-    DIST.projects = projs;
+    DIST.projects = projs.items || [];
+    DIST.pages = Math.max(1, Math.ceil(DIST.total / DIST.limit));
+    if (DIST.page > DIST.pages) { DIST.page = DIST.pages; return loadDistributions(); }
   } catch (e) {
     return setMain({ title: "分发", body: `<div class="card empty">分发数据加载失败：${esc(e.message)}
       <div style="margin-top:12px"><button class="btn" onclick="viewDistribution()">重试</button></div></div>` });
   }
   renderDistribution();
+}
+async function distGoPage(n) {
+  if (n < 1 || n > DIST.pages || n === DIST.page) return;
+  DIST.page = n;
+  await loadDistributions();
 }
 function renderDistribution() {
   const s = DIST.summary || {};
@@ -2512,7 +2611,10 @@ function renderDistribution() {
           ${d.status !== "已发布" ? `<button class="btn sm" style="margin-left:4px" onclick="publishDistribution(${d.id})">发布</button>` : ""}
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteDistribution(${d.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="9" style="text-align:center;color:var(--dim)">还没有分发记录</td></tr>`}</tbody>
-    </table></div>`,
+    </table>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${DIST.total} 条 · 第 ${DIST.page}/${DIST.pages} 页</div>
+    </div>
+    ${pagerHtml(DIST.page, DIST.pages, "distGoPage")}`,
   }, true);
 }
 async function createDistribution() {
@@ -2525,7 +2627,7 @@ async function createDistribution() {
       body: JSON.stringify({ project_id, channel_key,
         scheduled_at: ($("#dist_schedule") || {}).value || null,
         note: ($("#dist_note") || {}).value || "" }) });
-    toast("已添加分发"); viewDistribution();
+    toast("已添加分发"); loadDistributions();
   } catch (e) { toast("添加失败：" + e.message); }
 }
 async function publishDistribution(id) {
@@ -2533,14 +2635,14 @@ async function publishDistribution(id) {
     await api("/api/distributions/" + id, { method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "已发布" }) });
-    toast("已标记发布"); viewDistribution();
+    toast("已标记发布"); loadDistributions();
   } catch (e) { toast("发布失败：" + e.message); }
 }
 function deleteDistribution(id) {
   confirmDialog("删除分发记录？", "仅删除本地登记，不会影响平台上的已发布内容。", async () => {
     try {
       await api("/api/distributions/" + id, { method: "DELETE" });
-      toast("已删除"); viewDistribution();
+      toast("已删除"); loadDistributions();
     } catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }
@@ -2586,24 +2688,40 @@ async function saveDistribution(id) {
   try {
     await api("/api/distributions/" + id, { method: "PATCH",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    toast("已保存"); closeModal(); viewDistribution();
+    toast("已保存"); closeModal(); loadDistributions();
   } catch (e) { toast("保存失败：" + e.message); }
 }
 
 /* ---------- 审核中心 ---------- */
-const REVIEW = { items: [], summary: {}, projects: [] };
+const REVIEW = { items: [], summary: {}, projects: [],
+  total: 0, page: 1, pages: 1, limit: 20 };
 const REVIEW_TARGET_OPTS = [["project", "项目"], ["episode", "剧集"], ["shot", "镜头"], ["delivery", "交付"]];
 async function viewReviews() {
+  REVIEW.page = 1;
+  await loadReviews();
+}
+async function loadReviews() {
   try {
-    const [d, projs] = await Promise.all([api("/api/reviews"), api("/api/dramas")]);
+    const [d, projs] = await Promise.all([
+      api("/api/reviews?limit=" + REVIEW.limit + "&offset=" + ((REVIEW.page - 1) * REVIEW.limit)),
+      api("/api/dramas?limit=200&offset=0&sort=title"),
+    ]);
     REVIEW.items = d.items || [];
+    REVIEW.total = d.total || 0;
     REVIEW.summary = d.summary || {};
-    REVIEW.projects = projs;
+    REVIEW.projects = projs.items || [];
+    REVIEW.pages = Math.max(1, Math.ceil(REVIEW.total / REVIEW.limit));
+    if (REVIEW.page > REVIEW.pages) { REVIEW.page = REVIEW.pages; return loadReviews(); }
   } catch (e) {
     return setMain({ title: "审核", body: `<div class="card empty">审核数据加载失败：${esc(e.message)}
       <div style="margin-top:12px"><button class="btn" onclick="viewReviews()">重试</button></div></div>` });
   }
   renderReviews();
+}
+async function reviewsGoPage(n) {
+  if (n < 1 || n > REVIEW.pages || n === REVIEW.page) return;
+  REVIEW.page = n;
+  await loadReviews();
 }
 function renderReviews() {
   const s = REVIEW.summary || {};
@@ -2638,7 +2756,10 @@ function renderReviews() {
           <button class="btn ghost sm" style="margin-left:4px" onclick="reviewDecision(${r.id},false)">驳回</button>` : ""}
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteReview(${r.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有审核记录</td></tr>`}</tbody>
-    </table></div>`,
+    </table>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${REVIEW.total} 条 · 第 ${REVIEW.page}/${REVIEW.pages} 页</div>
+    </div>
+    ${pagerHtml(REVIEW.page, REVIEW.pages, "reviewsGoPage")}`,
   }, true);
 }
 async function createReview() {
@@ -2651,7 +2772,7 @@ async function createReview() {
       body: JSON.stringify({ project_id, target_type: ($("#rv_target") || {}).value || "project",
         target_ref: ($("#rv_ref") || {}).value || "", title,
         comment: ($("#rv_comment") || {}).value || "" }) });
-    toast("已提交审核"); viewReviews();
+    toast("已提交审核"); loadReviews();
   } catch (e) { toast("提交失败：" + e.message); }
 }
 function reviewDecision(id, approve) {
@@ -2674,30 +2795,46 @@ async function submitReviewDecision(id, approve) {
     await api("/api/reviews/" + id, { method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: approve ? "通过" : "驳回",
         comment: ($("#rv_note") || {}).value || "" }) });
-    toast(approve ? "已通过" : "已驳回"); closeModal(); viewReviews();
+    toast(approve ? "已通过" : "已驳回"); closeModal(); loadReviews();
   } catch (e) { toast("操作失败：" + e.message); }
 }
 function deleteReview(id) {
   confirmDialog("删除审核记录？", "删除后不可恢复。", async () => {
-    try { await api("/api/reviews/" + id, { method: "DELETE" }); toast("已删除"); viewReviews(); }
+    try { await api("/api/reviews/" + id, { method: "DELETE" }); toast("已删除"); loadReviews(); }
     catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }
 
 /* ---------- 商业化结算台账 ---------- */
-const SETTLE = { items: [], summary: {}, channels: [], projects: [] };
+const SETTLE = { items: [], summary: {}, channels: [], projects: [],
+  total: 0, page: 1, pages: 1, limit: 20 };
 async function viewSettlements() {
+  SETTLE.page = 1;
+  await loadSettlements();
+}
+async function loadSettlements() {
   try {
-    const [d, projs] = await Promise.all([api("/api/settlements"), api("/api/dramas")]);
+    const [d, projs] = await Promise.all([
+      api("/api/settlements?limit=" + SETTLE.limit + "&offset=" + ((SETTLE.page - 1) * SETTLE.limit)),
+      api("/api/dramas?limit=200&offset=0&sort=title"),
+    ]);
     SETTLE.items = d.items || [];
+    SETTLE.total = d.total || 0;
     SETTLE.summary = d.summary || {};
     SETTLE.channels = d.channels || [];
-    SETTLE.projects = projs;
+    SETTLE.projects = projs.items || [];
+    SETTLE.pages = Math.max(1, Math.ceil(SETTLE.total / SETTLE.limit));
+    if (SETTLE.page > SETTLE.pages) { SETTLE.page = SETTLE.pages; return loadSettlements(); }
   } catch (e) {
     return setMain({ title: "商业化", body: `<div class="card empty">结算数据加载失败：${esc(e.message)}
       <div style="margin-top:12px"><button class="btn" onclick="viewSettlements()">重试</button></div></div>` });
   }
   renderSettlements();
+}
+async function settleGoPage(n) {
+  if (n < 1 || n > SETTLE.pages || n === SETTLE.page) return;
+  SETTLE.page = n;
+  await loadSettlements();
 }
 function settleTypeAmount(type) {
   const row = (SETTLE.summary.by_type || []).find(x => x.type === type);
@@ -2719,7 +2856,7 @@ function renderSettlements() {
     <div class="dist-channels">${(s.by_channel || []).map(c => `
       <div class="dist-channel">
         <div class="dc-head"><b>${esc(c.name)}</b><span class="pill">¥${fmtNum(c.amount)}</span></div>
-        <div class="dc-metrics"><span>${SETTLE.items.filter(i => i.channel_key === c.key).length} 笔</span><span>本月台账</span></div>
+        <div class="dc-metrics"><span>${c.count || 0} 笔</span><span>本月台账</span></div>
         <div class="bar-track"><i style="width:${Math.round((c.amount || 0) / maxCh * 100)}%"></i></div>
       </div>`).join("")}</div>
     <div class="card">
@@ -2743,7 +2880,10 @@ function renderSettlements() {
         <td><button class="btn ghost sm" onclick="editSettlement(${x.id})">编辑</button>
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteSettlement(${x.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有结算记录</td></tr>`}</tbody>
-    </table></div>`,
+    </table>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${SETTLE.total} 条 · 第 ${SETTLE.page}/${SETTLE.pages} 页</div>
+    </div>
+    ${pagerHtml(SETTLE.page, SETTLE.pages, "settleGoPage")}`,
   }, true);
 }
 async function createSettlement() {
@@ -2757,7 +2897,7 @@ async function createSettlement() {
         revenue_type: ($("#st_type") || {}).value, amount,
         period: ($("#st_period") || {}).value || "",
         note: ($("#st_note") || {}).value || "" }) });
-    toast("已添加结算"); viewSettlements();
+    toast("已添加结算"); loadSettlements();
   } catch (e) { toast("添加失败：" + e.message); }
 }
 function editSettlement(id) {
@@ -2787,28 +2927,45 @@ async function saveSettlement(id) {
         period: ($("#se_period") || {}).value || "",
         amount: Number(($("#se_amount") || {}).value || 0),
         note: ($("#se_note") || {}).value || "" }) });
-    toast("已保存"); closeModal(); viewSettlements();
+    toast("已保存"); closeModal(); loadSettlements();
   } catch (e) { toast("保存失败：" + e.message); }
 }
 function deleteSettlement(id) {
   confirmDialog("删除结算记录？", "删除后不可恢复。", async () => {
-    try { await api("/api/settlements/" + id, { method: "DELETE" }); toast("已删除"); viewSettlements(); }
+    try { await api("/api/settlements/" + id, { method: "DELETE" }); toast("已删除"); loadSettlements(); }
     catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }
 
 /* ---------- 团队与角色 ---------- */
-const TEAM = { items: [], roles: {}, me: {} };
+const TEAM = { items: [], roles: {}, me: {}, summary: {},
+  total: 0, page: 1, pages: 1, limit: 20 };
 async function viewTeam() {
+  TEAM.page = 1;
+  await loadTeam();
+}
+async function loadTeam() {
   try {
-    const [d, me] = await Promise.all([api("/api/team"), api("/api/auth/me")]);
+    const [d, me] = await Promise.all([
+      api("/api/team?limit=" + TEAM.limit + "&offset=" + ((TEAM.page - 1) * TEAM.limit)),
+      api("/api/auth/me"),
+    ]);
     TEAM.items = d.items || [];
+    TEAM.total = d.total || 0;
+    TEAM.summary = d.summary || {};
     TEAM.roles = d.roles || {};
     TEAM.me = me || {};
+    TEAM.pages = Math.max(1, Math.ceil(TEAM.total / TEAM.limit));
+    if (TEAM.page > TEAM.pages) { TEAM.page = TEAM.pages; return loadTeam(); }
   } catch (e) {
     return setMain({ title: "团队", body: `<div class="card empty">团队数据加载失败：${esc(e.message)}</div>` });
   }
   renderTeam();
+}
+async function teamGoPage(n) {
+  if (n < 1 || n > TEAM.pages || n === TEAM.page) return;
+  TEAM.page = n;
+  await loadTeam();
 }
 function renderTeam() {
   const isAdmin = TEAM.me.role === "admin";
@@ -2818,10 +2975,10 @@ function renderTeam() {
     top: `<div class="right"><span class="pill">${esc(TEAM.me.role_label || TEAM.me.role || "")}</span></div>`,
     body: `
     <div class="stats" style="margin-bottom:14px">
-      <div class="stat"><div class="k">${TEAM.items.length}</div><div class="l">成员</div></div>
-      <div class="stat"><div class="k">${TEAM.items.filter(u => u.active).length}</div><div class="l">启用中</div></div>
-      <div class="stat"><div class="k">${TEAM.items.filter(u => u.role === "admin").length}</div><div class="l">管理员</div></div>
-      <div class="stat"><div class="k">${TEAM.items.filter(u => !u.active).length}</div><div class="l">已停用</div></div>
+      <div class="stat"><div class="k">${TEAM.total}</div><div class="l">成员</div></div>
+      <div class="stat"><div class="k">${TEAM.summary.active || 0}</div><div class="l">启用中</div></div>
+      <div class="stat"><div class="k">${TEAM.summary.admins || 0}</div><div class="l">管理员</div></div>
+      <div class="stat"><div class="k">${TEAM.summary.inactive || 0}</div><div class="l">已停用</div></div>
     </div>
     ${isAdmin ? `<div class="card"><div class="toolbar">
       <input id="tm_user" placeholder="用户名">
@@ -2839,7 +2996,10 @@ function renderTeam() {
         ${isAdmin ? `<td><button class="btn ghost sm" onclick="editMember(${u.id})">编辑</button>
           ${u.username === TEAM.me.username ? "" : `<button class="btn ghost sm" style="margin-left:4px" onclick="deleteMember(${u.id})">删除</button>`}</td>` : ""}
       </tr>`).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无成员</td></tr>`}</tbody>
-    </table></div>
+    </table>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${TEAM.total} 人 · 第 ${TEAM.page}/${TEAM.pages} 页</div>
+    </div>
+    ${pagerHtml(TEAM.page, TEAM.pages, "teamGoPage")}
     <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">角色：管理员可管理团队与模型配置；法务只读；其余角色可执行制作类写入。</div>`,
   }, true);
 }
@@ -2851,7 +3011,7 @@ async function createMember() {
   try {
     await api("/api/team", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password, role: ($("#tm_role") || {}).value }) });
-    toast("已添加成员"); viewTeam();
+    toast("已添加成员"); loadTeam();
   } catch (e) { toast("添加失败：" + e.message); }
 }
 function editMember(id) {
@@ -2882,13 +3042,13 @@ async function saveMember(id) {
   try {
     await api("/api/team/" + id, { method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body) });
-    toast("已保存"); closeModal(); viewTeam();
+    toast("已保存"); closeModal(); loadTeam();
   } catch (e) { toast("保存失败：" + e.message); }
 }
 function deleteMember(id) {
   const u = TEAM.items.find(x => x.id === id); if (!u) return;
   confirmDialog("删除成员？", `将删除成员「${u.username}」，不可恢复。`, async () => {
-    try { await api("/api/team/" + id, { method: "DELETE" }); toast("已删除"); viewTeam(); }
+    try { await api("/api/team/" + id, { method: "DELETE" }); toast("已删除"); loadTeam(); }
     catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }
@@ -2897,7 +3057,7 @@ function deleteMember(id) {
 const MKT = { projects: [], project_id: "", kit: null };
 let _mktRecording = false;
 async function viewMarketing() {
-  try { MKT.projects = await api("/api/dramas"); }
+  try { MKT.projects = (await api("/api/dramas?limit=200&offset=0&sort=title")).items || []; }
   catch (e) { return setMain({ title: "营销", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
   if (!MKT.projects.length) {
     return setMain({ title: "营销", body: `<div class="card empty">${ico("sparkle")}<div>还没有项目</div>
@@ -3116,36 +3276,70 @@ function jobRowsHtml(jobs) {
     <td>${jobActionHtml(j)}</td></tr>`;
   }).join("");
 }
+const JOBS = { items: [], total: 0, page: 1, pages: 1, limit: 20, status: "" };
+const JOB_STATUS_LABELS = { queued: "排队中", running: "运行中", completed: "已完成",
+  failed: "失败", cancelled: "已取消" };
+function jobsQuery() {
+  const params = new URLSearchParams({ limit: String(JOBS.limit),
+    offset: String((JOBS.page - 1) * JOBS.limit) });
+  if (JOBS.status) params.set("status", JOBS.status);
+  return params.toString();
+}
 async function viewJobs() {
-  const d = await api("/api/jobs/summary?limit=100");
-  const jobs = d.jobs || [];
-  setMain({
-    title: "任务",
-    top: `<div class="right"><span class="muted" style="font-size:var(--fs-sm)">每 5 秒刷新</span>
-      <span class="pill" id="jobstotal">已显示 ${jobs.length} / 共 ${d.total || 0} 个任务</span></div>`,
-    body: `<div class="card">
-      <div class="toolbar">
-        <input id="job_pid" placeholder="项目 ID" style="max-width:220px">
-        <select id="job_type" style="max-width:200px">
-          <option value="adapt">剧本开发</option><option value="casting">选角定妆</option>
-          <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
-        <button class="btn" onclick="submitJob()">入队任务</button>
-      </div></div>
-    <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
-      <tbody id="jobstbl">${jobRowsHtml(jobs)}</tbody></table></div>`,
-  }, true);
+  JOBS.page = 1; JOBS.status = "";
+  await reloadJobs();
   stopJobsPoll();
   _jobsTimer = setInterval(refreshJobRows, 5000);
 }
+async function reloadJobs() {
+  const sel = $("#job_status"); if (sel) JOBS.status = sel.value || "";
+  let d;
+  try { d = await api("/api/jobs/summary?" + jobsQuery()); }
+  catch (e) { toast("任务加载失败：" + e.message); return; }
+  JOBS.items = d.jobs || []; JOBS.total = d.total || 0;
+  JOBS.pages = Math.max(1, Math.ceil(JOBS.total / JOBS.limit));
+  renderJobs();
+}
+async function jobsGoPage(n) {
+  if (n < 1 || n > JOBS.pages || n === JOBS.page) return;
+  JOBS.page = n;
+  await reloadJobs();
+}
+function jobsPager() { return pagerHtml(JOBS.page, JOBS.pages, "jobsGoPage"); }
+async function renderJobs() {
+  setMain({
+    title: "任务",
+    top: `<div class="right"><span class="muted" style="font-size:var(--fs-sm)">每 5 秒刷新</span>
+      <span class="pill" id="jobstotal">共 ${JOBS.total} 个任务</span></div>`,
+    body: `<div class="card">
+      <div class="toolbar">
+        <input id="job_pid" placeholder="项目 ID" style="max-width:180px">
+        <select id="job_type" style="max-width:180px">
+          <option value="adapt">剧本开发</option><option value="casting">选角定妆</option>
+          <option value="shot_video">镜头生成</option><option value="generate_voice">配音</option><option value="music">配乐</option></select>
+        <button class="btn" onclick="submitJob()">入队任务</button>
+        <select id="job_status" style="max-width:150px" onchange="jobsChangeFilter()">
+          <option value="">全部状态</option>
+          ${Object.entries(JOB_STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${JOBS.status === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+        <span class="muted" style="font-size:var(--fs-sm)">第 ${JOBS.page}/${JOBS.pages} 页 · 每页 ${JOBS.limit} 条</span>
+      </div></div>
+    <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
+      <tbody id="jobstbl">${jobRowsHtml(JOBS.items)}</tbody></table></div>
+    <div id="jobspager">${jobsPager()}</div>`,
+  }, true);
+}
+function jobsChangeFilter() { JOBS.page = 1; reloadJobs(); }
 async function refreshJobRows() {
   if (document.hidden || document.querySelector(".modal")) return;
   try {
-    const d = await api("/api/jobs/summary?limit=100");
-    const jobs = d.jobs || [];
+    const d = await api("/api/jobs/summary?" + jobsQuery());
+    JOBS.items = d.jobs || []; JOBS.total = d.total || 0;
+    JOBS.pages = Math.max(1, Math.ceil(JOBS.total / JOBS.limit));
     const t = $("#jobstbl"); if (!t) { stopJobsPoll(); return; }
-    t.innerHTML = jobRowsHtml(jobs);
+    t.innerHTML = jobRowsHtml(JOBS.items);
+    const pg = $("#jobspager"); if (pg) pg.innerHTML = jobsPager();
     const tot = $("#jobstotal");
-    if (tot) tot.textContent = `已显示 ${jobs.length} / 共 ${d.total || 0} 个任务`;
+    if (tot) tot.textContent = `共 ${JOBS.total} 个任务`;
   } catch (e) { /* 轮询失败保留上次好数据，不打断操作 */ }
 }
 async function submitJob(btn) {
@@ -3153,11 +3347,11 @@ async function submitJob(btn) {
   if (!pid) return toast("填项目 ID");
   try { await api("/api/drama-jobs", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ project_id: pid, type: type, idempotency_key: pid + ":" + type + ":" + Date.now() }) });
-    toast("已入队"); viewJobs();
+    toast("已入队"); reloadJobs();
   } catch (e) { toast("" + e.message); }
 }
 async function jobRetry(id) {
-  try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("已重试"); viewJobs(); }
+  try { await api("/api/drama-jobs/" + id + "/retry", { method: "POST" }); toast("已重试"); reloadJobs(); }
   catch (e) { toast("" + e.message); }
 }
 async function jobCancel(id, epoch) {
@@ -3166,7 +3360,7 @@ async function jobCancel(id, epoch) {
       try {
         await api("/api/drama-jobs/" + id + "/cancel", { method: "POST",
           headers: { "Content-Type": "application/json" }, body: JSON.stringify({ epoch }) });
-        toast("已取消"); viewJobs();
+        toast("已取消"); reloadJobs();
       } catch (e) { toast("取消失败：" + e.message); }
     }, "确认取消");
 }
@@ -3175,7 +3369,7 @@ async function jobResolve(id, approve) {
     await api("/api/drama-jobs/" + id + "/resolve", { method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ approve, reason_code: approve ? null : "operator_reject" }) });
-    toast(approve ? "已通过" : "已驳回"); viewJobs();
+    toast(approve ? "已通过" : "已驳回"); reloadJobs();
   } catch (e) { toast("操作失败：" + e.message); }
 }
 document.addEventListener("visibilitychange", () => {
@@ -3408,7 +3602,7 @@ async function seedDemo() {
 let _cmdData = null, _cmdIdx = 0, _cmdItems = [];
 async function openCommand() {
   let projs = [], assets = null, loadErr = "";
-  try { projs = await api("/api/dramas"); } catch (e) { loadErr = e.message; }
+  try { projs = (await api("/api/dramas?limit=200&offset=0&sort=title")).items || []; } catch (e) { loadErr = e.message; }
   try { assets = await api("/api/assets/summary?limit=60"); } catch (e) { loadErr = loadErr || e.message; }
   const cmds = [
     { label: "概览", kind: "页面", act: () => go("overview") },

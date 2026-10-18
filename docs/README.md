@@ -73,6 +73,7 @@
 | `docs/plans/` | `爆款体检优化-选举记录.md` | H2 全票通过与事实层/分档实现 |
 | `docs/plans/` | `爆款分析页布局-候选.md` | 爆款分析页布局候选 L1–L4 |
 | `docs/plans/` | `爆款分析页布局-选举记录.md` | L4 顶部 Tab 4:1 胜出与落地约束 |
+| `docs/plans/` | `列表与分页规范.md` | 全站列表分页规则、页大小与接口约定 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |

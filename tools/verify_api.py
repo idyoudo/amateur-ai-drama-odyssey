@@ -66,6 +66,9 @@ check("项目搜索过滤", d["total"] == 1 and d["items"][0]["title"] == "回�
 r = client.get("/api/dramas?limit=10&offset=0&q=不存在的项目xyz", headers=H)
 d = r.json()
 check("项目搜索空结果", d["total"] == 0 and d["items"] == [])
+d = client.get("/api/dramas?limit=10&offset=0&sort=title", headers=H).json()
+titles = [p["title"] for p in d["items"]]
+check("项目按片名排序", titles == sorted(titles))
 
 # ---------------- 分集格式与小说改编 ----------------
 r = client.get("/api/formats", headers=H)
@@ -301,6 +304,8 @@ check("更新分发", r.status_code == 200 and d["status"] == "已发布"
 r = client.get("/api/distributions", headers=H)
 d = r.json()
 check("分发汇总", d["summary"]["published"] >= 1 and d["summary"]["views"] >= 1000)
+d = client.get("/api/distributions?limit=1&offset=0", headers=H).json()
+check("分发分页", d["total"] >= 1 and len(d["items"]) == 1 and d["limit"] == 1)
 r = client.delete("/api/distributions/%d" % did, headers=H)
 check("删除分发", r.status_code == 200 and r.json()["deleted"] is True)
 
@@ -318,6 +323,8 @@ check("通过审核", r.status_code == 200 and d["status"] == "通过"
       and d["reviewer"] == "admin")
 r = client.get("/api/reviews", headers=H)
 check("审核汇总", r.json()["summary"]["approved"] >= 1)
+d = client.get("/api/reviews?limit=1&offset=0", headers=H).json()
+check("审核分页", d["total"] >= 1 and len(d["items"]) == 1)
 r = client.delete("/api/reviews/%d" % rid, headers=H)
 check("删除审核", r.status_code == 200 and r.json()["deleted"] is True)
 
@@ -379,6 +386,8 @@ r = client.patch("/api/templates/%d" % tpl_id, headers=H,
 check("更新模板", r.status_code == 200 and "修订" in r.json()["name"])
 r = client.get("/api/templates?q=%E9%9B%A8%E5%A4%9C", headers=H)
 check("模板搜索", r.status_code == 200 and len(r.json()["items"]) >= 1)
+d = client.get("/api/templates?limit=1&offset=0", headers=H).json()
+check("模板分页", d["total"] >= 1 and len(d["items"]) == 1)
 r = client.delete("/api/templates/%d" % tpl_id, headers=H)
 check("删除模板", r.status_code == 200 and r.json()["deleted"] is True)
 
@@ -395,6 +404,9 @@ check("更新结算", r.status_code == 200 and r.json()["amount"] == 120)
 r = client.get("/api/settlements", headers=H)
 d = r.json()
 check("结算汇总", d["summary"]["total"] >= 120)
+d = client.get("/api/settlements?limit=1&offset=0", headers=H).json()
+check("结算分页", d["total"] >= 1 and len(d["items"]) == 1
+      and "count" in d["summary"]["by_channel"][0])
 r = client.delete("/api/settlements/%d" % st_id, headers=H)
 check("删除结算", r.status_code == 200 and r.json()["deleted"] is True)
 
@@ -455,6 +467,7 @@ r = client.get("/api/dramas/%d/episodes" % pid, headers=H)
 d = r.json()
 check("集列表 200", r.status_code == 200 and d["episodes"] >= 1)
 check("集分镜明细", len(d["breakdown"]) >= 1)
+check("集场次明细", "scenes" in d and isinstance(d["scenes"], dict))
 ep1 = client.get("/api/dramas/%d/shots?episode=1" % pid, headers=H).json()
 allsh = client.get("/api/dramas/%d/shots" % pid, headers=H).json()
 check("按集过滤生效", len(ep1) <= len(allsh))
@@ -523,6 +536,9 @@ check("任务聚合含可观测字段",
                               ("progress", "attempts", "attempt_limit", "error_code", "lease_epoch")))
 check("任务聚合 limit 夹紧", client.get("/api/jobs/summary?limit=9999", headers=H).json()["limit"] == 200)
 check("任务聚合 offset 下限", client.get("/api/jobs/summary?offset=-5", headers=H).json()["offset"] == 0)
+d = client.get("/api/jobs/summary?limit=5&offset=0&status=queued", headers=H).json()
+check("任务按状态过滤", all(j["status"] == "queued" for j in d["jobs"])
+      and d["total"] >= len(d["jobs"]))
 _jid = r1.json()["id"]
 r = client.post("/api/drama-jobs/%d/cancel" % _jid, headers=H, json={"epoch": 0})
 check("取消任务（epoch 0）", r.status_code == 200 and r.json()["status"] == "cancelled")
@@ -551,6 +567,8 @@ r = client.post("/api/team", headers=H,
                 json={"username": "legal1", "password": "secret1", "role": "legal"})
 lid = r.json().get("id")
 check("创建法务成员", r.status_code == 200)
+d = client.get("/api/team?limit=1&offset=0", headers=H).json()
+check("团队分页", d["total"] >= 3 and len(d["items"]) == 1 and d["summary"]["admins"] >= 1)
 r = client.post("/api/auth/login", json={"username": "writer1", "password": "secret1"})
 check("成员登录", r.status_code == 200 and r.json()["role"] == "writer")
 WH = {"Authorization": "Bearer " + r.json()["token"]}
