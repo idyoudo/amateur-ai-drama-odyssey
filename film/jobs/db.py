@@ -330,13 +330,33 @@ class Novel(Base):
 
 
 class ModelConfig(Base):
-    """模型供应商配置（G2）：明文存库；API 永不回传明文（见 /api/models/config）。"""
+    """模型供应商配置（G2）：明文存库；API 永不回传明文（见 /api/models/config）。
+
+    兼容旧版单配置表；新逻辑读取 ModelProvider 的生效项。
+    """
     __tablename__ = "model_configs"
 
     kind: Mapped[str] = mapped_column(String(32), primary_key=True)
     model: Mapped[str] = mapped_column(String(128), nullable=True)
     api_url: Mapped[str] = mapped_column(String(256), nullable=True)
     api_key: Mapped[str] = mapped_column(String(512), nullable=True)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class ModelProvider(Base):
+    """同一模型类型下的多个提供商；每个 kind 仅一个 active。"""
+    __tablename__ = "model_providers"
+    __table_args__ = (UniqueConstraint("kind", "name", name="uq_model_provider_name"),
+                      Index("ix_model_provider_kind", "kind"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=True)
+    api_url: Mapped[str] = mapped_column(String(256), nullable=True)
+    api_key: Mapped[str] = mapped_column(String(512), nullable=True)
+    active: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 

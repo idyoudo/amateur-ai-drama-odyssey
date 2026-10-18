@@ -40,6 +40,7 @@
 | `docs/designs/` | `宿主基线映射.md` | 182 处 RTO 引用的可借鉴 vs 不继承 |
 | `docs/designs/` | `测试策略.md` | 四层测试 + 六条纪律 + 证据格式 |
 | `docs/designs/` | `新手指南-内容结构.md` | `#/guide` 单页教程：大白话流程、术语、爆火规律、7 天计划、专业方案 |
+| `docs/designs/` | `模型多提供商.md` | 同类型多提供商、单一生效与切换、迁移与页面 |
 | `docs/plans/` | `README.md` | plans 子索引 |
 | `docs/plans/` | `P1-实施计划.md` | 572 条拆 5 批 17 工单 + 12 项拍板 |
 | `docs/plans/` | `P1-A-镜头契约与安全框预检-方案.md` | 切片 A 实现方案 |

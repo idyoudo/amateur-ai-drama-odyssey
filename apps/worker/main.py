@@ -17,16 +17,30 @@ def build_queue():
     return jobs_db.SqlQueue(sessionmaker(bind=engine, expire_on_commit=False))
 
 
+def load_config(session_factory):
+    """env 兜底 + 每类生效提供商（与 API 相同的单一生效语义）。"""
+    from sqlalchemy import select
+    from film.suppliers import config as sup_config
+    cfg = sup_config.load_from_env()
+    with session_factory() as s:
+        rows = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.active.is_(True))).all()
+    for r in rows:
+        if r.kind in sup_config.MODEL_KINDS:
+            cfg[r.kind] = {"model": r.model or "", "api_key": r.api_key or "",
+                           "api_url": r.api_url or ""}
+    return cfg
+
+
 def main():
     import time
     from apps.worker import handlers
-    from film.suppliers import config as sup_config
     queue = build_queue()
     worker = Worker(queue)
-    handler = handlers.make_handler(sup_config.load_from_env())
     poll_ms = float(os.environ.get("WORKER_POLL_MS", "5000"))
     print("worker started (poll %dms)" % poll_ms, flush=True)
     while True:
+        handler = handlers.make_handler(load_config(queue.session_factory))
         job = worker.run_once(handler)
         if job is None:
             time.sleep(poll_ms / 1000.0)

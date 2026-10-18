@@ -144,7 +144,11 @@
 | GET | `/api/dramas/{id}/characters` | 角色（锚点/音色/定妆） |
 | GET | `/api/dramas/{id}/cost-dashboard` | 成本看板（北极星 + 过程指标） |
 | GET | `/api/dramas/{id}/provider-tasks` | 供应商三段式（提交/查询/下载） |
-| GET/PUT | `/api/models/config` | 模型配置（env 默认，页面/API 覆盖） |
+| GET/PUT | `/api/models/config` | 模型配置（env 默认；PUT 兼容旧版，写生效提供商） |
+| POST | `/api/models/providers` | 新增提供商（同 kind 下名称唯一） |
+| PUT | `/api/models/providers/{id}` | 编辑提供商 |
+| POST | `/api/models/providers/{id}/activate` | 切换为同类生效提供商（其余自动停用） |
+| DELETE | `/api/models/providers/{id}` | 删除；删除生效项时自动接续同类最近一个 |
 
 ### 任务与生成台（M13 / Playground）
 | 方法 | 路径 | 说明 |

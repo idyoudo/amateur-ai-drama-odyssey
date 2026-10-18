@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select, func, or_
@@ -70,6 +70,24 @@ try:
 except Exception:  # noqa: BLE001
     pass
 Session = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def _seed_model_providers_from_legacy():
+    """旧版每个 kind 单条配置 → 迁移为「默认配置」提供商（仅首次）。"""
+    with Session() as s:
+        if s.query(jobs_db.ModelProvider).count():
+            return
+        legacy = s.scalars(select(jobs_db.ModelConfig)).all()
+        for r in legacy:
+            if not (r.model or r.api_url or r.api_key):
+                continue
+            s.add(jobs_db.ModelProvider(kind=r.kind, name="默认配置",
+                                        model=r.model or "", api_url=r.api_url or "",
+                                        api_key=r.api_key or "", active=True))
+        s.commit()
+
+
+_seed_model_providers_from_legacy()
 
 app = FastAPI(title="AADO API", version="0.1.0")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -165,7 +183,7 @@ async def auth_middleware(request, call_next):
                 return JSONResponse({"detail": "当前角色无写入权限"}, status_code=403)
             if path.startswith("/api/team") and role != "admin":
                 return JSONResponse({"detail": "仅管理员可管理团队"}, status_code=403)
-            if path == "/api/models/config" and role != "admin":
+            if path.startswith("/api/models") and role != "admin":
                 return JSONResponse({"detail": "仅管理员可修改模型配置"}, status_code=403)
     return await call_next(request)
 
@@ -205,15 +223,17 @@ class UpdateProject(BaseModel):
     minutes: Optional[int] = None
 
 
-# 模型参数配置（env 为默认，DB 覆盖；API 永不回传明文）
+# 模型参数配置（env 为默认；每个 kind 可配置多个提供商，仅 active 生效；API 永不回传明文）
 def _load_model_config():
     cfg = sup_config.load_from_env()
     with Session() as s:
-        rows = s.scalars(select(jobs_db.ModelConfig)).all()
+        rows = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.active.is_(True))).all()
     for r in rows:
         if r.kind in sup_config.MODEL_KINDS:
             cfg[r.kind] = {"model": r.model or "", "api_key": r.api_key or "",
-                           "api_url": r.api_url or ""}
+                           "api_url": r.api_url or "",
+                           "provider_id": r.id, "provider_name": r.name}
     return cfg
 
 
@@ -226,17 +246,46 @@ def _persistence_info():
             "note": "配置写入数据库" + ("" if durable else "（当前为内存库，重启后丢失）")}
 
 
+def _key_hint(key):
+    key = str(key or "")
+    return ("…" + key[-4:]) if len(key) >= 8 else ("已设置" if key else "")
+
+
+def _provider_json(p):
+    key = str(p.api_key or "")
+    return {"id": p.id, "kind": p.kind, "name": p.name,
+            "model": p.model or "", "api_url": p.api_url or "",
+            "api_key": "", "api_key_set": bool(key),
+            "api_key_hint": _key_hint(key), "active": bool(p.active)}
+
+
+def _providers_by_kind():
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.ModelProvider).order_by(
+            jobs_db.ModelProvider.id)).all()
+    out = {k: [] for k in sup_config.MODEL_KINDS}
+    for r in rows:
+        if r.kind in out:
+            out[r.kind].append(_provider_json(r))
+    return out
+
+
 def _public_model_config(cfg):
     out = {}
     for kind in sup_config.MODEL_KINDS:
         c = cfg.get(kind, {})
         key = str(c.get("api_key") or "")
+        source = "provider" if c.get("provider_id") else (
+            "env" if (c.get("model") or c.get("api_url") or key) else "none")
         out[kind] = {
             "model": c.get("model") or "",
             "api_url": c.get("api_url") or "",
             "api_key": "",
             "api_key_set": bool(key),
-            "api_key_hint": ("…" + key[-4:]) if len(key) >= 8 else ("已设置" if key else ""),
+            "api_key_hint": _key_hint(key),
+            "provider_id": c.get("provider_id"),
+            "provider_name": c.get("provider_name") or ("环境变量" if source == "env" else ""),
+            "source": source,
         }
     return out
 
@@ -407,28 +456,64 @@ def home():
     return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
-@app.get("/models", response_class=HTMLResponse)
+@app.get("/models")
 def models_page():
-    import os
-    html = os.path.join(os.path.dirname(__file__), "static", "models.html")
-    return open(html, encoding="utf-8").read()
+    return RedirectResponse(url="/#/models", status_code=307)
+
+
+def _models_payload():
+    return {"config": _public_model_config(_model_config),
+            "providers": _providers_by_kind(),
+            "available": sup_config.available_kinds(_model_config)}
+
+
+def _reload_models():
+    global _model_config
+    _model_config = _load_model_config()
+    return _models_payload()
+
+
+def _provider_values(kind, cfg, current=None):
+    """校验并合并提供商字段；空 API Key = 保留原值，掩码哨兵不覆盖。"""
+    name = str(cfg.get("name", current.name if current else "") or "").strip()
+    model = str(cfg.get("model", current.model if current else "") or "")
+    api_url = str(cfg.get("api_url", current.api_url if current else "") or "")
+    if current is None and not name:
+        raise HTTPException(status_code=422, detail="提供商名称必填")
+    if len(name) > 64:
+        raise HTTPException(status_code=422, detail="提供商名称超长（上限 64）")
+    if len(model) > 128:
+        raise HTTPException(status_code=422, detail="%s 的 model 超长（上限 128）" % kind)
+    if len(api_url) > 256:
+        raise HTTPException(status_code=422, detail="%s 的 api_url 超长（上限 256）" % kind)
+    if api_url and not api_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=422, detail="%s 的 API URL 必须以 http(s):// 开头" % kind)
+    api_key = (current.api_key or "") if current else ""
+    if cfg.get("api_key_clear") is True:
+        api_key = ""
+    elif "api_key" in cfg:
+        val = str(cfg.get("api_key") or "")
+        if val and not _looks_like_mask(val):
+            api_key = val
+    if len(api_key) > 512:
+        raise HTTPException(status_code=422, detail="%s 的 api_key 超长（上限 512）" % kind)
+    return name or (current.name if current else ""), model, api_url, api_key
 
 
 @app.get("/api/models/config")
 def get_model_config():
-    return {"config": _public_model_config(_model_config),
-            "available": sup_config.available_kinds(_model_config),
-            "persistence": _persistence_info(),
-            "capabilities": list(sup_config.CAPABILITY_FIELDS),
-            "presets": sup_config.PRESETS,
-            "routing": {"hero": "高质量档（hero/对白正脸镜）", "ambient": "经济档（氛围/过场镜）"},
-            "licenses": {"bundle_forbidden": ["ComfyUI", "HunyuanVideo"],
-                         "non_commercial": ["InsightFace", "ArcFace"]}}
+    return dict(_models_payload(),
+                persistence=_persistence_info(),
+                capabilities=list(sup_config.CAPABILITY_FIELDS),
+                presets=sup_config.PRESETS,
+                routing={"hero": "高质量档（hero/对白正脸镜）", "ambient": "经济档（氛围/过场镜）"},
+                licenses={"bundle_forbidden": ["ComfyUI", "HunyuanVideo"],
+                          "non_commercial": ["InsightFace", "ArcFace"]})
 
 
 @app.put("/api/models/config")
 def update_model_config(body: dict):
-    global _model_config
+    """兼容旧版：更新每个 kind 的生效提供商；没有则创建「默认配置」。"""
     incoming = body.get("config") or {}
     updates = {k: v for k, v in incoming.items()
                if k in sup_config.MODEL_KINDS and isinstance(v, dict)}
@@ -444,27 +529,118 @@ def update_model_config(body: dict):
             raise HTTPException(status_code=422, detail="%s 的 API URL 必须以 http(s):// 开头" % kind)
     with Session() as s:
         for kind, cfg in updates.items():
-            cur = _model_config.get(kind, {})
-            model = cfg.get("model", cur.get("model", ""))
-            api_url = cfg.get("api_url", cur.get("api_url", ""))
-            api_key = cur.get("api_key", "")
+            row = s.scalars(select(jobs_db.ModelProvider).where(
+                jobs_db.ModelProvider.kind == kind,
+                jobs_db.ModelProvider.active.is_(True))).first()
+            if row is None:
+                row = s.scalars(select(jobs_db.ModelProvider).where(
+                    jobs_db.ModelProvider.kind == kind).order_by(
+                    jobs_db.ModelProvider.id)).first()
+            if row is None:
+                row = jobs_db.ModelProvider(kind=kind, name="默认配置")
+                s.add(row)
+            if row.id is not None:
+                for other in s.scalars(select(jobs_db.ModelProvider).where(
+                        jobs_db.ModelProvider.kind == kind,
+                        jobs_db.ModelProvider.id != row.id)).all():
+                    other.active = False
+            row.active = True
+            cur = {"model": row.model or "", "api_url": row.api_url or "",
+                   "api_key": row.api_key or ""}
+            row.model = str(cfg.get("model", cur["model"]) or "")
+            row.api_url = str(cfg.get("api_url", cur["api_url"]) or "")
+            api_key = cur["api_key"]
             if cfg.get("api_key_clear") is True:
                 api_key = ""
             elif "api_key" in cfg:
                 val = str(cfg.get("api_key") or "")
                 if val and not _looks_like_mask(val):
                     api_key = val
-            row = s.get(jobs_db.ModelConfig, kind) or jobs_db.ModelConfig(kind=kind)
-            row.model = str(model or "")
-            row.api_url = str(api_url or "")
             row.api_key = str(api_key or "")
-            s.add(row)
         s.commit()
-    _model_config = _load_model_config()
-    return {"config": _public_model_config(_model_config),
-            "available": sup_config.available_kinds(_model_config),
-            "warnings": sup_config.validate_config(_model_config),
-            "persistence": _persistence_info()}
+    payload = _reload_models()
+    return dict(payload, warnings=sup_config.validate_config(_model_config),
+                persistence=_persistence_info())
+
+
+@app.post("/api/models/providers")
+def create_model_provider(body: dict):
+    kind = str(body.get("kind") or "")
+    if kind not in sup_config.MODEL_KINDS:
+        raise HTTPException(status_code=422, detail="kind 非法")
+    name, model, api_url, api_key = _provider_values(kind, body)
+    with Session() as s:
+        dup = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.kind == kind,
+            jobs_db.ModelProvider.name == name)).first()
+        if dup is not None:
+            raise HTTPException(status_code=409, detail="同类型下已有同名提供商")
+        has_active = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.kind == kind,
+            jobs_db.ModelProvider.active.is_(True))).first()
+        row = jobs_db.ModelProvider(kind=kind, name=name, model=model,
+                                    api_url=api_url, api_key=api_key,
+                                    active=not bool(has_active))
+        s.add(row)
+        s.commit()
+        s.refresh(row)
+        provider = _provider_json(row)
+    return dict(_reload_models(), provider=provider)
+
+
+@app.put("/api/models/providers/{provider_id}")
+def update_model_provider(provider_id: int, body: dict):
+    with Session() as s:
+        row = s.get(jobs_db.ModelProvider, provider_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="提供商不存在")
+        name, model, api_url, api_key = _provider_values(row.kind, body, row)
+        dup = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.kind == row.kind,
+            jobs_db.ModelProvider.name == name,
+            jobs_db.ModelProvider.id != provider_id)).first()
+        if dup is not None:
+            raise HTTPException(status_code=409, detail="同类型下已有同名提供商")
+        row.name = name
+        row.model = model
+        row.api_url = api_url
+        row.api_key = api_key
+        s.commit()
+        provider = _provider_json(row)
+    return dict(_reload_models(), provider=provider)
+
+
+@app.post("/api/models/providers/{provider_id}/activate")
+def activate_model_provider(provider_id: int):
+    with Session() as s:
+        row = s.get(jobs_db.ModelProvider, provider_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="提供商不存在")
+        rows = s.scalars(select(jobs_db.ModelProvider).where(
+            jobs_db.ModelProvider.kind == row.kind)).all()
+        for r in rows:
+            r.active = (r.id == provider_id)
+        s.commit()
+    return _reload_models()
+
+
+@app.delete("/api/models/providers/{provider_id}")
+def delete_model_provider(provider_id: int):
+    with Session() as s:
+        row = s.get(jobs_db.ModelProvider, provider_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="提供商不存在")
+        kind, was_active = row.kind, bool(row.active)
+        s.delete(row)
+        s.flush()
+        if was_active:
+            nxt = s.scalars(select(jobs_db.ModelProvider).where(
+                jobs_db.ModelProvider.kind == kind).order_by(
+                jobs_db.ModelProvider.id.desc())).first()
+            if nxt is not None:
+                nxt.active = True
+        s.commit()
+    return dict(_reload_models(), deleted=True)
 
 
 @app.get("/api/formats")

@@ -3663,19 +3663,182 @@ async function pgGenerate() {
 }
 
 /* ---------- 模型 ---------- */
+const MODELS = { data: null, me: {} };
+const MODEL_KIND_META = {
+  text: ["文本 / 剧本", "剧本、大纲、对白与结构分析", "doc"],
+  image: ["图像生成", "定妆、参考图、关键帧", "frame"],
+  video: ["视频生成", "镜头画面与动态", "film"],
+  tts: ["语音合成", "角色配音与旁白", "wave"],
+  music: ["音乐 / 音效", "配乐与氛围声", "music"],
+  lipsync: ["口型同步", "对白口型对齐", "face"],
+};
 async function viewModels() {
-  const d = await api("/api/models/config");
+  try {
+    const [d, me] = await Promise.all([
+      api("/api/models/config"),
+      api("/api/auth/me").catch(() => ({})),
+    ]);
+    MODELS.data = d;
+    MODELS.me = me || {};
+  } catch (e) {
+    return setMain({ title: "模型配置", body: `<div class="card empty">模型配置加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewModels()">重试</button></div></div>` });
+  }
+  renderModels();
+}
+async function reloadModels() {
+  MODELS.data = await api("/api/models/config");
+  renderModels();
+}
+function modelProviderById(id) {
+  const all = (MODELS.data || {}).providers || {};
+  for (const kind of Object.keys(all)) {
+    const hit = all[kind].find(p => p.id === id);
+    if (hit) return hit;
+  }
+  return null;
+}
+function modelApplyPreset(kind, idx) {
+  if (idx === "") return;
+  const p = ((MODELS.data || {}).presets || {})[kind] || [];
+  const item = p[Number(idx)];
+  if (!item) return;
+  const name = $("#np_" + kind + "_name"), model = $("#np_" + kind + "_model"), url = $("#np_" + kind + "_url");
+  if (name && !name.value.trim()) name.value = item.vendor;
+  if (model) model.value = item.model || "";
+  if (url) url.value = item.api_url || "";
+}
+async function modelAddProvider(kind) {
+  const val = id => ($("#" + id) || {}).value || "";
+  const body = {
+    kind,
+    name: val("np_" + kind + "_name").trim(),
+    model: val("np_" + kind + "_model").trim(),
+    api_url: val("np_" + kind + "_url").trim(),
+    api_key: val("np_" + kind + "_key").trim(),
+  };
+  if (!body.name) return toast("先填提供商名称");
+  try {
+    await api("/api/models/providers", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    toast("已添加提供商");
+    await reloadModels();
+  } catch (e) { toast("添加失败：" + e.message); }
+}
+async function modelActivate(id) {
+  try {
+    await api("/api/models/providers/" + id + "/activate", { method: "POST" });
+    toast("已切换生效提供商");
+    await reloadModels();
+  } catch (e) { toast("切换失败：" + e.message); }
+}
+function modelDelete(id) {
+  const p = modelProviderById(id);
+  confirmDialog("删除提供商？", `将删除「${p ? p.name : id}」；若它是当前生效项，会自动切到同类型下最近的另一个。`,
+    async () => {
+      try {
+        await api("/api/models/providers/" + id, { method: "DELETE" });
+        toast("已删除");
+        await reloadModels();
+      } catch (e) { toast("删除失败：" + e.message); }
+    }, "确认删除");
+}
+function modelEdit(id) {
+  const p = modelProviderById(id); if (!p) return;
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "modelmodal";
+  modal.innerHTML = `<div class="box" style="max-width:680px">
+    <div class="mhead"><h2>编辑提供商 · ${esc(p.name)}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="stack">
+      <label class="fld"><small>名称</small><input id="mp_name" value="${esc(p.name)}"></label>
+      <div class="row2">
+        <label class="fld"><small>模型名</small><input id="mp_model" value="${esc(p.model)}"></label>
+        <label class="fld"><small>API URL</small><input id="mp_url" value="${esc(p.api_url)}" placeholder="https://…"></label>
+      </div>
+      <label class="fld"><small>API Key</small>
+        <input id="mp_key" type="password" autocomplete="new-password" value=""
+          placeholder="${p.api_key_set ? "已设置 " + esc(p.api_key_hint) + "（留空不修改）" : "未设置（可先留空走 Mock）"}"></label>
+      ${p.api_key_set ? `<label class="muted" style="display:flex;gap:8px;align-items:center;font-size:var(--fs-sm)">
+        <input type="checkbox" id="mp_clear" style="width:auto"> 清除已保存 Key</label>` : ""}
+      <div class="form-actions"><button class="btn" onclick="modelSaveEdit(${p.id})">保存</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function modelSaveEdit(id) {
+  const val = sel => ($(sel) || {}).value || "";
+  const body = { name: val("#mp_name").trim(), model: val("#mp_model").trim(),
+    api_url: val("#mp_url").trim() };
+  const key = val("#mp_key").trim();
+  if (key) body.api_key = key;
+  if ($("#mp_clear") && $("#mp_clear").checked) body.api_key_clear = true;
+  try {
+    await api("/api/models/providers/" + id, { method: "PUT",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    toast("已保存"); closeModal(); await reloadModels();
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+function modelProviderRow(p, canEdit) {
+  return `<div class="model-provider ${p.active ? "on" : ""}">
+    <div class="mp-main">
+      <div class="mp-name"><b>${esc(p.name)}</b>${p.active ? '<span class="pill ok">当前生效</span>' : ""}</div>
+      <div class="mp-meta"><span>${esc(p.model || "未填模型")}</span>
+        <span>${esc(p.api_url || "默认端点")}</span>
+        <span>${p.api_key_set ? "Key " + esc(p.api_key_hint) : "未设 Key（Mock）"}</span></div>
+    </div>
+    ${canEdit ? `<div class="mp-actions">
+      ${p.active ? "" : `<button class="btn ghost sm" onclick="modelActivate(${p.id})">设为生效</button>`}
+      <button class="btn ghost sm" onclick="modelEdit(${p.id})">编辑</button>
+      <button class="btn ghost sm" onclick="modelDelete(${p.id})">删除</button></div>` : ""}
+  </div>`;
+}
+function renderModels() {
+  const d = MODELS.data || {};
+  const config = d.config || {}, providers = d.providers || {}, presets = d.presets || {};
+  const canEdit = MODELS.me.role === "admin";
+  const available = d.available || [];
+  const kindCards = Object.keys(MODEL_KIND_META).map(kind => {
+    const meta = MODEL_KIND_META[kind];
+    const c = config[kind] || {};
+    const list = providers[kind] || [];
+    const active = list.find(p => p.active);
+    const status = active
+      ? (active.api_key_set ? "生效中" : "生效中 · 缺 Key（Mock）")
+      : (c.source === "env" ? "环境变量默认" : "未配置（Mock）");
+    const pillClass = active && active.api_key_set ? "ok" : active ? "gold" : "";
+    const rows = list.map(p => modelProviderRow(p, canEdit)).join("")
+      || `<div class="model-prov-empty">还没有提供商；添加后同类只能有一个生效。</div>`;
+    const add = canEdit ? `<div class="model-add">
+      <div class="model-add-head">添加提供商</div>
+      <div class="model-add-grid">
+        <input id="np_${kind}_name" placeholder="名称，如 OpenAI 官方">
+        <select id="np_${kind}_preset" onchange="modelApplyPreset('${kind}',this.value)">
+          <option value="">从厂商预设填入…</option>
+          ${(presets[kind] || []).map((p, i) => `<option value="${i}">${esc(p.vendor)}</option>`).join("")}
+        </select>
+        <input id="np_${kind}_model" placeholder="模型名">
+        <input id="np_${kind}_url" placeholder="API URL（https://…）">
+        <input id="np_${kind}_key" type="password" autocomplete="new-password" placeholder="API Key（可留空，先走 Mock）">
+        <button class="btn" onclick="modelAddProvider('${kind}')">添加</button>
+      </div></div>` : "";
+    return `<div class="card model-kind" id="mk-${kind}">
+      <div class="model-kind-head">
+        <div class="mk-title">${ico(meta[2])}<div><b>${esc(meta[0])}</b><span>${esc(kind)} · ${esc(meta[1])}</span></div></div>
+        <span class="pill ${pillClass}">${esc(status)}</span>
+      </div>
+      <div class="model-providers">${rows}</div>
+      ${add}
+    </div>`;
+  }).join("");
   setMain({
     title: "模型配置",
-    top: `<div class="right"><a href="/models"><button class="btn ghost sm">编辑配置</button></a></div>`,
-    body: `<div class="muted" style="font-size:var(--fs-sm);margin-bottom:12px">Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。</div>
-    <div class="cards">${Object.entries(d.config).map(([k, c]) => {
-      const on = c.api_key_set;
-      return `<div class="asset"><div class="thumb">${ico({ text: "doc", video: "film", image: "frame", tts: "wave", music: "music", lipsync: "face" }[k] || "route")}</div>
-        <div class="body"><h4 style="display:flex;justify-content:space-between">${k}
-          <span class="pill ${on ? "ok" : ""}">${on ? "已配置" : "Mock"}</span></h4>
-          <div class="desc">${esc(c.model || "未填模型")}${on && c.api_key_hint ? ` · Key ${esc(c.api_key_hint)}` : ""}</div></div></div>`;
-    }).join("")}</div>
+    top: `<div class="right"><span class="pill ${available.length ? "ok" : ""}">已生效 ${available.length}/6 类</span></div>`,
+    body: `<div class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin-bottom:14px">
+      每类模型可配置多个提供商，<b style="color:var(--ink-2)">同一时间只有一个生效</b>；切换后新任务使用新提供商。
+      Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。
+      ${canEdit ? "" : "当前角色只读，只有管理员可以修改。"}</div>
+    ${kindCards}
     <h2>电影参数能力矩阵 <span class="hint">M17.1-F04：参数缺失不得默认「支持」</span></h2>
     <div class="card" style="padding:0"><table>
       <thead><tr><th>能力维度</th><th>说明</th></tr></thead><tbody>
@@ -3694,7 +3857,7 @@ async function viewModels() {
       <div class="k">不得内置分发</div><div>${((d.licenses || {}).bundle_forbidden || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(" ")}</div>
       <div class="k">非商用模型</div><div>${((d.licenses || {}).non_commercial || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(" ")}</div>
     </div>`,
-  });
+  }, true);
 }
 
 /* ---------- 设置 ---------- */

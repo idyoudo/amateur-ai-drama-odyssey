@@ -591,3 +591,27 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .guide-check svg{width:14px;height:14px;flex-shrink:0;margin-top:3px;color:var(--ok)}
 .guide-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 @media (max-width:520px){.guide-steps,.guide-checks{grid-template-columns:1fr}}
+
+/* G2：模型多提供商 */
+.model-kind{margin-bottom:16px}
+.model-kind-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+.mk-title{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.mk-title svg{width:18px;height:18px;color:var(--accent);margin-top:3px;flex-shrink:0}
+.mk-title b{font-size:var(--fs-h3);display:block;line-height:1.3}
+.mk-title span{font-size:var(--fs-sm);color:var(--dim)}
+.model-providers{display:flex;flex-direction:column;gap:8px}
+.model-provider{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+  border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 12px;background:var(--surface-2)}
+.model-provider.on{border-color:var(--accent-line);background:var(--accent-soft)}
+.mp-main{min-width:0;flex:1 1 320px}
+.mp-name{display:flex;align-items:center;gap:8px;font-size:var(--fs-table);flex-wrap:wrap}
+.mp-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:var(--fs-sm);color:var(--dim);margin-top:4px}
+.mp-meta span{overflow-wrap:anywhere}
+.mp-actions{display:flex;gap:6px;flex-wrap:wrap}
+.model-prov-empty{font-size:var(--fs-sm);color:var(--dim);padding:6px 2px}
+.model-add{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.model-add-head{font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);margin-bottom:8px}
+.model-add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.model-add-grid .btn{height:38px}
+@media (max-width:860px){.model-add-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.model-add-grid{grid-template-columns:1fr}}

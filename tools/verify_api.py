@@ -149,6 +149,8 @@ check("run 全通过", r.json()["summary"]["deliverable"] is True)
 # ---------------- 模型配置 ----------------
 r = client.get("/api/models/config", headers=H)
 check("config 6 个 kind", r.status_code == 200 and len(r.json()["config"]) == 6)
+check("config 含 providers", isinstance(r.json().get("providers"), dict)
+      and len(r.json()["providers"]) == 6)
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])
@@ -158,10 +160,13 @@ check("配置不回传明文 Key", "sk-test-video-0001" not in r.text
       and r.json()["config"]["video"]["api_key"] == "")
 check("配置返回 api_key_set", r.json()["config"]["video"]["api_key_set"] is True)
 check("配置持久化后端", r.json()["persistence"]["backend"] == "database")
-from film.jobs.db import ModelConfig  # noqa: E402
+from film.jobs.db import ModelProvider  # noqa: E402
 from apps.api.main import Session  # noqa: E402
+from sqlalchemy import select as _sa_select  # noqa: E402
 with Session() as s:
-    check("配置已落库", s.get(ModelConfig, "video") is not None)
+    _mp = s.scalars(_sa_select(ModelProvider).where(
+        ModelProvider.kind == "video", ModelProvider.active.is_(True))).first()
+    check("配置已落库（生效提供商）", _mp is not None and bool(_mp.api_key))
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key": ""}}})
 check("空值保留原 Key", r.json()["config"]["video"]["api_key_set"] is True)
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key": "…0001"}}})
@@ -174,6 +179,37 @@ check("保存新 Key 不泄露", "sk-secret-abcdef1234" not in r.text
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"api_url": "ftp://bad"}}})
 check("非法 URL 422", r.status_code == 422)
 client.put("/api/models/config", headers=H, json={"config": {"video": {"api_key_clear": True}}})
+
+# 多提供商：新增 / 重名 / 切换 / 编辑 / 删除 / 非法类型
+r = client.post("/api/models/providers", headers=H,
+                json={"kind": "video", "name": "备用视频", "model": "v9",
+                      "api_url": "https://example.com/v2", "api_key": "sk-backup-9999"})
+d = r.json()
+_p2 = d.get("provider") or {}
+check("新增提供商", r.status_code == 200 and _p2.get("name") == "备用视频"
+      and _p2.get("active") is False)
+check("新增提供商不回传明文", "sk-backup-9999" not in r.text
+      and _p2.get("api_key_hint", "").endswith("9999"))
+r = client.post("/api/models/providers", headers=H,
+                json={"kind": "video", "name": "备用视频", "model": "x"})
+check("同类型重名 409", r.status_code == 409)
+r = client.post("/api/models/providers/%d/activate" % _p2["id"], headers=H)
+d = r.json()
+check("切换生效提供商", d["config"]["video"]["provider_id"] == _p2["id"]
+      and d["config"]["video"]["model"] == "v9"
+      and sum(1 for x in d["providers"]["video"] if x["active"]) == 1)
+r = client.put("/api/models/providers/%d" % _p2["id"], headers=H,
+               json={"name": "备用视频（改名）", "model": "v9-pro"})
+d = r.json()
+check("编辑提供商", r.status_code == 200 and d["config"]["video"]["model"] == "v9-pro"
+      and d["provider"]["name"] == "备用视频（改名）")
+check("编辑空 Key 保留", d["provider"]["api_key_set"] is True)
+r = client.delete("/api/models/providers/%d" % _p2["id"], headers=H)
+d = r.json()
+check("删除生效提供商后自动接续", r.status_code == 200 and d.get("deleted") is True
+      and len([x for x in d["providers"]["video"] if x["active"]]) == 1)
+r = client.post("/api/models/providers", headers=H, json={"kind": "bad", "name": "x"})
+check("提供商 kind 非法 422", r.status_code == 422)
 
 # 项目详情 + 静态资源
 r = client.get("/api/dramas/%d" % pid, headers=H)
@@ -581,6 +617,9 @@ check("编剧可写", r.status_code == 200)
 r = client.post("/api/team", headers=WH,
                 json={"username": "x2", "password": "secret1", "role": "writer"})
 check("非管理员不能管理团队", r.status_code == 403)
+check("非管理员不能改模型配置",
+      client.post("/api/models/providers", headers=WH,
+                  json={"kind": "video", "name": "越权"}).status_code == 403)
 r = client.post("/api/auth/login", json={"username": "legal1", "password": "secret1"})
 LH = {"Authorization": "Bearer " + r.json()["token"]}
 check("法务可读", client.get("/api/dramas", headers=LH).status_code == 200)
