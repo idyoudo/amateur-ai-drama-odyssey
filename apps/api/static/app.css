@@ -169,6 +169,15 @@ h2:first-child{margin-top:0}
 .pager{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:18px}
 .pager .btn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
 
+/* 分发中心 */
+.dist-channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.dist-channel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
+.dc-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dc-head b{font-size:var(--fs-table)}
+.dc-metrics{display:flex;justify-content:space-between;color:var(--dim);font-size:var(--fs-sm);margin:10px 0 8px}
+.bar-track{height:4px;background:var(--surface-3);border-radius:99px;overflow:hidden}
+.bar-track i{display:block;height:100%;background:var(--accent);border-radius:99px}
+
 /* 表格 */
 table{width:100%;border-collapse:collapse}
 .table-scroll{overflow-x:auto}

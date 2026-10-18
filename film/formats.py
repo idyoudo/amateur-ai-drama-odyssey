@@ -52,6 +52,9 @@ PLATFORMS = {
 
 SOURCE_TYPES = ("original", "novel")
 
+# 分发渠道（与投放平台对齐；tv30 是制作包型，不作为分发渠道）
+DISTRIBUTION_CHANNELS = ("hongguo", "douyin", "kuaishou", "youtube_shorts", "youtube")
+
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
@@ -119,3 +122,10 @@ def public_presets():
         },
         "source_types": list(SOURCE_TYPES),
     }
+
+
+def public_channels():
+    return {"channels": [{"key": k, "name": PLATFORMS[k]["name"],
+                          "aspect": PLATFORMS[k]["aspect"],
+                          "note": PLATFORMS[k]["note"]}
+                         for k in DISTRIBUTION_CHANNELS]}

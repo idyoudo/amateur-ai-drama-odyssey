@@ -173,6 +173,43 @@ class ModuleParams(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class Distribution(Base):
+    """分发记录：项目 → 渠道，排期/发布状态与运营数据（未接平台 API 时为 Mock）。"""
+    __tablename__ = "distributions"
+    __table_args__ = (Index("ix_distributions_project", "project_id"),
+                      Index("ix_distributions_channel", "channel_key"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    channel_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="待排期")
+    scheduled_at: Mapped[_dt.datetime] = mapped_column(DateTime, nullable=True)
+    published_at: Mapped[_dt.datetime] = mapped_column(DateTime, nullable=True)
+    external_url: Mapped[str] = mapped_column(String(512), nullable=True)
+    metrics: Mapped[dict] = mapped_column(JSON, default=dict)
+    note: Mapped[str] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class Review(Base):
+    """审核记录：项目/剧集/镜头/交付的提交、通过、驳回与意见。"""
+    __tablename__ = "reviews"
+    __table_args__ = (Index("ix_reviews_project", "project_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    target_type: Mapped[str] = mapped_column(String(16), default="project")
+    target_ref: Mapped[str] = mapped_column(String(64), nullable=True)
+    title: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="待审")
+    reviewer: Mapped[str] = mapped_column(String(64), nullable=True)
+    comment: Mapped[str] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Novel(Base):
     """导入的小说原文（TXT）：用于小说改编立项与后续拆章。"""
     __tablename__ = "novels"

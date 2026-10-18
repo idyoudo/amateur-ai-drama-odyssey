@@ -271,6 +271,45 @@ r = client.get("/api/assets/export?project_id=%d" % p2, headers=H)
 d = r.json()
 check("资产导出", r.status_code == 200 and d["exported_at"] and len(d["characters"]) > 0)
 
+# 分发中心
+r = client.get("/api/distributions/channels", headers=H)
+check("分发渠道 5 个", r.status_code == 200 and len(r.json()["channels"]) == 5)
+r = client.post("/api/distributions", headers=H,
+                json={"project_id": p2, "channel_key": "douyin",
+                      "scheduled_at": "2026-11-01T10:00", "note": "测试排期"})
+d = r.json()
+did = d["id"]
+check("创建分发", r.status_code == 200 and d["status"] == "已排期")
+r = client.patch("/api/distributions/%d" % did, headers=H,
+                 json={"status": "已发布",
+                       "metrics": {"views": 1000, "likes": 80,
+                                   "completion_rate": 62.5, "revenue": 123.45}})
+d = r.json()
+check("更新分发", r.status_code == 200 and d["status"] == "已发布"
+      and d["metrics"]["views"] == 1000)
+r = client.get("/api/distributions", headers=H)
+d = r.json()
+check("分发汇总", d["summary"]["published"] >= 1 and d["summary"]["views"] >= 1000)
+r = client.delete("/api/distributions/%d" % did, headers=H)
+check("删除分发", r.status_code == 200 and r.json()["deleted"] is True)
+
+# 审核中心
+r = client.post("/api/reviews", headers=H,
+                json={"project_id": p2, "target_type": "delivery",
+                      "title": "第 1 集成片审核", "comment": "请复核"})
+d = r.json()
+rid = d["id"]
+check("创建审核", r.status_code == 200 and d["status"] == "待审")
+r = client.patch("/api/reviews/%d" % rid, headers=H,
+                 json={"status": "通过", "comment": "通过"})
+d = r.json()
+check("通过审核", r.status_code == 200 and d["status"] == "通过"
+      and d["reviewer"] == "admin")
+r = client.get("/api/reviews", headers=H)
+check("审核汇总", r.json()["summary"]["approved"] >= 1)
+r = client.delete("/api/reviews/%d" % rid, headers=H)
+check("删除审核", r.status_code == 200 and r.json()["deleted"] is True)
+
 # Playground
 r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
 check("Playground 生成 200", r.status_code == 200)

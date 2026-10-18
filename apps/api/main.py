@@ -1,5 +1,6 @@
 """AADO 控制面 API（FastAPI；API 薄：入队 + 查询 + 人工终审，重计算归 worker）。"""
 import os
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -1097,6 +1098,231 @@ def copy_character(char_id: int, body: dict):
         s.add(row)
         s.commit()
         return {"created": True, "id": row.id, "name": row.name, "project": tgt.title}
+
+
+@app.get("/api/distributions/channels")
+def distribution_channels():
+    return fmt.public_channels()
+
+
+def _parse_dt(v):
+    if not v:
+        return None
+    s = str(v).strip().replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="时间格式不正确")
+
+
+def _dist_json(r, projs):
+    m = r.metrics or {}
+    return {"id": r.id, "project_id": r.project_id, "project": projs.get(r.project_id, ""),
+            "channel_key": r.channel_key, "channel_name": r.channel_name, "status": r.status,
+            "scheduled_at": r.scheduled_at.isoformat() if r.scheduled_at else "",
+            "published_at": r.published_at.isoformat() if r.published_at else "",
+            "external_url": r.external_url or "",
+            "metrics": {"views": int(m.get("views") or 0), "likes": int(m.get("likes") or 0),
+                        "completion_rate": float(m.get("completion_rate") or 0),
+                        "revenue": float(m.get("revenue") or 0)},
+            "note": r.note or "",
+            "updated_at": r.updated_at.isoformat() if r.updated_at else ""}
+
+
+@app.get("/api/distributions")
+def list_distributions(project_id: Optional[int] = None, channel_key: str = "",
+                       status: str = ""):
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        q = select(jobs_db.Distribution)
+        if project_id:
+            q = q.where(jobs_db.Distribution.project_id == project_id)
+        if channel_key:
+            q = q.where(jobs_db.Distribution.channel_key == channel_key)
+        if status:
+            q = q.where(jobs_db.Distribution.status == status)
+        rows = s.scalars(q.order_by(jobs_db.Distribution.updated_at.desc())).all()
+        items = [_dist_json(r, projs) for r in rows]
+    total_views = sum(i["metrics"]["views"] for i in items)
+    total_revenue = sum(i["metrics"]["revenue"] for i in items)
+    by_channel = []
+    for ch in fmt.DISTRIBUTION_CHANNELS:
+        sub = [i for i in items if i["channel_key"] == ch]
+        by_channel.append({"key": ch, "name": fmt.PLATFORMS[ch]["name"],
+                           "count": len(sub),
+                           "views": sum(i["metrics"]["views"] for i in sub),
+                           "revenue": sum(i["metrics"]["revenue"] for i in sub)})
+    return {"items": items, "channels": fmt.public_channels()["channels"],
+            "summary": {"total": len(items),
+                        "published": sum(1 for i in items if i["status"] == "已发布"),
+                        "scheduled": sum(1 for i in items if i["status"] == "已排期"),
+                        "views": total_views, "revenue": round(total_revenue, 2),
+                        "by_channel": by_channel}}
+
+
+@app.post("/api/distributions")
+def create_distribution(body: dict):
+    try:
+        project_id = int(body.get("project_id"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="project_id 非法")
+    channel = str(body.get("channel_key") or "")
+    if channel not in fmt.DISTRIBUTION_CHANNELS:
+        raise HTTPException(status_code=422, detail="分发渠道非法")
+    scheduled = _parse_dt(body.get("scheduled_at"))
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        row = jobs_db.Distribution(project_id=project_id, channel_key=channel,
+                                   channel_name=fmt.PLATFORMS[channel]["name"],
+                                   status="已排期" if scheduled else "待排期",
+                                   scheduled_at=scheduled, metrics={},
+                                   note=str(body.get("note") or "")[:512])
+        s.add(row)
+        s.commit()
+        projs = {p.id: p.title}
+        return _dist_json(row, projs)
+
+
+@app.patch("/api/distributions/{dist_id}")
+def update_distribution(dist_id: int, body: dict):
+    with Session() as s:
+        r = s.get(jobs_db.Distribution, dist_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="分发记录不存在")
+        if "status" in body:
+            st = str(body.get("status") or "")
+            if st not in ("待排期", "已排期", "已发布", "已下架"):
+                raise HTTPException(status_code=422, detail="分发状态非法")
+            r.status = st
+            if st == "已发布" and not r.published_at:
+                r.published_at = datetime.utcnow()
+        if "scheduled_at" in body:
+            r.scheduled_at = _parse_dt(body.get("scheduled_at"))
+        if "external_url" in body:
+            r.external_url = str(body.get("external_url") or "")[:512]
+        if "note" in body:
+            r.note = str(body.get("note") or "")[:512]
+        if "metrics" in body:
+            m = dict(r.metrics or {})
+            src = body.get("metrics") or {}
+            for k in ("views", "likes"):
+                if k in src:
+                    try:
+                        m[k] = max(0, int(src[k]))
+                    except (TypeError, ValueError):
+                        raise HTTPException(status_code=422, detail="%s 需为非负整数" % k)
+            if "revenue" in src:
+                try:
+                    m["revenue"] = max(0.0, float(src["revenue"]))
+                except (TypeError, ValueError):
+                    raise HTTPException(status_code=422, detail="revenue 需为非负数")
+            if "completion_rate" in src:
+                try:
+                    m["completion_rate"] = max(0.0, min(100.0, float(src["completion_rate"])))
+                except (TypeError, ValueError):
+                    raise HTTPException(status_code=422, detail="completion_rate 需为 0–100")
+            r.metrics = m
+        s.commit()
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return _dist_json(r, projs)
+
+
+@app.delete("/api/distributions/{dist_id}")
+def delete_distribution(dist_id: int):
+    with Session() as s:
+        r = s.get(jobs_db.Distribution, dist_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="分发记录不存在")
+        s.delete(r)
+        s.commit()
+    return {"deleted": True, "id": dist_id}
+
+
+REVIEW_TARGETS = {"project": "项目", "episode": "剧集", "shot": "镜头", "delivery": "交付"}
+
+
+def _review_json(r, projs):
+    return {"id": r.id, "project_id": r.project_id, "project": projs.get(r.project_id, ""),
+            "target_type": r.target_type, "target_label": REVIEW_TARGETS.get(r.target_type, r.target_type),
+            "target_ref": r.target_ref or "", "title": r.title, "status": r.status,
+            "reviewer": r.reviewer or "", "comment": r.comment or "",
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+            "updated_at": r.updated_at.isoformat() if r.updated_at else ""}
+
+
+@app.get("/api/reviews")
+def list_reviews(project_id: Optional[int] = None, status: str = ""):
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        q = select(jobs_db.Review)
+        if project_id:
+            q = q.where(jobs_db.Review.project_id == project_id)
+        if status:
+            q = q.where(jobs_db.Review.status == status)
+        rows = s.scalars(q.order_by(jobs_db.Review.updated_at.desc())).all()
+        items = [_review_json(r, projs) for r in rows]
+    return {"items": items,
+            "summary": {"total": len(items),
+                        "pending": sum(1 for i in items if i["status"] == "待审"),
+                        "approved": sum(1 for i in items if i["status"] == "通过"),
+                        "rejected": sum(1 for i in items if i["status"] == "驳回")}}
+
+
+@app.post("/api/reviews")
+def create_review(body: dict):
+    try:
+        project_id = int(body.get("project_id"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="project_id 非法")
+    target_type = str(body.get("target_type") or "project")
+    if target_type not in REVIEW_TARGETS:
+        raise HTTPException(status_code=422, detail="审核对象类型非法")
+    title = str(body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="审核标题必填")
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        row = jobs_db.Review(project_id=project_id, target_type=target_type,
+                             target_ref=str(body.get("target_ref") or "")[:64],
+                             title=title[:128], status="待审",
+                             comment=str(body.get("comment") or "")[:1024])
+        s.add(row)
+        s.commit()
+        return _review_json(row, {p.id: p.title})
+
+
+@app.patch("/api/reviews/{review_id}")
+def update_review(review_id: int, body: dict):
+    with Session() as s:
+        r = s.get(jobs_db.Review, review_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="审核记录不存在")
+        if "status" in body:
+            st = str(body.get("status") or "")
+            if st not in ("待审", "通过", "驳回"):
+                raise HTTPException(status_code=422, detail="审核状态非法")
+            r.status = st
+            r.reviewer = str(body.get("reviewer") or ADMIN_USERNAME)[:64]
+        if "comment" in body:
+            r.comment = str(body.get("comment") or "")[:1024]
+        s.commit()
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return _review_json(r, projs)
+
+
+@app.delete("/api/reviews/{review_id}")
+def delete_review(review_id: int):
+    with Session() as s:
+        r = s.get(jobs_db.Review, review_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="审核记录不存在")
+        s.delete(r)
+        s.commit()
+    return {"deleted": True, "id": review_id}
 
 
 @app.get("/api/jobs/summary")

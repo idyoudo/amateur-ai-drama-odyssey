@@ -174,7 +174,7 @@ function ico(name, cls) {
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
   ["资产", [["assets","资产库","layers"],["playground","生成台","lab"]]],
-  ["运行", [["jobs","任务","list"]]],
+  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["jobs","任务","list"]]],
   ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "distribution", "reviews", "jobs", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -299,6 +299,8 @@ async function routeView(name, param) {
   if (name === "new-project") return viewProjectCreate();
   if (name === "assets") return viewAssets();
   if (name === "playground") return viewPlayground();
+  if (name === "distribution") return viewDistribution();
+  if (name === "reviews") return viewReviews();
   if (name === "jobs") return viewJobs();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
@@ -1699,6 +1701,236 @@ async function exportAssets() {
     a.href = url; a.download = "aado-assets.json"; a.click(); URL.revokeObjectURL(url);
     toast("资产清单已导出");
   } catch (e) { toast("导出失败：" + e.message); }
+}
+
+/* ---------- 分发中心（渠道 / 排期 / 发布 / 运营数据） ---------- */
+const DIST = { items: [], summary: {}, channels: [], projects: [] };
+function fmtNum(n) { return Number(n || 0).toLocaleString("zh-CN"); }
+function fmtDateTime(s) { return s ? String(s).slice(0, 16).replace("T", " ") : "—"; }
+async function viewDistribution() {
+  try {
+    const [d, projs] = await Promise.all([api("/api/distributions"), api("/api/dramas")]);
+    DIST.items = d.items || [];
+    DIST.summary = d.summary || {};
+    DIST.channels = d.channels || [];
+    DIST.projects = projs;
+  } catch (e) {
+    return setMain({ title: "分发", body: `<div class="card empty">分发数据加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewDistribution()">重试</button></div></div>` });
+  }
+  renderDistribution();
+}
+function renderDistribution() {
+  const s = DIST.summary || {};
+  const maxViews = Math.max(1, ...(s.by_channel || []).map(c => c.views || 0));
+  setMain({
+    title: "分发",
+    top: `<div class="right"><span class="pill">Mock 数据</span></div>`,
+    body: `
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="k">${s.published || 0}</div><div class="l">已发布</div></div>
+      <div class="stat"><div class="k">${s.scheduled || 0}</div><div class="l">已排期</div></div>
+      <div class="stat"><div class="k">${fmtNum(s.views || 0)}</div><div class="l">总播放</div></div>
+      <div class="stat"><div class="k">¥${fmtNum(s.revenue || 0)}</div><div class="l">总营收</div></div>
+    </div>
+    <div class="dist-channels">${(s.by_channel || []).map(c => `
+      <div class="dist-channel">
+        <div class="dc-head"><b>${esc(c.name)}</b><span class="pill">${c.count} 条</span></div>
+        <div class="dc-metrics"><span>${fmtNum(c.views)} 播放</span><span>¥${fmtNum(c.revenue)}</span></div>
+        <div class="bar-track"><i style="width:${Math.round((c.views || 0) / maxViews * 100)}%"></i></div>
+      </div>`).join("")}</div>
+    <div class="card">
+      <div class="toolbar">
+        <select id="dist_project">${DIST.projects.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join("")}</select>
+        <select id="dist_channel">${DIST.channels.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("")}</select>
+        <input id="dist_schedule" type="datetime-local">
+        <input id="dist_note" placeholder="备注（可选）">
+        <button class="btn" onclick="createDistribution()">添加分发</button>
+      </div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">发布状态与播放/营收为本地登记；未接入平台 API 时均为 Mock 数据。</div>
+    </div>
+    <div class="card table-scroll"><table>
+      <thead><tr><th>项目</th><th>渠道</th><th>状态</th><th>排期 / 发布</th><th>播放</th><th>点赞</th><th>完播率</th><th>营收</th><th>操作</th></tr></thead>
+      <tbody>${DIST.items.map(d => `<tr>
+        <td>${esc(d.project)}</td><td>${esc(d.channel_name)}</td>
+        <td><span class="pill ${d.status === "已发布" ? "ok" : d.status === "已排期" ? "gold" : ""}">${esc(d.status)}</span></td>
+        <td>${esc(fmtDateTime(d.published_at || d.scheduled_at))}</td>
+        <td>${fmtNum(d.metrics.views)}</td><td>${fmtNum(d.metrics.likes)}</td>
+        <td>${d.metrics.completion_rate}%</td><td>¥${fmtNum(d.metrics.revenue)}</td>
+        <td><button class="btn ghost sm" onclick="editDistribution(${d.id})">编辑</button>
+          ${d.status !== "已发布" ? `<button class="btn sm" style="margin-left:4px" onclick="publishDistribution(${d.id})">发布</button>` : ""}
+          <button class="btn ghost sm" style="margin-left:4px" onclick="deleteDistribution(${d.id})">删除</button></td></tr>`).join("")
+        || `<tr><td colspan="9" style="text-align:center;color:var(--dim)">还没有分发记录</td></tr>`}</tbody>
+    </table></div>`,
+  }, true);
+}
+async function createDistribution() {
+  const project_id = Number(($("#dist_project") || {}).value || 0);
+  const channel_key = ($("#dist_channel") || {}).value || "";
+  if (!project_id) return toast("选择项目");
+  try {
+    await api("/api/distributions", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id, channel_key,
+        scheduled_at: ($("#dist_schedule") || {}).value || null,
+        note: ($("#dist_note") || {}).value || "" }) });
+    toast("已添加分发"); viewDistribution();
+  } catch (e) { toast("添加失败：" + e.message); }
+}
+async function publishDistribution(id) {
+  try {
+    await api("/api/distributions/" + id, { method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "已发布" }) });
+    toast("已标记发布"); viewDistribution();
+  } catch (e) { toast("发布失败：" + e.message); }
+}
+function deleteDistribution(id) {
+  confirmDialog("删除分发记录？", "仅删除本地登记，不会影响平台上的已发布内容。", async () => {
+    try {
+      await api("/api/distributions/" + id, { method: "DELETE" });
+      toast("已删除"); viewDistribution();
+    } catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
+}
+function editDistribution(id) {
+  const d = DIST.items.find(x => x.id === id); if (!d) return;
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "distmodal";
+  modal.innerHTML = `<div class="box" style="max-width:640px">
+    <div class="mhead"><h2>编辑分发 · ${esc(d.project)} · ${esc(d.channel_name)}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="stack">
+      <div class="row2">
+        <label class="fld"><small>状态</small><select id="de_status">
+          ${["待排期", "已排期", "已发布", "已下架"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+        <label class="fld"><small>排期时间</small><input id="de_schedule" type="datetime-local" value="${esc((d.scheduled_at || "").slice(0, 16))}"></label>
+      </div>
+      <label class="fld"><small>外链</small><input id="de_url" value="${esc(d.external_url || "")}" placeholder="平台作品链接"></label>
+      <div class="grid4">
+        <label class="fld"><small>播放</small><input id="de_views" type="number" min="0" value="${d.metrics.views}"></label>
+        <label class="fld"><small>点赞</small><input id="de_likes" type="number" min="0" value="${d.metrics.likes}"></label>
+        <label class="fld"><small>完播率 %</small><input id="de_completion" type="number" min="0" max="100" step="0.1" value="${d.metrics.completion_rate}"></label>
+        <label class="fld"><small>营收</small><input id="de_revenue" type="number" min="0" step="0.01" value="${d.metrics.revenue}"></label>
+      </div>
+      <label class="fld"><small>备注</small><input id="de_note" value="${esc(d.note || "")}"></label>
+      <div class="form-actions"><button class="btn" onclick="saveDistribution(${d.id})">保存</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function saveDistribution(id) {
+  const body = {
+    status: ($("#de_status") || {}).value,
+    scheduled_at: ($("#de_schedule") || {}).value || null,
+    external_url: ($("#de_url") || {}).value || "",
+    note: ($("#de_note") || {}).value || "",
+    metrics: {
+      views: Number(($("#de_views") || {}).value || 0),
+      likes: Number(($("#de_likes") || {}).value || 0),
+      completion_rate: Number(($("#de_completion") || {}).value || 0),
+      revenue: Number(($("#de_revenue") || {}).value || 0),
+    },
+  };
+  try {
+    await api("/api/distributions/" + id, { method: "PATCH",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    toast("已保存"); closeModal(); viewDistribution();
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+
+/* ---------- 审核中心 ---------- */
+const REVIEW = { items: [], summary: {}, projects: [] };
+const REVIEW_TARGET_OPTS = [["project", "项目"], ["episode", "剧集"], ["shot", "镜头"], ["delivery", "交付"]];
+async function viewReviews() {
+  try {
+    const [d, projs] = await Promise.all([api("/api/reviews"), api("/api/dramas")]);
+    REVIEW.items = d.items || [];
+    REVIEW.summary = d.summary || {};
+    REVIEW.projects = projs;
+  } catch (e) {
+    return setMain({ title: "审核", body: `<div class="card empty">审核数据加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewReviews()">重试</button></div></div>` });
+  }
+  renderReviews();
+}
+function renderReviews() {
+  const s = REVIEW.summary || {};
+  setMain({
+    title: "审核",
+    top: `<div class="right"><span class="pill">${s.pending || 0} 条待审</span></div>`,
+    body: `
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="k">${s.pending || 0}</div><div class="l">待审</div></div>
+      <div class="stat"><div class="k">${s.approved || 0}</div><div class="l">已通过</div></div>
+      <div class="stat"><div class="k">${s.rejected || 0}</div><div class="l">已驳回</div></div>
+      <div class="stat"><div class="k">${s.total || 0}</div><div class="l">全部审核</div></div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <select id="rv_project">${REVIEW.projects.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join("")}</select>
+        <select id="rv_target">${REVIEW_TARGET_OPTS.map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
+        <input id="rv_title" placeholder="审核标题，如「第 1 集成片」">
+        <input id="rv_ref" placeholder="对象编号（可选）" style="max-width:180px">
+        <input id="rv_comment" placeholder="提交说明（可选）">
+        <button class="btn" onclick="createReview()">提交审核</button>
+      </div>
+    </div>
+    <div class="card table-scroll"><table>
+      <thead><tr><th>项目</th><th>审核标题</th><th>对象</th><th>状态</th><th>审核人</th><th>意见</th><th>更新时间</th><th>操作</th></tr></thead>
+      <tbody>${REVIEW.items.map(r => `<tr>
+        <td>${esc(r.project)}</td><td>${esc(r.title)}</td><td>${esc(r.target_label)}${r.target_ref ? " · " + esc(r.target_ref) : ""}</td>
+        <td><span class="pill ${r.status === "通过" ? "ok" : r.status === "驳回" ? "bad" : "gold"}">${esc(r.status)}</span></td>
+        <td>${esc(r.reviewer || "—")}</td><td>${esc(r.comment || "—")}</td>
+        <td>${esc(fmtDateTime(r.updated_at))}</td>
+        <td>${r.status === "待审" ? `<button class="btn sm" onclick="reviewDecision(${r.id},true)">通过</button>
+          <button class="btn ghost sm" style="margin-left:4px" onclick="reviewDecision(${r.id},false)">驳回</button>` : ""}
+          <button class="btn ghost sm" style="margin-left:4px" onclick="deleteReview(${r.id})">删除</button></td></tr>`).join("")
+        || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有审核记录</td></tr>`}</tbody>
+    </table></div>`,
+  }, true);
+}
+async function createReview() {
+  const project_id = Number(($("#rv_project") || {}).value || 0);
+  const title = (($("#rv_title") || {}).value || "").trim();
+  if (!project_id) return toast("选择项目");
+  if (!title) return toast("填写审核标题");
+  try {
+    await api("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id, target_type: ($("#rv_target") || {}).value || "project",
+        target_ref: ($("#rv_ref") || {}).value || "", title,
+        comment: ($("#rv_comment") || {}).value || "" }) });
+    toast("已提交审核"); viewReviews();
+  } catch (e) { toast("提交失败：" + e.message); }
+}
+function reviewDecision(id, approve) {
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "reviewmodal";
+  modal.innerHTML = `<div class="box" style="max-width:560px">
+    <div class="mhead"><h2>${approve ? "通过审核" : "驳回审核"}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="stack">
+      <label class="fld"><small>审核意见（${approve ? "可选" : "建议填写"}）</small>
+        <textarea id="rv_note" rows="3" placeholder="填写修改意见或通过理由"></textarea></label>
+      <div class="form-actions"><button class="btn" onclick="submitReviewDecision(${id},${approve})">
+        ${approve ? "确认通过" : "确认驳回"}</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function submitReviewDecision(id, approve) {
+  try {
+    await api("/api/reviews/" + id, { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: approve ? "通过" : "驳回",
+        comment: ($("#rv_note") || {}).value || "" }) });
+    toast(approve ? "已通过" : "已驳回"); closeModal(); viewReviews();
+  } catch (e) { toast("操作失败：" + e.message); }
+}
+function deleteReview(id) {
+  confirmDialog("删除审核记录？", "删除后不可恢复。", async () => {
+    try { await api("/api/reviews/" + id, { method: "DELETE" }); toast("已删除"); viewReviews(); }
+    catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
 }
 
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */
