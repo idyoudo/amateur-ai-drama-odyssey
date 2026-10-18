@@ -236,7 +236,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "help", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -323,6 +323,7 @@ async function routeView(name, param) {
   if (name === "models") return viewModels();
   if (name === "model-add") return viewModelAdd(param);
   if (name === "model-guide") return viewModelGuide();
+  if (name === "help") return viewHelp();
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
 }
@@ -4072,25 +4073,29 @@ function renderHelpContent() {
 }
 function pickHelp(id) {
   HELP_CUR = id;
-  $$("#helpmodal .help-item").forEach(x => x.classList.toggle("on", x.dataset.g === id));
+  $$(".help-item").forEach(x => x.classList.toggle("on", x.dataset.g === id));
   renderHelpContent();
 }
 function openHelp(module) {
   const G = window.GUIDES || {};
   if (module && G[module]) HELP_CUR = module;
   else if (!G[HELP_CUR]) HELP_CUR = "_intro";
+  go("help");
+}
+async function viewHelp() {
+  const G = window.GUIDES || {};
+  if (!G[HELP_CUR]) HELP_CUR = "_intro";
   const order = ["_intro", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12", "M13", "M14", "M15", "M16", "M17", "M18", "M19"];
-  const modal = document.createElement("div");
-  modal.className = "modal"; modal.id = "helpmodal";
-  modal.innerHTML = `<div class="box help">
-    <div class="mhead"><h2>使用指南</h2><button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
-    <div class="help-body">
-      <nav class="help-nav">
-        ${order.map(id => helpItemHtml(id, id === "_intro" ? "总览 · 快速开始" : (G[id] ? `${id} ${G[id].title}` : id))).join("")}
-      </nav>
-      <div class="help-content" id="helpcontent"></div>
-    </div></div>`;
-  document.body.appendChild(modal);
+  setMain({
+    title: "使用指南",
+    body: `<div class="card help-page" style="padding:0;overflow:hidden">
+      <div class="help-body">
+        <nav class="help-nav">
+          ${order.map(id => helpItemHtml(id, id === "_intro" ? "总览 · 快速开始" : (G[id] ? `${id} ${G[id].title}` : id))).join("")}
+        </nav>
+        <div class="help-content" id="helpcontent"></div>
+      </div></div>`,
+  }, true);
   renderHelpContent();
 }
 

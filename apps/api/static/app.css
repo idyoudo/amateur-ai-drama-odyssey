@@ -642,3 +642,7 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
   letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
 .rec-row div{font-size:var(--fs-sm);line-height:1.7;color:var(--ink-2)}
 .rec-row div b{font-size:var(--fs-table);color:var(--ink)}
+
+/* G4：使用指南页面 */
+.help-page .help-nav{max-height:none}
+.help-page .help-content{max-height:none;overflow:visible;min-height:520px}
