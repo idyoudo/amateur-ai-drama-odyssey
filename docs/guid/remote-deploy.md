@@ -77,8 +77,19 @@ ssh root@101.200.220.4 'cd /data/runtime/amateur-ai-drama-odyssey && docker comp
 ssh root@101.200.220.4 'docker exec amateur-ai-drama-odyssey-postgres-1 psql -U aado -d AADO -c "SELECT current_database(), current_user"'
 ```
 
+## 七、故障排查
+
+| 现象 | 原因 | 处置 |
+|------|------|------|
+| 构建失败：`docker.m.daocloud.io ... 502 Bad Gateway`（`load metadata for docker.io/library/python:3.12-slim`） | 远端 Docker 镜像加速器不可用，属外部故障 | 在远端改用可用源并打本地标签，再重跑 `deploy-remote.sh`：`docker pull public.ecr.aws/docker/library/python:3.12-slim && docker tag public.ecr.aws/docker/library/python:3.12-slim python:3.12-slim` |
+| `git pull --ff-only` 失败 | 远端代码目录有本地改动或历史分叉 | 先查 `git -C <代码目录> status`，不要强拉；历史分叉时按脚本约定把旧目录改名保留 |
+| api/worker 不健康 | 依赖或启动参数问题 | 先看 `docker compose logs --tail=100 api`，再回到代码/依赖修复；不要用 `down -v` |
+
+> 镜像源故障只影响构建，不影响已运行的容器与数据；数据库卷与服务隔离规则始终不变。
+
 ## 变更记录
 
 | 日期 | 修订人 | 变更内容 |
 |------|--------|----------|
 | 2026-10-11 | Agent | 建立远端部署规范：与 retail 三方隔离（目录/数据卷/数据库）、独立 postgres（AADO/aado/5433/aado_pgdata）、构建打包、发布流程、安全铁律 |
+| 2026-10-19 | Agent | 新增故障排查：镜像加速器 502 时的基础镜像替代源、拉取失败与健康检查处置 |
