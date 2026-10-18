@@ -1969,13 +1969,12 @@ function renderTemplates() {
             <option value="">全部分类</option>
             ${cats.map(c => `<option value="${esc(c)}" ${TPL.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
           </select>
-          <button class="btn sm" onclick="newTemplate()">新建模板</button>
         </div></div>
         <div class="sub-list">${TPL.items.length ? TPL.items.map(t => `
           <div class="sub-item ${TPL.selected && TPL.selected.id === t.id ? "on" : ""}" onclick="selectTemplate(${t.id})">
             <div class="sub-item-head"><b>${esc(t.name)}</b><span class="pill">${esc(t.category)}</span></div>
             <div class="sub-item-meta">${esc((t.content || "").slice(0, 60))}${(t.content || "").length > 60 ? "…" : ""}</div>
-          </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击「新建模板」</div>`}</div>
+          </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击右上角「新建模板」</div>`}</div>
       </aside>
       <section class="card sub-editor"><div class="stack">
         <div class="row2">
