@@ -560,6 +560,23 @@ check("法务只读", r.status_code == 403)
 check("删除成员", client.delete("/api/team/%d" % wid, headers=H).status_code == 200)
 check("删除法务", client.delete("/api/team/%d" % lid, headers=H).status_code == 200)
 
+# 营销素材
+r = client.get("/api/dramas/%d/marketing-kit" % p2, headers=H)
+d = r.json()
+check("营销素材 200", r.status_code == 200 and len(d["titles"]) >= 3
+      and len(d["hooks"]) >= 1)
+check("营销海报 SVG", d["posters"]["portrait"].startswith("<svg")
+      and "AADO" in d["posters"]["portrait"])
+check("预告分镜", len(d["trailer"]["beats"]) >= 3)
+check("平台文案", len(d["captions"]) == 5)
+r = client.get("/api/dramas/%d/marketing-kit/promo.html" % p2, headers=H)
+check("动态预览 HTML", r.status_code == 200 and d["project"]["title"] in r.text
+      and "start()" in r.text)
+r = client.get("/api/dramas/%d/marketing-kit.zip" % p2, headers=H)
+check("营销素材包", r.status_code == 200
+      and r.headers["content-type"].startswith("application/zip")
+      and len(r.content) > 1000)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))

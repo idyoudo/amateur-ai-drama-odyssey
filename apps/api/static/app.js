@@ -174,7 +174,7 @@ function ico(name, cls) {
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
-  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["jobs","任务","list"]]],
+  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["marketing","营销","sparkle"],["jobs","任务","list"]]],
   ["系统", [["team","团队","users"],["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "team", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "team", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -304,6 +304,7 @@ async function routeView(name, param) {
   if (name === "distribution") return viewDistribution();
   if (name === "reviews") return viewReviews();
   if (name === "settlements") return viewSettlements();
+  if (name === "marketing") return viewMarketing();
   if (name === "jobs") return viewJobs();
   if (name === "team") return viewTeam();
   if (name === "models") return viewModels();
@@ -748,6 +749,7 @@ async function viewProject(id) {
     top: `<div class="right">
         <span class="pill">${p.episodes} 集 × ${dur}${aspect ? " · " + esc(aspect) : ""}</span>
         <span class="pill gold">${esc(p.rating || "")} · ${esc(p.genre || "")}</span>
+        <button class="btn ghost sm" id="mktbtn">${ico("sparkle")} 营销素材</button>
         <button class="btn ghost sm" id="setbtn">${ico("gear")} 设置</button>
         <button class="btn ghost" id="runbtn">${ico("play")} 运行流水线</button>
         <button class="btn" id="prodbtn">${ico("sparkle")} 一键全流程</button></div>`,
@@ -777,6 +779,7 @@ async function viewProject(id) {
     "将执行：19 阶段流水线 → 派生分镜 → 每镜 4 候选抽卡 → 成片组装。会覆盖现有分镜与候选。",
     () => produceAll(id), "开始制作");
   $("#setbtn").onclick = () => editProject(p);
+  $("#mktbtn").onclick = () => { window._MKT_PROJECT = String(id); go("marketing"); };
   renderStageDetail(byName[CUR.stage]);
   renderModelRouting(id);
   // 分集看板（每集卡片：镜数 + 集内剧本场数）
@@ -2470,6 +2473,196 @@ function deleteMember(id) {
     try { await api("/api/team/" + id, { method: "DELETE" }); toast("已删除"); viewTeam(); }
     catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
+}
+
+/* ---------- 营销素材 ---------- */
+const MKT = { projects: [], project_id: "", kit: null };
+let _mktRecording = false;
+async function viewMarketing() {
+  try { MKT.projects = await api("/api/dramas"); }
+  catch (e) { return setMain({ title: "营销", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
+  if (!MKT.projects.length) {
+    return setMain({ title: "营销", body: `<div class="card empty">${ico("sparkle")}<div>还没有项目</div>
+      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button></div></div>` });
+  }
+  if (!MKT.project_id) MKT.project_id = String(window._MKT_PROJECT || MKT.projects[0].id);
+  await loadMarketingKit();
+}
+async function loadMarketingKit() {
+  try { MKT.kit = await api("/api/dramas/" + MKT.project_id + "/marketing-kit"); }
+  catch (e) { return toast("营销素材加载失败：" + e.message); }
+  renderMarketing();
+}
+function mktProjectOptions() {
+  return MKT.projects.map(p => `<option value="${p.id}" ${String(MKT.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast("已复制"); }
+  catch (e) { toast("复制失败，请手动选择"); }
+}
+function mktCopyRow(label, text) {
+  return `<div class="mkt-copy-row"><div><b>${esc(label)}</b><p class="muted">${esc(text)}</p></div>
+    <button class="btn ghost sm" data-text="${esc(text)}" onclick="copyText(this.dataset.text)">复制</button></div>`;
+}
+function renderMarketing() {
+  const k = MKT.kit;
+  if (!k) return;
+  const dataUrl = svg => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  setMain({
+    title: "营销",
+    top: `<div class="right">
+      <button class="btn ghost sm" onclick="openMarketingPromo()">打开动态预览</button>
+      <button class="btn sm" onclick="downloadMarketingZip()">下载素材包</button></div>`,
+    body: `
+    <div class="card" style="margin-bottom:16px">
+      <div class="toolbar">
+        <select id="mkt_project" onchange="switchMarketingProject()">${mktProjectOptions()}</select>
+        <span class="muted" style="font-size:var(--fs-sm)">文案、海报与预告分镜由项目数据生成；视频为浏览器录制 WebM。</span>
+      </div>
+    </div>
+    <div class="mkt-layout">
+      <div class="stack" style="gap:20px">
+        <div class="card">
+          <h2>标题与钩子</h2>
+          ${k.titles.map((t, i) => mktCopyRow("标题 " + (i + 1), t)).join("")}
+          ${k.hooks.map((h, i) => mktCopyRow("钩子 " + (i + 1), h)).join("")}
+        </div>
+        <div class="card">
+          <h2>平台文案</h2>
+          ${Object.values(k.captions).map(c => mktCopyRow(c.channel, c.title + "\n" + c.body)).join("")}
+          ${mktCopyRow("话题标签", k.hashtags)}
+        </div>
+        <div class="card table-scroll">
+          <h2>预告片分镜 <span class="hint">约 ${k.trailer.total_seconds} 秒</span></h2>
+          <table><thead><tr><th>#</th><th>时长</th><th>画面/字幕</th><th>转场</th><th>来源</th></tr></thead>
+            <tbody>${k.trailer.beats.map((b, i) => `<tr>
+              <td>${i + 1}</td><td>${b.duration}s</td><td>${esc(b.caption)}</td>
+              <td>${esc(b.transition)}</td><td>${b.shot_no ? "E" + (b.episode_id || 1) + " · 镜" + b.shot_no : "文案"}</td>
+            </tr>`).join("")}</tbody></table>
+        </div>
+      </div>
+      <aside class="stack" style="gap:20px">
+        <div class="card">
+          <h2>竖屏海报</h2>
+          <img class="mkt-poster" src="${dataUrl(k.posters.portrait)}" alt="9:16 海报">
+          <button class="btn ghost sm" style="margin-top:10px" onclick="downloadMarketingPoster('portrait')">下载 9:16 SVG</button>
+        </div>
+        <div class="card">
+          <h2>横屏海报</h2>
+          <img class="mkt-poster" src="${dataUrl(k.posters.landscape)}" alt="16:9 海报">
+          <button class="btn ghost sm" style="margin-top:10px" onclick="downloadMarketingPoster('landscape')">下载 16:9 SVG</button>
+        </div>
+        <div class="card">
+          <h2>视频素材</h2>
+          <canvas id="mktcanvas" width="540" height="960" class="mkt-canvas"></canvas>
+          <div class="sub-actions" style="margin-top:10px">
+            <button class="btn sm" onclick="recordMarketingVideo()">录制 WebM（9:16）</button>
+          </div>
+          <div id="mktvidstatus" class="muted" style="font-size:var(--fs-sm);margin-top:8px">约 ${k.trailer.total_seconds + 3} 秒 · 浏览器录制，平台如需 MP4 请转码</div>
+        </div>
+      </aside>
+    </div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(k.disclaimer)}</div>`,
+  }, true);
+}
+async function switchMarketingProject() {
+  MKT.project_id = ($("#mkt_project") || {}).value || MKT.project_id;
+  window._MKT_PROJECT = MKT.project_id;
+  await loadMarketingKit();
+}
+function downloadMarketingPoster(kind) {
+  if (!MKT.kit) return;
+  const svg = kind === "portrait" ? MKT.kit.posters.portrait : MKT.kit.posters.landscape;
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob); const a = document.createElement("a");
+  a.href = url; a.download = kind === "portrait" ? "poster-9x16.svg" : "poster-16x9.svg";
+  a.click(); URL.revokeObjectURL(url);
+}
+async function openMarketingPromo() {
+  try {
+    const r = await fetch("/api/dramas/" + MKT.project_id + "/marketing-kit/promo.html",
+      { headers: hasToken() ? { Authorization: "Bearer " + localStorage.getItem(TK) } : {} });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const url = URL.createObjectURL(new Blob([await r.text()], { type: "text/html;charset=utf-8" }));
+    window.open(url, "_blank");
+  } catch (e) { toast("打开预览失败：" + e.message); }
+}
+async function downloadMarketingZip() {
+  try {
+    const r = await fetch("/api/dramas/" + MKT.project_id + "/marketing-kit.zip",
+      { headers: hasToken() ? { Authorization: "Bearer " + localStorage.getItem(TK) } : {} });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement("a"); a.href = url; a.download = "marketing-kit.zip";
+    a.click(); URL.revokeObjectURL(url); toast("素材包已下载");
+  } catch (e) { toast("下载失败：" + e.message); }
+}
+function wrapCanvasText(ctx, text, x, y, maxW, lineH, maxLines) {
+  const chars = String(text || "").split("");
+  let line = "", lines = [];
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = ch; }
+    else line = test;
+    if (lines.length >= maxLines) break;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
+  return y + lines.length * lineH;
+}
+function drawMarketingFrame(ctx, w, h, kit, seq, t, per, total) {
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, "#101018"); g.addColorStop(1, "#26263f");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#8b8bf0"; ctx.fillRect(w * 0.08, h * 0.27, w * 0.12, 5);
+  const idx = Math.min(seq.length - 1, Math.floor(t / per));
+  const item = seq[idx] || { t: kit.project.title, p: kit.hooks[0] || "" };
+  ctx.fillStyle = "#ffffff";
+  ctx.font = idx === 0 ? "600 42px 'PingFang SC','Microsoft YaHei',sans-serif"
+    : "600 34px 'PingFang SC','Microsoft YaHei',sans-serif";
+  const endY = wrapCanvasText(ctx, item.t, w * 0.08, h * 0.48, w * 0.84, 48, 4);
+  ctx.fillStyle = "#c9c9d6"; ctx.font = "20px 'PingFang SC','Microsoft YaHei',sans-serif";
+  wrapCanvasText(ctx, item.p, w * 0.08, endY + 14, w * 0.84, 30, 3);
+  ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.fillRect(0, h - 4, w, 4);
+  ctx.fillStyle = "#8b8bf0"; ctx.fillRect(0, h - 4, w * Math.min(1, t / total), 4);
+  ctx.fillStyle = "#8a8a96"; ctx.font = "14px 'PingFang SC',sans-serif";
+  ctx.fillText(kit.project.format || "", w * 0.08, h - 26);
+  ctx.fillText("AADO · AI 生成内容", w * 0.54, h - 26);
+}
+async function recordMarketingVideo() {
+  if (_mktRecording || !MKT.kit) return;
+  const canvas = $("#mktcanvas");
+  if (!canvas || !window.MediaRecorder) return toast("当前浏览器不支持视频录制");
+  const ctx = canvas.getContext("2d");
+  const kit = MKT.kit;
+  const seq = [{ t: kit.project.title, p: kit.hooks[0] || "" }]
+    .concat(kit.trailer.beats.map(b => ({ t: b.caption, p: b.transition })));
+  const per = 2.6, total = seq.length * per;
+  const stream = canvas.captureStream(30);
+  let mime = "video/webm";
+  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime = "video/webm;codecs=vp9";
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(res => { rec.onstop = res; });
+  const status = $("#mktvidstatus");
+  if (status) status.textContent = "录制中…";
+  _mktRecording = true; rec.start(100);
+  const start = performance.now();
+  await new Promise(resolve => {
+    function frame(now) {
+      const t = (now - start) / 1000;
+      drawMarketingFrame(ctx, canvas.width, canvas.height, kit, seq, t, per, total);
+      if (t < total) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+  rec.stop(); await stopped; _mktRecording = false;
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const url = URL.createObjectURL(blob); const a = document.createElement("a");
+  a.href = url; a.download = "promo.webm"; a.click(); URL.revokeObjectURL(url);
+  if (status) status.textContent = "已生成 WebM（约 " + Math.round(total) + " 秒）";
+  toast("视频素材已生成（WebM）");
 }
 
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */

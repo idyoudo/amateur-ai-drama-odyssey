@@ -1,10 +1,11 @@
 """AADO 控制面 API（FastAPI；API 薄：入队 + 查询 + 人工终审，重计算归 worker）。"""
+import json
 import os
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select, func, or_
@@ -12,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
 from film import formats as fmt
+from film import marketing as marketing_mod
 from film import novels as novel_parser
 from film import subtitles as subtitle_mod
 from film.jobs import db as jobs_db
@@ -1938,6 +1940,71 @@ def delete_settlement(settlement_id: int):
         s.delete(r)
         s.commit()
     return {"deleted": True, "id": settlement_id}
+
+
+def _marketing_kit(project_id):
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == project_id).order_by(
+            jobs_db.Shot.episode_id, jobs_db.Shot.shot_no)).all()
+        scripts = s.scalars(select(jobs_db.Script).where(
+            jobs_db.Script.project_id == project_id).order_by(
+            jobs_db.Script.episode_id)).all()
+    project = {"id": p.id, "title": p.title, "logline": p.logline, "genre": p.genre,
+               "rating": p.rating, "platform": p.platform, "episodes": p.episodes,
+               "minutes": p.minutes, "delivery_spec": p.delivery_spec or {},
+               "episode_seconds": p.episode_seconds}
+    shot_rows = [{"episode_id": sh.episode_id, "shot_no": sh.shot_no,
+                  "characters": sh.characters or [], "dialogue": sh.dialogue,
+                  "prompt": sh.prompt, "duration": sh.duration,
+                  "status": sh.status} for sh in shots]
+    scenes = [sc for script in scripts for sc in (script.scenes or [])]
+    return marketing_mod.build_kit(project, scenes, shot_rows)
+
+
+@app.get("/api/dramas/{project_id}/marketing-kit")
+def marketing_kit(project_id: int):
+    return _marketing_kit(project_id)
+
+
+@app.get("/api/dramas/{project_id}/marketing-kit/promo.html")
+def marketing_promo(project_id: int):
+    kit = _marketing_kit(project_id)
+    return HTMLResponse(marketing_mod.build_promo_html(kit))
+
+
+@app.get("/api/dramas/{project_id}/marketing-kit.zip")
+def marketing_zip(project_id: int):
+    import io
+    import zipfile
+    kit = _marketing_kit(project_id)
+    promo = marketing_mod.build_promo_html(kit)
+    copy_lines = ["《%s》营销文案" % kit["project"]["title"], ""]
+    copy_lines += ["标题："] + ["  " + t for t in kit["titles"]] + [""]
+    copy_lines += ["钩子："] + ["  " + h for h in kit["hooks"]] + [""]
+    for key, c in kit["captions"].items():
+        copy_lines += ["[%s] %s" % (c["channel"], c["title"]), "  " + c["body"].replace("\n", " / "), ""]
+    copy_lines += ["话题：%s" % kit["hashtags"], "", kit["disclaimer"]]
+    trailer = {"beats": kit["trailer"]["beats"], "total_seconds": kit["trailer"]["total_seconds"],
+               "disclaimer": kit["disclaimer"]}
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("poster-9x16.svg", kit["posters"]["portrait"])
+        z.writestr("poster-16x9.svg", kit["posters"]["landscape"])
+        z.writestr("copy.txt", "\n".join(copy_lines))
+        z.writestr("copy.json", json.dumps({"titles": kit["titles"], "hooks": kit["hooks"],
+                                            "captions": kit["captions"],
+                                            "hashtags": kit["hashtags"]},
+                                           ensure_ascii=False, indent=2))
+        z.writestr("trailer.json", json.dumps(trailer, ensure_ascii=False, indent=2))
+        z.writestr("promo.html", promo)
+        z.writestr("README.txt", kit["disclaimer"] + "\n")
+    filename = "marketing-%s.zip" % project_id
+    return Response(buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="%s"' % filename})
 
 
 @app.get("/api/jobs/summary")

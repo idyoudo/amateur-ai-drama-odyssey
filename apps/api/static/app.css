@@ -202,6 +202,17 @@ h2:first-child{margin-top:0}
 .cue-num{color:var(--dim);font-family:var(--mono);font-size:var(--fs-sm)}
 @media (max-width:980px){.sub-layout{grid-template-columns:1fr}}
 
+/* 营销素材 */
+.mkt-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.mkt-copy-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.mkt-copy-row:last-child{border-bottom:0}
+.mkt-copy-row b{font-size:var(--fs-table);color:var(--ink-2)}
+.mkt-copy-row p{margin:4px 0 0;font-size:var(--fs-sm);line-height:1.5;white-space:pre-wrap}
+.mkt-poster{width:100%;border-radius:var(--radius-md);border:1px solid var(--line);display:block;background:#111}
+.mkt-canvas{width:100%;max-width:260px;border-radius:12px;display:block;margin:0 auto;background:#111}
+@media (max-width:980px){.mkt-layout{grid-template-columns:1fr}}
+
 /* 表格 */
 table{width:100%;border-collapse:collapse}
 .table-scroll{overflow-x:auto}
