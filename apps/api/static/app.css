@@ -682,6 +682,14 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .course-flow span{border:1px solid var(--line-strong);border-radius:999px;background:var(--surface-2);
   padding:5px 11px;font-size:var(--fs-meta);color:var(--ink-2);white-space:nowrap}
 .course-flow i{color:var(--dim-2);font-style:normal;font-size:var(--fs-meta)}
+.course-fig{margin:18px 0 22px;padding:18px 18px 14px;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface)}
+.course-fig svg{display:block;width:100%;height:auto;max-height:420px}
+.course-fig .fig-scroll{overflow-x:auto}
+.course-fig .fig-scroll svg{min-width:640px}
+.course-fig figcaption{font-size:var(--fs-meta);color:var(--dim);line-height:1.7;margin-top:12px;
+  padding-top:10px;border-top:1px solid var(--line)}
+.course-fig figcaption b{color:var(--ink-2);font-weight:600}
 .course-nav{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:36px;
   padding-top:18px;border-top:1px solid var(--line)}
 .course-nav .btn{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -693,6 +701,8 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
   .course-page .help-content{min-width:0}
   .course-body{max-width:none;min-width:0}
   .course-sec .table-scroll{min-width:0}
+  .course-fig .fig-scroll::before{content:"左右滑动查看完整图";display:block;position:sticky;left:0;
+    padding-bottom:6px;font-size:var(--fs-meta);color:var(--dim-2)}
   .course-page .help-content{padding:22px 18px 30px}
   .course-nav{flex-direction:column;align-items:stretch}
   .course-nav .btn{max-width:none}

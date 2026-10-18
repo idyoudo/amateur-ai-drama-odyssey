@@ -4278,6 +4278,13 @@ function renderAcademyContent() {
     t.parentNode.insertBefore(wrap, t);
     wrap.appendChild(t);
   });
+  el.querySelectorAll(".course-fig svg").forEach(svg => {
+    if (svg.parentElement && svg.parentElement.classList.contains("fig-scroll")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "fig-scroll";
+    svg.parentNode.insertBefore(wrap, svg);
+    wrap.appendChild(svg);
+  });
 }
 function pickAcademy(id) {
   ACADEMY_CUR = id;

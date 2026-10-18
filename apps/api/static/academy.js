@@ -63,6 +63,42 @@ window.ACADEMY = {
           <div class="course-flow">
             <span>小说 / 创意</span><i>→</i><span>剧本</span><i>→</i><span>选角定妆</span><i>→</i><span>分镜</span><i>→</i><span>previz</span><i>→</i><span>镜头生成</span><i>→</i><span>一致性</span><i>→</i><span>配音</span><i>→</i><span>口型</span><i>→</i><span>声音设计</span><i>→</i><span>剪辑</span><i>→</i><span>调色母版</span><i>→</i><span>QC</span><i>→</i><span>交付</span><i>→</i><span>VFX</span><i>→</i><span>合规</span>
           </div>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 300" role="img" aria-label="AI 短剧三泳道流水线示意图">
+              <defs><marker id="f1a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f1b{fill:#F4F4F8;stroke:#DCDCE4}.f1k{fill:#F2F2FE;stroke:#E0E0FA}.f1t{font-size:12px;fill:#17171C;font-weight:600}.f1l{font-size:11px;fill:#A0A0AC;letter-spacing:1.4px}.f1s{font-size:10px;fill:#6E6E7A}</style>
+              <text x="20" y="84" class="f1l">画面主线</text>
+              <text x="20" y="174" class="f1l">声音主线</text>
+              <text x="20" y="264" class="f1l">审计主线</text>
+              <rect x="100" y="62" width="100" height="36" rx="7" class="f1b"/><text x="150" y="85" text-anchor="middle" class="f1t">剧本</text>
+              <rect x="214" y="62" width="100" height="36" rx="7" class="f1b"/><text x="264" y="85" text-anchor="middle" class="f1t">定妆</text>
+              <rect x="328" y="62" width="100" height="36" rx="7" class="f1k"/><text x="378" y="85" text-anchor="middle" class="f1t">分镜</text>
+              <rect x="442" y="62" width="100" height="36" rx="7" class="f1b"/><text x="492" y="85" text-anchor="middle" class="f1t">镜头生成</text>
+              <rect x="556" y="62" width="100" height="36" rx="7" class="f1b"/><text x="606" y="85" text-anchor="middle" class="f1t">一致性</text>
+              <rect x="670" y="62" width="100" height="36" rx="7" class="f1b"/><text x="720" y="85" text-anchor="middle" class="f1t">剪辑</text>
+              <path d="M200,80 H210" stroke="#A0A0AC" marker-end="url(#f1a)"/><path d="M314,80 H324" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <path d="M428,80 H438" stroke="#A0A0AC" marker-end="url(#f1a)"/><path d="M542,80 H552" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <path d="M656,80 H666" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <rect x="328" y="152" width="100" height="36" rx="7" class="f1b"/><text x="378" y="175" text-anchor="middle" class="f1t">配音</text>
+              <rect x="442" y="152" width="100" height="36" rx="7" class="f1k"/><text x="492" y="175" text-anchor="middle" class="f1t">口型</text>
+              <rect x="556" y="152" width="100" height="36" rx="7" class="f1b"/><text x="606" y="175" text-anchor="middle" class="f1t">四层声音</text>
+              <rect x="670" y="152" width="100" height="36" rx="7" class="f1b"/><text x="720" y="175" text-anchor="middle" class="f1t">混音</text>
+              <path d="M428,170 H438" stroke="#A0A0AC" marker-end="url(#f1a)"/><path d="M542,170 H552" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <path d="M656,170 H666" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <rect x="214" y="242" width="100" height="36" rx="7" class="f1b"/><text x="264" y="265" text-anchor="middle" class="f1t">门禁</text>
+              <rect x="328" y="242" width="100" height="36" rx="7" class="f1b"/><text x="378" y="265" text-anchor="middle" class="f1t">成本</text>
+              <rect x="442" y="242" width="100" height="36" rx="7" class="f1b"/><text x="492" y="265" text-anchor="middle" class="f1t">存储血缘</text>
+              <rect x="670" y="242" width="100" height="36" rx="7" class="f1b"/><text x="720" y="265" text-anchor="middle" class="f1t">合规</text>
+              <path d="M314,260 H324" stroke="#A0A0AC" marker-end="url(#f1a)"/><path d="M428,260 H438" stroke="#A0A0AC" marker-end="url(#f1a)"/>
+              <path d="M378,98 V146" stroke="#A0A0AC" stroke-dasharray="4 4" marker-end="url(#f1a)"/>
+              <path d="M720,98 V146" stroke="#A0A0AC" stroke-dasharray="4 4" marker-end="url(#f1a)"/>
+              <path d="M264,98 V236" stroke="#A0A0AC" stroke-dasharray="4 4" marker-end="url(#f1a)"/>
+              <text x="386" y="126" class="f1s">按镜头并行</text>
+              <text x="728" y="126" class="f1s">按镜头</text>
+              <text x="272" y="210" class="f1s">贯穿全程</text>
+            </svg>
+            <figcaption><b>图 1 · 三泳道流水线。</b>画面、声音、审计三条主线并行推进；分镜决定镜头、镜头决定配音与口型、剪辑决定混音，审计主线贯穿每一步。</figcaption>
+          </figure>
           <p>注意两个容易被低估的环节：<b>previz</b>（预览片）决定你能不能低成本试错；<b>一致性</b>不是生成完再修，而是贯穿选角、分镜、生成、剪辑的连续约束。</p>
         </section>
 
@@ -136,6 +172,30 @@ window.ACADEMY = {
             </tbody>
           </table>
           <p>景别变化的专业原则：<b>相邻镜头景别至少差一级</b>，否则观众会感到「跳了一下」。这就是 30 度规则的视觉版本。</p>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 210" role="img" aria-label="六种景别从大全景到特写的画面范围示意">
+              <style>.f2f{fill:#FFFFFF;stroke:#DCDCE4}.f2h{fill:#C9C9D6}.f2b{fill:#E4E4EE}.f2t{font-size:12px;fill:#17171C;font-weight:600}.f2s{font-size:10px;fill:#A0A0AC}.f2g{stroke:#E9E9EF}</style>
+              <rect x="24" y="24" width="104" height="112" rx="4" class="f2f"/><line x1="24" y1="120" x2="128" y2="120" class="f2g"/>
+              <circle cx="76" cy="98" r="4" class="f2h"/><line x1="76" y1="102" x2="76" y2="112" stroke="#C9C9D6" stroke-width="3"/>
+              <text x="76" y="158" text-anchor="middle" class="f2t">大全景</text><text x="76" y="174" text-anchor="middle" class="f2s">ELS</text>
+              <rect x="152" y="24" width="104" height="112" rx="4" class="f2f"/><line x1="152" y1="120" x2="256" y2="120" class="f2g"/>
+              <circle cx="204" cy="86" r="7" class="f2h"/><rect x="197" y="94" width="14" height="26" rx="5" class="f2b"/>
+              <text x="204" y="158" text-anchor="middle" class="f2t">全景</text><text x="204" y="174" text-anchor="middle" class="f2s">LS</text>
+              <rect x="280" y="24" width="104" height="112" rx="4" class="f2f"/><line x1="280" y1="120" x2="384" y2="120" class="f2g"/>
+              <circle cx="332" cy="80" r="10" class="f2h"/><rect x="321" y="91" width="22" height="29" rx="7" class="f2b"/>
+              <text x="332" y="158" text-anchor="middle" class="f2t">中景</text><text x="332" y="174" text-anchor="middle" class="f2s">MS</text>
+              <rect x="408" y="24" width="104" height="112" rx="4" class="f2f"/><line x1="408" y1="120" x2="512" y2="120" class="f2g"/>
+              <circle cx="460" cy="76" r="14" class="f2h"/><rect x="441" y="91" width="38" height="29" rx="9" class="f2b"/>
+              <text x="460" y="158" text-anchor="middle" class="f2t">中近景</text><text x="460" y="174" text-anchor="middle" class="f2s">MCU</text>
+              <rect x="536" y="24" width="104" height="112" rx="4" class="f2f"/>
+              <circle cx="588" cy="72" r="26" class="f2h"/><path d="M552,120 Q588,96 624,120 Z" class="f2b"/>
+              <text x="588" y="158" text-anchor="middle" class="f2t">近景</text><text x="588" y="174" text-anchor="middle" class="f2s">CU</text>
+              <rect x="664" y="24" width="104" height="112" rx="4" class="f2f"/>
+              <ellipse cx="716" cy="80" rx="30" ry="17" fill="#FFFFFF" stroke="#C9C9D6"/><circle cx="716" cy="80" r="8" class="f2h"/>
+              <text x="716" y="158" text-anchor="middle" class="f2t">特写</text><text x="716" y="174" text-anchor="middle" class="f2s">ECU</text>
+            </svg>
+            <figcaption><b>图 2 · 六种景别。</b>从左到右，人物在画面中越来越大、环境信息越来越少、情绪距离越来越近。相邻镜头至少差一级，避免跳切感。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -163,6 +223,26 @@ window.ACADEMY = {
             <li><b>越轴</b>：不是绝对不能，但必须用中性镜头、运动镜头或人物移动来过渡。</li>
             <li><b>视线匹配</b>：看的方向与下一镜被看对象的方向要一致。</li>
           </ul>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 260" role="img" aria-label="180 度轴线与正反打机位示意">
+              <defs><marker id="f3a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f3p{font-size:12px;fill:#17171C;font-weight:600}.f3s{font-size:11px;fill:#6E6E7A}.f3l{font-size:10px;fill:#A0A0AC}</style>
+              <rect x="80" y="120" width="640" height="120" fill="#F2F2FE"/>
+              <line x1="90" y1="110" x2="710" y2="110" stroke="#A0A0AC" stroke-dasharray="6 5"/>
+              <text x="400" y="102" text-anchor="middle" class="f3s">轴线（假想连线）</text>
+              <circle cx="250" cy="110" r="20" fill="#E4E4EE" stroke="#C9C9D6"/><text x="250" y="115" text-anchor="middle" class="f3p">A</text>
+              <circle cx="550" cy="110" r="20" fill="#E4E4EE" stroke="#C9C9D6"/><text x="550" y="115" text-anchor="middle" class="f3p">B</text>
+              <text x="250" y="152" text-anchor="middle" class="f3s">演员 A</text><text x="550" y="152" text-anchor="middle" class="f3s">演员 B</text>
+              <circle cx="300" cy="205" r="7" fill="#4F46E5"/><path d="M300,198 V170" stroke="#A0A0AC" marker-end="url(#f3a)"/>
+              <circle cx="500" cy="205" r="7" fill="#4F46E5"/><path d="M500,198 V170" stroke="#A0A0AC" marker-end="url(#f3a)"/>
+              <text x="300" y="226" text-anchor="middle" class="f3s">机位 1</text><text x="500" y="226" text-anchor="middle" class="f3s">机位 2</text>
+              <text x="400" y="232" text-anchor="middle" class="f3l">安全侧：所有机位保持在轴线同一侧</text>
+              <circle cx="400" cy="48" r="7" fill="#C2410C"/><path d="M400,55 V92" stroke="#C2410C" marker-end="url(#f3a)"/>
+              <path d="M392,40 L408,56 M408,40 L392,56" stroke="#C2410C" stroke-width="2"/>
+              <text x="400" y="28" text-anchor="middle" class="f3s" fill="#C2410C">越轴机位（会让人物左右互换）</text>
+            </svg>
+            <figcaption><b>图 3 · 轴线与正反打。</b>机位 1、2 都在轴线同侧，剪出来 A 看画右、B 看画左，视线相接；跑到对侧就是越轴，观众会觉得两人突然换了位置。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -203,6 +283,33 @@ window.ACADEMY = {
             </tbody>
           </table>
           <p>短剧主干应默认走 I2V 或 R2V：先用图像模型把角色、服装、场景固定下来，再让视频模型只负责「动起来」。这是把不确定性前置到可控环节。</p>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 230" role="img" aria-label="文生视频、图生视频、参考生视频三种模式">
+              <defs><marker id="f4a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f4b{fill:#F4F4F8;stroke:#DCDCE4}.f4k{fill:#F2F2FE;stroke:#E0E0FA}.f4t{font-size:12px;fill:#17171C;font-weight:600}.f4s{font-size:11px;fill:#6E6E7A}.f4h{font-size:11px;fill:#4F46E5;letter-spacing:1px}</style>
+              <text x="140" y="22" text-anchor="middle" class="f4h">T2V · 文生视频</text>
+              <rect x="24" y="38" width="232" height="44" rx="7" class="f4b"/><text x="140" y="65" text-anchor="middle" class="f4t">文本提示词</text>
+              <path d="M140,82 V108" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="24" y="112" width="232" height="40" rx="7" class="f4b"/><text x="140" y="137" text-anchor="middle" class="f4s">视频模型</text>
+              <path d="M140,152 V178" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="24" y="182" width="232" height="34" rx="7" class="f4b"/><text x="140" y="204" text-anchor="middle" class="f4s">视频（一致性最弱）</text>
+
+              <text x="400" y="22" text-anchor="middle" class="f4h">I2V · 图生视频</text>
+              <rect x="284" y="38" width="232" height="44" rx="7" class="f4b"/><text x="400" y="65" text-anchor="middle" class="f4t">首帧（可选尾帧）</text>
+              <path d="M400,82 V108" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="284" y="112" width="232" height="40" rx="7" class="f4b"/><text x="400" y="137" text-anchor="middle" class="f4s">视频模型</text>
+              <path d="M400,152 V178" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="284" y="182" width="232" height="34" rx="7" class="f4b"/><text x="400" y="204" text-anchor="middle" class="f4s">视频（叙事主力）</text>
+
+              <text x="660" y="22" text-anchor="middle" class="f4h">R2V · 参考生视频</text>
+              <rect x="544" y="38" width="232" height="44" rx="7" class="f4k"/><text x="660" y="65" text-anchor="middle" class="f4t">参考图 / 视频 / 音频</text>
+              <path d="M660,82 V108" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="544" y="112" width="232" height="40" rx="7" class="f4k"/><text x="660" y="137" text-anchor="middle" class="f4s">视频模型</text>
+              <path d="M660,152 V178" stroke="#A0A0AC" marker-end="url(#f4a)"/>
+              <rect x="544" y="182" width="232" height="34" rx="7" class="f4k"/><text x="660" y="204" text-anchor="middle" class="f4s">视频（一致性最强）</text>
+            </svg>
+            <figcaption><b>图 4 · 三种生成模式。</b>控制条件越强，自由度越低、可复现性越高。短剧主干用 I2V/R2V，把「长什么样」交给图像，把「怎么动」交给视频。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -303,6 +410,29 @@ window.ACADEMY = {
             <li><b>可剪性</b>：入点出点是否留有余量，能否与前后镜衔接。</li>
           </ol>
           <div class="course-note">候选不覆盖已选定版本。选定后再生成，应另开版本，保留可回溯的记录。</div>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 230" role="img" aria-label="四选一候选筛选流程">
+              <defs><marker id="f5a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f5b{fill:#F4F4F8;stroke:#DCDCE4}.f5k{fill:#F2F2FE;stroke:#E0E0FA}.f5t{font-size:12px;fill:#17171C;font-weight:600}.f5s{font-size:10px;fill:#6E6E7A}.f5l{font-size:10px;fill:#A0A0AC}</style>
+              <text x="205" y="26" text-anchor="middle" class="f5l">每镜 4 条候选（经验值）</text>
+              <rect x="30" y="40" width="80" height="40" rx="7" class="f5b"/><text x="70" y="65" text-anchor="middle" class="f5t">候选 1</text>
+              <rect x="120" y="40" width="80" height="40" rx="7" class="f5b"/><text x="160" y="65" text-anchor="middle" class="f5t">候选 2</text>
+              <rect x="210" y="40" width="80" height="40" rx="7" class="f5b"/><text x="250" y="65" text-anchor="middle" class="f5t">候选 3</text>
+              <rect x="300" y="40" width="80" height="40" rx="7" class="f5b"/><text x="340" y="65" text-anchor="middle" class="f5t">候选 4</text>
+              <path d="M380,60 H432" stroke="#A0A0AC" marker-end="url(#f5a)"/>
+              <rect x="436" y="34" width="150" height="52" rx="7" class="f5k"/><text x="511" y="57" text-anchor="middle" class="f5t">可用性筛查</text>
+              <text x="511" y="73" text-anchor="middle" class="f5s">形变 / 闪烁 / 穿帮</text>
+              <path d="M511,86 V134" stroke="#A0A0AC" marker-end="url(#f5a)"/>
+              <rect x="436" y="138" width="150" height="52" rx="7" class="f5k"/><text x="511" y="161" text-anchor="middle" class="f5t">一致性与表演</text>
+              <text x="511" y="177" text-anchor="middle" class="f5s">脸 / 服装 / 情绪 / 构图</text>
+              <path d="M586,164 H634" stroke="#A0A0AC" marker-end="url(#f5a)"/>
+              <rect x="638" y="138" width="132" height="52" rx="7" class="f5b"/><text x="704" y="161" text-anchor="middle" class="f5t">选定 1 条</text>
+              <text x="704" y="177" text-anchor="middle" class="f5s">其余留档</text>
+              <text x="140" y="112" class="f5l">不可用直接淘汰，不进入审美比较</text>
+              <path d="M30,96 H380" stroke="#E9E9EF"/>
+            </svg>
+            <figcaption><b>图 5 · 候选漏斗。</b>先筛「能不能用」，再比「好不好」。把审美判断放在可用性之后，能显著减少返工与无效调用。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -418,6 +548,33 @@ window.ACADEMY = {
             </tbody>
           </table>
           <div class="course-note">已有镜头只能交给修复型。用生成型等于把画面重新生成一遍，跨镜一致性会断。</div>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 290" role="img" aria-label="口型同步的三条技术路线">
+              <defs><marker id="f6a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f6b{fill:#F4F4F8;stroke:#DCDCE4}.f6k{fill:#F2F2FE;stroke:#E0E0FA}.f6t{font-size:12px;fill:#17171C;font-weight:600}.f6s{font-size:11px;fill:#6E6E7A}.f6h{font-size:11px;fill:#4F46E5;font-weight:600}</style>
+              <text x="30" y="30" class="f6h">修复型 · 已有镜头走这条</text>
+              <rect x="30" y="42" width="200" height="46" rx="7" class="f6k"/><text x="130" y="70" text-anchor="middle" class="f6t">已有视频 + 音轨</text>
+              <path d="M230,65 H292" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="296" y="42" width="150" height="46" rx="7" class="f6k"/><text x="371" y="70" text-anchor="middle" class="f6t">口型修复模型</text>
+              <path d="M446,65 H508" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="512" y="42" width="250" height="46" rx="7" class="f6b"/><text x="637" y="70" text-anchor="middle" class="f6s">同一画面，只改嘴部</text>
+
+              <text x="30" y="112" class="f6h" fill="#6E6E7A">生成型</text>
+              <rect x="30" y="124" width="200" height="46" rx="7" class="f6b"/><text x="130" y="152" text-anchor="middle" class="f6t">人物图 + 音轨</text>
+              <path d="M230,147 H292" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="296" y="124" width="150" height="46" rx="7" class="f6b"/><text x="371" y="152" text-anchor="middle" class="f6t">生成式口型</text>
+              <path d="M446,147 H508" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="512" y="124" width="250" height="46" rx="7" class="f6b"/><text x="637" y="152" text-anchor="middle" class="f6s">新生成一段说话视频</text>
+
+              <text x="30" y="194" class="f6h" fill="#6E6E7A">表演驱动</text>
+              <rect x="30" y="206" width="200" height="46" rx="7" class="f6b"/><text x="130" y="234" text-anchor="middle" class="f6t">视频/图 + 驱动信号</text>
+              <path d="M230,229 H292" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="296" y="206" width="150" height="46" rx="7" class="f6b"/><text x="371" y="234" text-anchor="middle" class="f6t">表演驱动模型</text>
+              <path d="M446,229 H508" stroke="#A0A0AC" marker-end="url(#f6a)"/>
+              <rect x="512" y="206" width="250" height="46" rx="7" class="f6b"/><text x="637" y="234" text-anchor="middle" class="f6s">表情 + 头动 + 口型</text>
+            </svg>
+            <figcaption><b>图 6 · 三条口型路线。</b>输入不同，输出也不同：修复型只动嘴，生成型会重造画面，表演驱动连表情与头动一起改。已有镜头选错路线，等于放弃一致性。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -481,6 +638,34 @@ window.ACADEMY = {
               <tr><td>Amb 环境</td><td>空间连续、沉浸感</td><td>无缝循环，跨场景交叉淡化</td><td>切镜爆音、房间忽大忽小</td></tr>
             </tbody>
           </table>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 330" role="img" aria-label="对白、音乐、音效、环境四层声音总线与输出">
+              <defs><marker id="f7a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f7t{font-size:12px;fill:#17171C;font-weight:600}.f7s{font-size:10px;fill:#6E6E7A}.f7l{font-size:10px;fill:#A0A0AC}.f7w{font-size:12px;fill:#FFFFFF;font-weight:600}</style>
+              <text x="24" y="60" class="f7t">D 对白</text><text x="24" y="118" class="f7t">M 音乐</text><text x="24" y="176" class="f7t">E 音效</text><text x="24" y="234" class="f7t">Amb 环境</text>
+              <line x1="110" y1="56" x2="520" y2="56" stroke="#E9E9EF"/>
+              <line x1="110" y1="114" x2="520" y2="114" stroke="#E9E9EF"/>
+              <line x1="110" y1="172" x2="520" y2="172" stroke="#E9E9EF"/>
+              <line x1="110" y1="230" x2="520" y2="230" stroke="#E9E9EF"/>
+              <rect x="130" y="42" width="90" height="28" rx="5" fill="#F2F2FE" stroke="#E0E0FA"/><rect x="260" y="42" width="70" height="28" rx="5" fill="#F2F2FE" stroke="#E0E0FA"/><rect x="360" y="42" width="120" height="28" rx="5" fill="#F2F2FE" stroke="#E0E0FA"/>
+              <rect x="150" y="100" width="320" height="28" rx="5" fill="#EFE9FB" stroke="#D9CEF3"/>
+              <rect x="150" y="158" width="36" height="28" rx="5" fill="#FDF0E5" stroke="#F0D3B8"/><rect x="200" y="158" width="36" height="28" rx="5" fill="#FDF0E5" stroke="#F0D3B8"/><rect x="250" y="158" width="36" height="28" rx="5" fill="#FDF0E5" stroke="#F0D3B8"/><rect x="320" y="158" width="36" height="28" rx="5" fill="#FDF0E5" stroke="#F0D3B8"/><rect x="390" y="158" width="36" height="28" rx="5" fill="#FDF0E5" stroke="#F0D3B8"/>
+              <rect x="120" y="216" width="400" height="28" rx="5" fill="#E8F5F2" stroke="#C9E3DC"/>
+              <path d="M520,56 H542" stroke="#A0A0AC" marker-end="url(#f7a)"/><path d="M520,114 H542" stroke="#A0A0AC" marker-end="url(#f7a)"/>
+              <path d="M520,172 H542" stroke="#A0A0AC" marker-end="url(#f7a)"/><path d="M520,230 H542" stroke="#A0A0AC" marker-end="url(#f7a)"/>
+              <rect x="546" y="36" width="86" height="220" rx="9" fill="#4F46E5"/>
+              <text x="589" y="132" text-anchor="middle" class="f7w">混音</text><text x="589" y="152" text-anchor="middle" class="f7w">总线</text>
+              <path d="M632,66 H662" stroke="#A0A0AC" marker-end="url(#f7a)"/>
+              <path d="M632,140 H662" stroke="#A0A0AC" marker-end="url(#f7a)"/>
+              <path d="M632,214 H662" stroke="#A0A0AC" marker-end="url(#f7a)"/>
+              <rect x="666" y="42" width="110" height="50" rx="7" fill="#F4F4F8" stroke="#DCDCE4"/><text x="721" y="63" text-anchor="middle" class="f7t">四路 stem</text><text x="721" y="79" text-anchor="middle" class="f7s">逐帧等长</text>
+              <rect x="666" y="112" width="110" height="56" rx="7" fill="#F2F2FE" stroke="#E0E0FA"/><text x="721" y="135" text-anchor="middle" class="f7t">立体声 / 5.1</text><text x="721" y="151" text-anchor="middle" class="f7s">−23 LUFS 母版</text>
+              <rect x="666" y="188" width="110" height="50" rx="7" fill="#F4F4F8" stroke="#DCDCE4"/><text x="721" y="209" text-anchor="middle" class="f7t">M&amp;E</text><text x="721" y="225" text-anchor="middle" class="f7s">译制 / 二次配音</text>
+              <path d="M300,70 C300,82 300,88 300,98" stroke="#C2410C" stroke-dasharray="4 3" marker-end="url(#f7a)"/>
+              <text x="308" y="88" class="f7l" fill="#C2410C">对白闪避 −3~−6 dB</text>
+            </svg>
+            <figcaption><b>图 7 · 四层声音总线。</b>四层独立生产、统一混音，输出四路 stem、母版与 M&amp;E。对白出现时音乐自动让位，保证可懂度。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -545,6 +730,26 @@ window.ACADEMY = {
               <tr><td>Hit point</td><td>必须对齐的画面点</td><td>耳光落下的那一帧</td></tr>
             </tbody>
           </table>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 270" role="img" aria-label="配乐 Cue 时间线与情绪强度曲线">
+              <style>.f8t{font-size:11px;fill:#17171C;font-weight:600}.f8s{font-size:10px;fill:#6E6E7A}.f8l{font-size:10px;fill:#A0A0AC}</style>
+              <text x="60" y="24" class="f8l">情绪强度</text>
+              <line x1="60" y1="210" x2="740" y2="210" stroke="#DCDCE4"/>
+              <line x1="60" y1="196" x2="60" y2="224" stroke="#DCDCE4"/><line x1="230" y1="196" x2="230" y2="224" stroke="#DCDCE4"/><line x1="400" y1="196" x2="400" y2="224" stroke="#DCDCE4"/><line x1="570" y1="196" x2="570" y2="224" stroke="#DCDCE4"/><line x1="740" y1="196" x2="740" y2="224" stroke="#DCDCE4"/>
+              <text x="60" y="240" text-anchor="middle" class="f8l">0:00</text><text x="230" y="240" text-anchor="middle" class="f8l">0:30</text><text x="400" y="240" text-anchor="middle" class="f8l">1:00</text><text x="570" y="240" text-anchor="middle" class="f8l">1:30</text><text x="740" y="240" text-anchor="middle" class="f8l">2:00</text>
+              <line x1="300" y1="60" x2="300" y2="210" stroke="#E9E9EF" stroke-dasharray="4 4"/><line x1="520" y1="60" x2="520" y2="210" stroke="#E9E9EF" stroke-dasharray="4 4"/>
+              <text x="306" y="72" class="f8s">场次边界</text>
+              <path d="M70,178 C120,150 190,120 230,120 S290,152 300,152 S380,92 460,82 S510,120 520,120 S620,108 730,148" fill="none" stroke="#4F46E5" stroke-width="2"/>
+              <circle cx="230" cy="120" r="5" fill="#C2410C"/><circle cx="460" cy="82" r="5" fill="#C2410C"/><circle cx="620" cy="108" r="5" fill="#C2410C"/>
+              <text x="230" y="108" text-anchor="middle" class="f8s">H1</text><text x="460" y="70" text-anchor="middle" class="f8s">H2</text><text x="620" y="96" text-anchor="middle" class="f8s">H3</text>
+              <rect x="70" y="222" width="220" height="18" rx="4" fill="#F2F2FE" stroke="#E0E0FA"/><text x="180" y="235" text-anchor="middle" class="f8t">Cue 1</text>
+              <rect x="300" y="222" width="210" height="18" rx="4" fill="#F2F2FE" stroke="#E0E0FA"/><text x="405" y="235" text-anchor="middle" class="f8t">Cue 2</text>
+              <rect x="520" y="222" width="210" height="18" rx="4" fill="#F2F2FE" stroke="#E0E0FA"/><text x="625" y="235" text-anchor="middle" class="f8t">Cue 3</text>
+              <line x1="590" y1="36" x2="614" y2="36" stroke="#4F46E5" stroke-width="2"/><text x="620" y="40" class="f8s">强度曲线</text>
+              <circle cx="590" cy="56" r="5" fill="#C2410C"/><text x="620" y="60" class="f8s">hit point</text>
+            </svg>
+            <figcaption><b>图 8 · Cue 时间线。</b>配乐按场次切成 Cue，情绪强度曲线与表演同源；H1–H3 是必须对齐的画面点。Cue 之间可以留白，但不允许整集循环同一段。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -613,6 +818,27 @@ window.ACADEMY = {
             </tbody>
           </table>
           <p>注意：平台会自己做响度归一化。你交付的版本如果过响，平台压下来后动态会更差；过轻则会被整体抬高，底噪暴露。所以按标准交付，不要「偷偷调大」。</p>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 230" role="img" aria-label="响度与真峰值目标区间示意">
+              <style>.f9t{font-size:12px;fill:#17171C;font-weight:600}.f9s{font-size:10px;fill:#6E6E7A}.f9l{font-size:10px;fill:#A0A0AC}</style>
+              <text x="70" y="28" class="f9t">节目响度（LUFS）</text>
+              <rect x="70" y="52" width="660" height="36" rx="5" fill="#F4F4F8" stroke="#E9E9EF"/>
+              <rect x="70" y="52" width="248" height="36" fill="#EEF2FF"/>
+              <rect x="351" y="52" width="17" height="36" fill="#1F8A5B"/>
+              <rect x="483" y="52" width="247" height="36" fill="#FDECEC"/>
+              <line x1="359" y1="44" x2="359" y2="96" stroke="#17171C" stroke-width="2"/>
+              <text x="359" y="112" text-anchor="middle" class="f9t">−23.0 LUFS</text>
+              <text x="359" y="128" text-anchor="middle" class="f9s">归档母版目标（±0.2 LU）</text>
+              <text x="70" y="112" text-anchor="middle" class="f9l">−30</text><text x="235" y="112" text-anchor="middle" class="f9l">−26</text><text x="483" y="112" text-anchor="middle" class="f9l">−20</text><text x="730" y="112" text-anchor="middle" class="f9l">−14</text>
+              <text x="150" y="75" text-anchor="middle" class="f9s">过轻：底噪暴露</text><text x="610" y="75" text-anchor="middle" class="f9s">过响：平台压缩后动态变差</text>
+              <text x="70" y="164" class="f9t">真峰值（dBTP）</text>
+              <rect x="70" y="180" width="660" height="22" rx="4" fill="#F4F4F8" stroke="#E9E9EF"/>
+              <rect x="70" y="180" width="560" height="22" fill="#E8F5F2"/>
+              <line x1="630" y1="174" x2="630" y2="208" stroke="#C2410C" stroke-width="2"/>
+              <text x="630" y="222" text-anchor="middle" class="f9s" fill="#C2410C">≤ −1 dBTP</text>
+            </svg>
+            <figcaption><b>图 9 · 响度目标区间。</b>响度是整节目的平均值，真峰值是瞬时的上限。母版落在绿色带内、峰值不越过红线，才算可交付。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -651,6 +877,27 @@ window.ACADEMY = {
         <section class="course-sec">
           <h3>唯一母版原则</h3>
           <p>先生成一个 16:9 open gate 母版，再派生 2.39:1、9:16、平台版。不要为每个画幅重复生成：重复生成会导致人物、光线、色彩不一致，而且成本翻倍。派生关系要记录 parent_asset_id，形成血缘。</p>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 260" role="img" aria-label="唯一母版派生三种画幅">
+              <defs><marker id="f10a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f10t{font-size:12px;fill:#17171C;font-weight:600}.f10s{font-size:10px;fill:#6E6E7A}.f10l{font-size:10px;fill:#A0A0AC}</style>
+              <rect x="60" y="50" width="320" height="180" rx="5" fill="#F4F4F8" stroke="#DCDCE4"/>
+              <rect x="60" y="73" width="320" height="134" fill="none" stroke="#4F46E5" stroke-dasharray="5 4"/>
+              <rect x="170" y="50" width="100" height="180" fill="none" stroke="#C2410C" stroke-dasharray="5 4"/>
+              <text x="220" y="228" text-anchor="middle" class="f10t">16:9 open gate 母版</text>
+              <text x="220" y="244" text-anchor="middle" class="f10s">唯一生成 · 其余全部派生</text>
+              <path d="M384,88 H492" stroke="#A0A0AC" marker-end="url(#f10a)"/>
+              <path d="M384,140 H492" stroke="#A0A0AC" marker-end="url(#f10a)"/>
+              <path d="M384,192 H492" stroke="#A0A0AC" marker-end="url(#f10a)"/>
+              <rect x="496" y="24" width="270" height="62" rx="7" fill="#FFFFFF" stroke="#DCDCE4"/>
+              <rect x="508" y="34" width="96" height="40" fill="#F2F2FE" stroke="#E0E0FA"/><text x="620" y="49" class="f10t">2.39:1 主母版</text><text x="620" y="68" class="f10s">电影画幅</text>
+              <rect x="496" y="96" width="270" height="62" rx="7" fill="#FFFFFF" stroke="#DCDCE4"/>
+              <rect x="508" y="104" width="64" height="44" fill="#F2F2FE" stroke="#E0E0FA"/><text x="620" y="121" class="f10t">16:9 平台版</text><text x="620" y="140" class="f10s">横屏通用</text>
+              <rect x="496" y="168" width="270" height="62" rx="7" fill="#FFFFFF" stroke="#DCDCE4"/>
+              <rect x="516" y="178" width="26" height="44" fill="#FDECEC" stroke="#F0C9C9"/><text x="620" y="193" class="f10t">9:16 竖屏版</text><text x="620" y="212" class="f10s">短剧主战场，构图需重排</text>
+            </svg>
+            <figcaption><b>图 10 · 唯一母版派生。</b>虚线标出各画幅的裁切范围。竖屏不是「竖着裁一刀」，主体要按中上部重新构图。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -729,6 +976,31 @@ window.ACADEMY = {
             </tbody>
           </table>
           <p>每类至少一主一备。主用负责 80% 的稳定产出，备用负责故障切换与特殊镜头。</p>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 300" role="img" aria-label="按镜头类型路由模型的示意">
+              <defs><marker id="f11a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f11b{fill:#F4F4F8;stroke:#DCDCE4}.f11k{fill:#F2F2FE;stroke:#E0E0FA}.f11t{font-size:11px;fill:#17171C;font-weight:600}.f11s{font-size:10px;fill:#6E6E7A}.f11l{font-size:10px;fill:#A0A0AC}</style>
+              <text x="24" y="24" class="f11l">镜头类型</text><text x="300" y="24" class="f11l">路由策略</text><text x="580" y="24" class="f11l">模型示例</text>
+              <rect x="24" y="36" width="170" height="36" rx="6" class="f11k"/><text x="109" y="59" text-anchor="middle" class="f11t">关键情绪镜</text>
+              <rect x="24" y="86" width="170" height="36" rx="6" class="f11b"/><text x="109" y="109" text-anchor="middle" class="f11t">过场 / 氛围镜</text>
+              <rect x="24" y="136" width="170" height="36" rx="6" class="f11b"/><text x="109" y="159" text-anchor="middle" class="f11t">动作 / 物理复杂</text>
+              <rect x="24" y="186" width="170" height="36" rx="6" class="f11b"/><text x="109" y="209" text-anchor="middle" class="f11t">口播 / 数字人</text>
+              <rect x="24" y="236" width="170" height="36" rx="6" class="f11k"/><text x="109" y="259" text-anchor="middle" class="f11t">已有镜头修口型</text>
+              <rect x="300" y="36" width="180" height="36" rx="6" class="f11b"/><text x="390" y="59" text-anchor="middle" class="f11s">高质量档 + 更多候选</text>
+              <rect x="300" y="86" width="180" height="36" rx="6" class="f11b"/><text x="390" y="109" text-anchor="middle" class="f11s">经济档 + 少量候选</text>
+              <rect x="300" y="136" width="180" height="36" rx="6" class="f11b"/><text x="390" y="159" text-anchor="middle" class="f11s">擅长大运动的模型</text>
+              <rect x="300" y="186" width="180" height="36" rx="6" class="f11b"/><text x="390" y="209" text-anchor="middle" class="f11s">生成型口型</text>
+              <rect x="300" y="236" width="180" height="36" rx="6" class="f11b"/><text x="390" y="259" text-anchor="middle" class="f11s">修复型口型</text>
+              <rect x="580" y="36" width="190" height="36" rx="6" class="f11b"/><text x="675" y="59" text-anchor="middle" class="f11s">Wan 3.0 Prime</text>
+              <rect x="580" y="86" width="190" height="36" rx="6" class="f11b"/><text x="675" y="109" text-anchor="middle" class="f11s">Wan 3.0 · 480P/720P</text>
+              <rect x="580" y="136" width="190" height="36" rx="6" class="f11b"/><text x="675" y="159" text-anchor="middle" class="f11s">Seedance 2.5 / Kling</text>
+              <rect x="580" y="186" width="190" height="36" rx="6" class="f11b"/><text x="675" y="209" text-anchor="middle" class="f11s">HeyGen / Hedra / OmniHuman</text>
+              <rect x="580" y="236" width="190" height="36" rx="6" class="f11b"/><text x="675" y="259" text-anchor="middle" class="f11s">Sync.so / 可灵 Lip Sync</text>
+              <path d="M194,54 H292" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M194,104 H292" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M194,154 H292" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M194,204 H292" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M194,254 H292" stroke="#A0A0AC" marker-end="url(#f11a)"/>
+              <path d="M480,54 H572" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M480,104 H572" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M480,154 H572" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M480,204 H572" stroke="#A0A0AC" marker-end="url(#f11a)"/><path d="M480,254 H572" stroke="#A0A0AC" marker-end="url(#f11a)"/>
+            </svg>
+            <figcaption><b>图 11 · 按镜头路由。</b>不是全片一个模型，而是按镜头价值与类型分配预算。关键镜买质量，过场镜买效率，已有镜头修口型只能走修复型。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
@@ -789,6 +1061,20 @@ window.ACADEMY = {
               <tr><td>第 4 周 · 交付</td><td>母版 QC、三画幅派生、交付单</td><td>QC 全项通过、AI 标识齐备</td></tr>
             </tbody>
           </table>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 180" role="img" aria-label="四周练习计划时间线">
+              <defs><marker id="f12a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f12t{font-size:11px;fill:#17171C;font-weight:600}.f12s{font-size:9px;fill:#6E6E7A}</style>
+              <line x1="40" y1="90" x2="760" y2="90" stroke="#DCDCE4"/>
+              <rect x="60" y="62" width="160" height="56" rx="7" fill="#F2F2FE" stroke="#E0E0FA"/><text x="140" y="84" text-anchor="middle" class="f12t">第 1 周 · 画面</text><text x="140" y="101" text-anchor="middle" class="f12s">8 镜 + 一次正反打</text>
+              <rect x="230" y="62" width="160" height="56" rx="7" fill="#F2F2FE" stroke="#E0E0FA"/><text x="310" y="84" text-anchor="middle" class="f12t">第 2 周 · 声音</text><text x="310" y="101" text-anchor="middle" class="f12s">TTS + 口型 + 四层</text>
+              <rect x="400" y="62" width="160" height="56" rx="7" fill="#F2F2FE" stroke="#E0E0FA"/><text x="480" y="84" text-anchor="middle" class="f12t">第 3 周 · 混音</text><text x="480" y="101" text-anchor="middle" class="f12s">Cue 表 + stem</text>
+              <rect x="570" y="62" width="160" height="56" rx="7" fill="#F2F2FE" stroke="#E0E0FA"/><text x="650" y="84" text-anchor="middle" class="f12t">第 4 周 · 交付</text><text x="650" y="101" text-anchor="middle" class="f12s">QC + 三画幅</text>
+              <path d="M60,140 H730" stroke="#A0A0AC" marker-end="url(#f12a)"/>
+              <text x="400" y="160" text-anchor="middle" class="f12s">目标：四周后能独立交付一条通过 QC 的先导片</text>
+            </svg>
+            <figcaption><b>图 12 · 四周练习路径。</b>每周只增加一层能力，不追求一次做完。第 4 周结束时，你应该拥有一份可复核的 QC 报告，而不只是一段视频。</figcaption>
+          </figure>
         </section>
 
         <section class="course-sec">
