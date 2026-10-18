@@ -22,14 +22,14 @@ window.ACADEMY = {
 
         <section class="course-sec">
           <h3>这门课怎么用</h3>
-          <p>每章采用同一结构：<b>概念 → 参数 → 判断标准 → 常见误区 → 练习</b>。建议顺序阅读，不要跳章。第 3–5 章建立画面判断，第 6–7 章建立表演与口型判断，第 8–10 章建立声音判断，第 11–13 章建立交付与选型判断。</p>
+          <p>每章采用同一结构：<b>概念 → 参数 → 判断标准 → 常见误区 → 练习</b>。建议顺序阅读，不要跳章。第 3–5 章建立画面判断，第 6–7 章建立表演与口型判断，第 8–10 章建立声音判断，第 11–14 章建立交付与选型判断。</p>
           <table class="compare-table">
             <thead><tr><th>阶段</th><th>章节</th><th>学完能做到</th></tr></thead>
             <tbody>
               <tr><td>建立全局观</td><td>1–2</td><td>说清一条 AI 短剧流水线有哪些环节、每个环节的产出物与验收标准</td></tr>
               <tr><td>画面能力</td><td>3–5</td><td>写得出可执行的镜头提示词，选得出可用镜头，看得出画面问题</td></tr>
               <tr><td>声音能力</td><td>6–10</td><td>设计四层声音、组织配乐 Cue、完成混音与响度交付</td></tr>
-              <tr><td>交付与选型</td><td>11–13</td><td>做母版 QC、按场景选模型、搭出自己的供应商组合</td></tr>
+              <tr><td>交付与选型</td><td>11–14</td><td>做母版 QC、按场景选模型、搭出自己的供应商组合</td></tr>
             </tbody>
           </table>
         </section>
@@ -46,7 +46,7 @@ window.ACADEMY = {
             <li><b>第 1 周</b>：第 1–5 章。目标：独立完成一场 30 秒戏的分镜与 6 条镜头候选。</li>
             <li><b>第 2 周</b>：第 6–7 章。目标：给这场戏配好对白与口型，能解释每一条为什么开/不开口型。</li>
             <li><b>第 3 周</b>：第 8–10 章。目标：做出四层 stem，混音通过响度与可懂度检查。</li>
-            <li><b>第 4 周</b>：第 11–13 章。目标：导出母版与 QC 报告，写一份模型选型说明。</li>
+            <li><b>第 4 周</b>：第 11–14 章。目标：导出母版与 QC 报告，写一份模型选型说明。</li>
           </ol>
         </section>
       `
@@ -1045,8 +1045,209 @@ window.ACADEMY = {
       `
     },
     {
+      id: "platforms",
+      eyebrow: "12 · PLATFORM STRATEGY",
+      title: "商业平台的关键方案：八组取舍与真实对照",
+      lede: "平台不是「谁的模型强谁赢」，而是在 IP、制作、分发三层里至少握住一层，再用分发规则反向规定制作方案。",
+      html: `
+        <section class="course-sec">
+          <h3>先看结论</h3>
+          <p>把主流平台拆开看，会发现它们在八个关键位置上做选择。这些选择不是技术偏好，而是商业位置决定的：</p>
+          <div class="course-grid">
+            <div class="course-kpi"><b>握 IP</b><p>番茄、书旗、阅文：用已有故事供给压低原创风险，把改编权变成上游壁垒。</p></div>
+            <div class="course-kpi"><b>握模型 / 工具</b><p>字节 Seedance、快手可灵、腾讯混元、阿里通义、昆仑 SkyReels：自研或深度绑定，控制成本与产能。</p></div>
+            <div class="course-kpi"><b>握分发</b><p>抖音、红果、微信、ReelShort：谁掌握用户与付费入口，谁决定分账系数与内容偏好。</p></div>
+          </div>
+          <div class="course-note">公开报道显示，纯 AI 流水线内容的收益系数正在被压低，而「真人 + AI 融合」在部分平台可拿到更高分账。这意味着：<b>技术方案必须从分发规则倒推</b>，而不是先选模型再找平台。</div>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 210" role="img" aria-label="平台价值链：IP、制作、分发、变现">
+              <defs><marker id="f13a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#A0A0AC"/></marker></defs>
+              <style>.f13t{font-size:13px;fill:#17171C;font-weight:600}.f13s{font-size:10px;fill:#6E6E7A}.f13l{font-size:10px;fill:#A0A0AC}</style>
+              <text x="30" y="36" class="f13l">平台至少握住其中一层，否则只能赚加工费</text>
+              <rect x="30" y="58" width="160" height="70" rx="8" fill="#F2F2FE" stroke="#E0E0FA"/><text x="110" y="86" text-anchor="middle" class="f13t">IP</text><text x="110" y="107" text-anchor="middle" class="f13s">番茄 / 书旗 / 阅文</text>
+              <path d="M194,93 H214" stroke="#A0A0AC" marker-end="url(#f13a)"/>
+              <rect x="220" y="58" width="160" height="70" rx="8" fill="#F4F4F8" stroke="#DCDCE4"/><text x="300" y="86" text-anchor="middle" class="f13t">制作</text><text x="300" y="107" text-anchor="middle" class="f13s">Dramagic / 可灵 / 混元 / 纳逗</text>
+              <path d="M384,93 H404" stroke="#A0A0AC" marker-end="url(#f13a)"/>
+              <rect x="410" y="58" width="160" height="70" rx="8" fill="#F4F4F8" stroke="#DCDCE4"/><text x="490" y="86" text-anchor="middle" class="f13t">分发</text><text x="490" y="107" text-anchor="middle" class="f13s">抖音 / 红果 / 微信 / ReelShort</text>
+              <path d="M574,93 H594" stroke="#A0A0AC" marker-end="url(#f13a)"/>
+              <rect x="600" y="58" width="170" height="70" rx="8" fill="#E8F5F2" stroke="#C9E3DC"/><text x="685" y="86" text-anchor="middle" class="f13t">变现</text><text x="685" y="107" text-anchor="middle" class="f13s">分账 / 广告 / 投流 / 付费解锁</text>
+              <text x="110" y="158" text-anchor="middle" class="f13l">故事供给</text>
+              <text x="300" y="158" text-anchor="middle" class="f13l">产能与成本</text>
+              <text x="490" y="158" text-anchor="middle" class="f13l">用户与规则</text>
+              <text x="685" y="158" text-anchor="middle" class="f13l">现金流</text>
+            </svg>
+            <figcaption><b>图 13 · 平台价值链。</b>字节用番茄 IP + Dramagic 制作 + 抖音/红果分发；快手用可灵 + 星芒；腾讯用混元 + 微信流量；阿里用通义 + 书旗 IP。制作团队通常只占「制作」一环。</figcaption>
+          </figure>
+        </section>
+
+        <section class="course-sec">
+          <h3>八组关键取舍（总表）</h3>
+          <div class="table-scroll"><table class="compare-table">
+            <thead><tr><th>取舍</th><th>选项 A</th><th>选项 B</th><th>谁更适合 A</th><th>谁更适合 B</th></tr></thead>
+            <tbody>
+              <tr><td><b>生产模式</b></td><td>全自动 Agent</td><td>半自动工作台 / 自建工具链</td><td>个人试水、低端批量</td><td>上线精品、团队化产能</td></tr>
+              <tr><td><b>内容形态</b></td><td>AI 仿真人</td><td>2D / 3D 漫剧、真人 + AI</td><td>平台系数高、剧情类</td><td>成本敏感、题材适配</td></tr>
+              <tr><td><b>视频模型</b></td><td>单一旗舰</td><td>多模型路由 / 自研</td><td>小团队、快速起步</td><td>平台方、规模化产能</td></tr>
+              <tr><td><b>一致性</b></td><td>参考图资产库</td><td>微调 LoRA / 数字人换脸</td><td>多项目复用、版权清晰</td><td>固定 IP、特定演员</td></tr>
+              <tr><td><b>声音</b></td><td>云端 TTS + 生成音乐</td><td>真人配音 + 曲库 / 定制</td><td>量产、多语种</td><td>精品、强表演</td></tr>
+              <tr><td><b>口型</b></td><td>模型原生口型</td><td>后期 lip sync 修复</td><td>口播、数字人</td><td>已有镜头、出海译制</td></tr>
+              <tr><td><b>成本结构</b></td><td>按秒 API</td><td>订阅套餐 / 自建 GPU</td><td>波动产能、试错</td><td>稳定大批量、长期</td></tr>
+              <tr><td><b>分发</b></td><td>平台分账</td><td>投流 / 自有 App</td><td>内容型团队</td><td>有资金、有海外渠道</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="course-sec">
+          <h3>1. 生产模式：全自动、半自动、自建</h3>
+          <p><b>全自动 Agent</b> 的代表是字节小云雀：一句话生成剧本，几分钟出人设、大纲、分镜，再线性成片。公开测评显示它连续包月约 39 元、上手最快，但成片存在站位错误、越轴、镜头不衔接等问题，更适合试玩与低端产能。</p>
+          <p><b>半自动工作台</b> 的代表是万兴剧厂、爱奇艺纳逗 Pro：人负责剧本、资产与关键决策，工具负责拆镜、生成、资产复用。纳逗 Pro 的分镜提示词会包含景别、构图、运镜、音效与音乐，专业度高；万兴剧厂会自动拆镜并考虑轴线，但拆得过粗时反而增加生成失败率。</p>
+          <p><b>自建工具链</b> 的代表是中文在线「次元神笔」、360「纳米漫剧流水线」、昆仑万维「天工短剧工作台 + SkyReels」。它们把流程拆成 7–11 个标准环节，用角色库与固定流程压制随机性，适合稳定产能与多项目复用。</p>
+          <div class="course-note">判断标准：如果剧本还需要人改、镜头还需要人挑，就不要买「全自动」的账。全自动省的是操作时间，不是判断时间。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>2. 内容形态：平台系数比模型跑分更重要</h3>
+          <p>2026 年 2 月红果漫剧分账规则把品类拆成 7 类，并用「类型系数」直接调节收益。公开报道给出的数字是：仿真人剧系数维持 <b>60 倍</b>；2D 从 <b>50 倍降到 40 倍</b>；AI 仿真人解说漫从至少 10 倍降到 <b>5 倍</b>。</p>
+          <p>这组系数解释了为什么平台「偏爱仿真人」：3D 与真人素材多、表演不易崩；2D 容易出现肢体崩坏。有制片人测算，精品 2D 成本约 3 万元、爆款率 10%–13%，系数降 10 个点后回本很难。</p>
+          <p>同时，多家平台在 2026 年推出扶持政策，方向一致：<b>压低纯 AI 流水线，鼓励真人 + AI 融合</b>。公开报道提到抖音/红果对真人 + AI 融合内容分账最高 95%，爱奇艺独家首发 100%，B 站承担 30%–100% 制作成本、分成最高 80%。</p>
+          <div class="course-note">结论：先选平台与品类，再决定用仿真人、2D 还是真人 + AI。反过来做，很可能做出「技术很好但系数很低」的内容。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>3. 视频模型：平台自研，团队路由</h3>
+          <p>平台方的选择很清楚：字节用 Seedance，快手用可灵，腾讯用混元，阿里用通义万相，昆仑用 SkyReels。自研的目的不是「跑分第一」，而是把单位成本、排队与迭代节奏握在自己手里。</p>
+          <p>制作团队则更适合<b>多模型路由</b>。公开测评给出的能力侧写是：Seedance 2.5 支持 30 秒、4K，多镜头一致性较好；可灵 3.0 单次 15 秒，智能分镜与中文口型强，适合剧情；Vidu 支持最多 7 个参考主体、单条约 1.5–3 元，适合批量预演；海螺 H3 的微表情与动作见长；Wan 3.0 单镜 30 秒、走开源长视频路线；Veo 3.1 单条最长 148 秒、支持原生音频，按秒约 0.15–0.40 美元，适合出海精品。</p>
+          <p>平台的通用做法是：关键镜用高质量档，过场镜用经济档，口播/数字人用生成型口型，已有镜头修口型用修复型。没有平台会全片押一个模型。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>4. 一致性：资产库是工业化的前提</h3>
+          <p>三种主流方案：<b>参考图资产库</b>（角色、场景、道具都存成可复用资产）、<b>微调 LoRA</b>（针对固定 IP 或演员训练小模型）、<b>数字人 / 换脸</b>（用真人素材驱动）。</p>
+          <p>平台级产品几乎都选第一种：万兴剧厂从剧本「资产提取」角色、场景、道具并批量生成分镜；中文在线用角色库统一角色；360 用固定流水线环节保证统一。原因是资产库能跨项目复用、版权链清晰、可审计。</p>
+          <p>微调适合固定 IP 的长期系列，但迭代慢、迁移成本高。换脸/数字人效果直接，却最容易踩肖像权与演员授权的红线，商业平台通常要求单独授权与 AI 标识。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>5. 声音：差异化在「分层」，不在「换模型」</h3>
+          <p>平台普遍把语音当基础设施：预置音色 + 声音克隆 + 情绪控制。海外标杆 Dashverse 用 ElevenLabs v3 做对白、ElevenLabs Music 做配乐，理由是控制粒度细、音色库适合连续剧；国内平台多用自研或国产 TTS，强调中文、方言与成本。</p>
+          <p>音乐有两条路线：<b>生成式</b>（贴合叙事、可规模化、无重复）与<b>授权曲库</b>（权利清晰、审核稳）。商业平台常按项目分层：主干用生成或曲库，重点段落定制。音效则普遍是短板，多数仍靠素材库 + 人工挂载。</p>
+          <div class="course-note">声音的竞争力不在「用了哪家 TTS」，而在四层总线是否完整：对白清楚、音乐让位、音效对帧、环境连续。只加 BGM 的团队，观众三秒就能听出来。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>6. 口型与出海：本地化成本要前置</h3>
+          <p>口型有两条路线：模型<b>原生口型</b>（如可灵 3.0 的中文口型）与<b>后期 lip sync 修复</b>。口播/数字人适合原生；已有镜头、需要跨语种重配的，适合修复型。</p>
+          <p>出海不是「加字幕」：ReelShort 这类平台要求竖屏、强钩子、付费解锁。公开数据显示其 AI 剧占比在 9 个月内升到近 90%，用户看完全剧预计花费约 28.14 美元，免费剧集约 17%。这意味着出海方案要同时解决：多语种配音、口型重做、字幕规范、支付与盗版分流。</p>
+          <p>成本上，口型重做按镜头计费，必须在前面的分镜阶段就决定「哪些镜头值得重做」，否则后期预算会失控。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>7. 成本与产能：便宜不等于能赚钱</h3>
+          <p>公开测评给出的单集实测成本（口径不同，仅作量级参考）：小云雀约 39 元、万兴剧厂约 100 元、纳逗 Pro 约 110 元、天工短剧工作台约 120 元。平台方则用自研模型把成本压得更低，例如昆仑万维公开称单部 AI 短剧成本约 2 万美元、降幅超 90%。</p>
+          <p>但行业数据更冷静：2026 上半年全网新上 AI 短剧超过 22 万部，播放破亿的仅 1055 部，破亿率不到 0.5%；有报道称 98.7% 的 AI 微短剧上线半年内难回本。投流成本占收入 70%–90%。</p>
+          <div class="course-note">成本下降只解决「做得起」，不解决「有人看」。剧本、分发与投流效率，才是盈利的分母。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>8. 分发与变现：先定规则，再定规格</h3>
+          <p>主流变现路径有四条：平台分账（按有效时长 × 单价 × 系数）、广告、投流买量、付费解锁/出海 App。平台的分账系数会直接奖励或惩罚某种内容形态，因此制作规格必须与分发目标对齐。</p>
+          <p>典型做法：国内走红果/抖音/快手，用仿真人或真人 + AI 拿系数；出海走 ReelShort/DramaBox，用竖屏、强钩子、付费解锁；品牌项目走定制与广告，不依赖分账。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>平台方案对照</h3>
+          <div class="table-scroll"><table class="compare-table">
+            <thead><tr><th>平台 / 体系</th><th>核心抓手</th><th>制作方案</th><th>模型</th><th>分发 / 变现</th><th>关键取舍</th></tr></thead>
+            <tbody>
+              <tr><td><b>字节</b></td><td>IP + 生产 + 分发闭环</td><td>Dramagic 全流程；小云雀一句话生成</td><td>Seedance 2.0/2.5</td><td>番茄 IP + 抖音 + 红果</td><td>闭环最完整，创作者议价弱</td></tr>
+              <tr><td><b>快手</b></td><td>可灵模型 + 星芒计划</td><td>平台工具 + 创作者生态</td><td>可灵 3.0/4.0</td><td>星芒分账、联合运营最高 90%</td><td>模型强，分发靠合作</td></tr>
+              <tr><td><b>腾讯</b></td><td>社交流量 + 混元</td><td>腾讯云全链路 AIGC</td><td>混元视频</td><td>微信「绿泡泡短剧」免费 + 广告</td><td>流量便宜，内容供给靠外部</td></tr>
+              <tr><td><b>阿里</b></td><td>模型即服务 + IP</td><td>镜仔 Agent / WonderClip</td><td>通义万相 Wan 3.0</td><td>书旗 IP + B 端输出</td><td>做「卖铲子」，不做内容生意</td></tr>
+              <tr><td><b>昆仑万维</b></td><td>自研模型 + 工作台</td><td>天工短剧工作台 + SkyReels</td><td>SkyReels</td><td>出海 + 自有分发</td><td>自研压成本，质量波动</td></tr>
+              <tr><td><b>阅文</b></td><td>网文 IP</td><td>漫剧助手</td><td>外部模型组合</td><td>平台分账 + 衍生品</td><td>IP 最厚，制作非强项</td></tr>
+              <tr><td><b>中文在线</b></td><td>全栈工具链</td><td>次元神笔：IP → 角色库 → 分镜 → 口型</td><td>外部 + 自研组合</td><td>FlareFlow 等海外渠道</td><td>链条最全，依赖 IP 供给</td></tr>
+              <tr><td><b>360</b></td><td>工业化流水线</td><td>纳米漫剧 7 步标准流程</td><td>外部模型</td><td>平台合作</td><td>标准化强，创意上限低</td></tr>
+              <tr><td><b>万兴科技</b></td><td>SaaS + 积分</td><td>万兴剧厂：资产提取、自动拆镜</td><td>Seedance 2.0</td><td>订阅 + 积分</td><td>上手快，深度依赖单一模型</td></tr>
+              <tr><td><b>爱奇艺</b></td><td>专业分镜 + 独家分账</td><td>纳逗 Pro</td><td>外部模型</td><td>独家首发最高 100% 分账</td><td>提示词专业，流程可控性弱</td></tr>
+              <tr><td><b>ReelShort</b></td><td>海外竖屏分发</td><td>AI 剧占比近 90%</td><td>多模型组合</td><td>付费解锁 + 广告</td><td>本地化与盗版是主要成本</td></tr>
+            </tbody>
+          </table></div>
+          <p class="muted" style="font-size:var(--fs-meta)">注：以上为 2026 年 10 月前的公开报道与厂商口径，部分数字未经独立验证；平台政策与系数会变，决策前以当期官方规则为准。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>决策矩阵：你在哪个象限</h3>
+          <figure class="course-fig">
+            <svg viewBox="0 0 800 320" role="img" aria-label="自动化程度与内容可控性的决策矩阵">
+              <style>.f14t{font-size:12px;fill:#17171C;font-weight:600}.f14s{font-size:10px;fill:#6E6E7A}.f14l{font-size:10px;fill:#A0A0AC}</style>
+              <line x1="70" y1="270" x2="750" y2="270" stroke="#DCDCE4"/>
+              <line x1="70" y1="270" x2="70" y2="50" stroke="#DCDCE4"/>
+              <text x="410" y="302" text-anchor="middle" class="f14l">自动化程度 →</text>
+              <text x="34" y="160" text-anchor="middle" class="f14l" transform="rotate(-90 34 160)">内容可控性 →</text>
+              <line x1="410" y1="60" x2="410" y2="266" stroke="#E9E9EF" stroke-dasharray="4 4"/>
+              <line x1="74" y1="160" x2="746" y2="160" stroke="#E9E9EF" stroke-dasharray="4 4"/>
+              <rect x="420" y="70" width="310" height="80" rx="8" fill="#F2F2FE" stroke="#E0E0FA"/>
+              <text x="575" y="100" text-anchor="middle" class="f14t">目标区：半自动 + 资产库</text>
+              <text x="575" y="122" text-anchor="middle" class="f14s">万兴剧厂 / 纳逗 Pro / 自建工具链</text>
+              <text x="240" y="100" text-anchor="middle" class="f14t">精品区：真人 + AI 融合</text>
+              <text x="240" y="122" text-anchor="middle" class="f14s">高系数、强表演、成本高</text>
+              <text x="575" y="205" text-anchor="middle" class="f14t">批量区：全自动 Agent</text>
+              <text x="575" y="227" text-anchor="middle" class="f14s">小云雀 / 解说漫：快、便宜、系数低</text>
+              <text x="240" y="205" text-anchor="middle" class="f14t">作坊区：纯手工</text>
+              <text x="240" y="227" text-anchor="middle" class="f14s">难规模化，适合试验与定制</text>
+            </svg>
+            <figcaption><b>图 14 · 决策矩阵（示意）。</b>越往右上，自动化与可控性越能兼得。全自动在右下：产能高但可控性低，平台系数也往往更低。目标是把资产库与人工判断加进流水线，而不是盲目追求「一句话成片」。</figcaption>
+          </figure>
+        </section>
+
+        <section class="course-sec">
+          <h3>按团队条件的选型建议</h3>
+          <table class="compare-table">
+            <thead><tr><th>团队</th><th>推荐方案</th><th>预算量级</th><th>不要做什么</th></tr></thead>
+            <tbody>
+              <tr><td>个人 / 试水</td><td>小云雀或万兴剧厂 + Seedance/Wan 经济档</td><td>几十到一百元/集</td><td>不要一开始自建工具链、不要全片 1080P 抽卡</td></tr>
+              <tr><td>3–6 人小团队</td><td>半自动工作台 + 角色资产库 + 多模型路由</td><td>数百元/集 + 人力</td><td>不要把剧本完全交给 Agent</td></tr>
+              <tr><td>中型 / 出海</td><td>自建工具链 + 云端模型 + 本地化配音/口型</td><td>千元级/集起</td><td>不要用平台原生口型硬扛多语种</td></tr>
+              <tr><td>平台型</td><td>自研或深度绑定模型 + IP + 分发</td><td>资本级</td><td>不要只做工具、不碰分发</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>研究结论：八条可带走的判断</h3>
+          <ol>
+            <li><b>平台先握一层</b>：IP、模型/工具、分发，至少一层自有，否则只能赚加工费。</li>
+            <li><b>系数决定形态</b>：仿真人系数高于 2D，2D 高于 AI 解说漫；形态选择首先是商业选择。</li>
+            <li><b>纯流水线被压</b>：多家平台鼓励真人 + AI 融合，纯 AI 内容收益系数被压低。</li>
+            <li><b>全自动适合试水</b>：能快速验证剧本与选题，但成片仍需人工修。</li>
+            <li><b>一致性靠资产库</b>：角色、场景、道具的复用能力，比单次生成质量更决定产能。</li>
+            <li><b>声音要分层</b>：对白、音乐、音效、环境四层完整，才是可交付的声音；只加 BGM 会被听出来。</li>
+            <li><b>出海要前置本地化</b>：配音、口型、字幕、支付与盗版分流，都要在分镜阶段预算。</li>
+            <li><b>低成本不等于盈利</b>：22 万部里破亿不到 0.5%，投流占七到九成；剧本与分发才是分母。</li>
+          </ol>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>选一个平台（红果、抖音、快手、爱奇艺、ReelShort），查它当期分账规则，写出一页「它会奖励什么内容」。</li>
+            <li>用八组取舍给你的项目做一次选型表，每组写明选择、理由、备选与切换条件。</li>
+            <li>比较「全自动一集」与「半自动一集」的真实成本：把返工、重抽、人工时间折算进去。</li>
+            <li>为一个出海项目列出本地化清单：语种、配音、口型、字幕、支付、盗版监测。</li>
+          </ol>
+        </section>
+
+        <section class="course-sec">
+          <h3>资料来源与时效</h3>
+          <p class="muted" style="font-size:var(--fs-meta);line-height:1.9">
+            本章数据来自 2026 年 9–10 月的公开报道与厂商口径，包括：字节 Dramagic / 小云雀与红果分账规则报道；快手星芒与可灵模型报道；腾讯云 AI 漫剧全栈方案与微信短剧报道；阿里云栖与通义 / 书旗 IP 报道；昆仑万维 SkyReels 与财报报道；阅文漫剧与「漫剧助手」报道；中文在线、360、万兴科技的 AI 漫剧方案报道；爱奇艺纳逗 Pro、B 站与抖音分账政策的行业盘点；ReelShort AI 剧占比与付费结构的第三方数据报道。部分数字为媒体转述或厂商自述，未经过独立复核；平台政策变化快，落地前请以官方当期条款为准。
+          </p>
+        </section>
+      `
+    },
+    {
       id: "practice",
-      eyebrow: "12 · PRACTICE",
+      eyebrow: "13 · PRACTICE",
       title: "从练习到专业：评审清单与常见误区",
       lede: "专业不是知道更多名词，而是有一套稳定的判断顺序，并且在压力下仍然执行。",
       html: `

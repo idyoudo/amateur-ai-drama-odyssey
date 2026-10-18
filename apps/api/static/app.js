@@ -4354,7 +4354,7 @@ async function viewHelp() {
     title: "使用指南",
     body: `<div class="course-banner">
       <div><b>想系统学习，而不只是查按钮？</b>
-        <p>13 章课程从镜头语言讲到四层声音、母版 QC 与商业平台选型，附练习与术语表。</p></div>
+        <p>14 章课程从镜头语言讲到四层声音、母版 QC 与商业平台选型，附练习与术语表。</p></div>
       <button class="btn sm" onclick="go('academy')">进入短剧制作课程</button>
     </div>
     <div class="card help-page" style="padding:0;overflow:hidden">
