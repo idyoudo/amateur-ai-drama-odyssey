@@ -58,7 +58,20 @@ grep -q '^SECRET_KEY=' .env 2>/dev/null || printf 'SECRET_KEY=%s\n' "$(openssl r
 chmod 600 .env
 
 docker compose --env-file .env -f docker-compose.prod.yml up -d postgres --wait --wait-timeout 90
-docker compose --env-file .env -f docker-compose.prod.yml build api worker
+build_log="/tmp/aado-build-$$.log"
+if ! docker compose --env-file .env -f docker-compose.prod.yml build api worker >"$build_log" 2>&1; then
+  cat "$build_log"
+  rm -f "$build_log"
+  echo "构建失败：api/worker 镜像未更新，已中止部署" >&2
+  exit 1
+fi
+if grep -q "failed to solve" "$build_log"; then
+  cat "$build_log"
+  rm -f "$build_log"
+  echo "构建失败：镜像源或依赖解析失败，已中止部署" >&2
+  exit 1
+fi
+rm -f "$build_log"
 docker compose --env-file .env -f docker-compose.prod.yml up -d api worker --wait --wait-timeout 180
 docker compose --env-file .env -f docker-compose.prod.yml ps
 docker exec amateur-ai-drama-odyssey-postgres-1 psql -U aado -d AADO -Atc "SELECT current_database(), current_user"
