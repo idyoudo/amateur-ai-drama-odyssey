@@ -551,8 +551,9 @@ def run_project(project_id: int):
             raise HTTPException(status_code=404, detail="项目不存在")
         if p.status == "archived":
             raise HTTPException(status_code=409, detail="项目已归档，恢复后才能运行")
+        proj_cfg = _project_model_config(project_id)
         result = pipeline.run_pipeline(p.title, p.logline, p.platform, p.rating, p.genre,
-                                       model_config=_model_config,
+                                       model_config=proj_cfg,
                                        episodes=p.episodes or 6, minutes=p.minutes or 30)
         if (p.status or "draft") == "draft":
             p.status = "in_progress"
@@ -567,7 +568,7 @@ def run_project(project_id: int):
         from film.script import generate as m2gen, outline as m2out
         from film.storyboard import make_shotlist
         from film.suppliers import adapter as sup_adapter
-        text_ad = sup_adapter.make_adapter("text", _model_config.get("text", {}))
+        text_ad = sup_adapter.make_adapter("text", proj_cfg.get("text", {}))
         s.query(jobs_db.Script).filter(jobs_db.Script.project_id == project_id).delete()
         shots_all = []
         for _ep in range(1, (p.episodes or 6) + 1):
@@ -587,7 +588,7 @@ def run_project(project_id: int):
         from film.casting import generate as m3gen
         char_names = sorted({c for sh in shots for c in sh["characters"]}) or ["主角"]
         s.query(jobs_db.Character).filter(jobs_db.Character.project_id == project_id).delete()
-        cfg_models = _model_config
+        cfg_models = proj_cfg
         img_ad = sup_adapter.make_adapter("image", cfg_models.get("image", {}))
         for cn in char_names:
             ch, _ = m3gen.generate_casting(cn, img_ad)
@@ -613,7 +614,7 @@ def gen_shots(project_id: int):
         p = s.get(jobs_db.Project, project_id)
         if p is None:
             raise HTTPException(status_code=404, detail="项目不存在")
-        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", _model_config.get("text", {})), episode=1)
+        ol, _ = m2gen.generate_outline(p.logline, sup_adapter.make_adapter("text", _project_model_config(project_id).get("text", {})), episode=1)
         shots_all = []
         for _ep in range(1, (p.episodes or 6) + 1):
             for _sh in make_shotlist(ol, ["主角", "配角"]):
@@ -1510,6 +1511,165 @@ def delete_subtitle(track_id: int):
     return {"deleted": True, "id": track_id}
 
 
+def _project_model_config(project_id):
+    """全局模型配置 + 项目级覆盖（model/api_url；Key 仍取全局）。"""
+    cfg = {k: dict(v) for k, v in _model_config.items()}
+    with Session() as s:
+        rows = s.scalars(select(jobs_db.ProjectModelRoute).where(
+            jobs_db.ProjectModelRoute.project_id == project_id)).all()
+    for r in rows:
+        if r.kind in cfg and r.enabled:
+            if r.model:
+                cfg[r.kind]["model"] = r.model
+            if r.api_url:
+                cfg[r.kind]["api_url"] = r.api_url
+    return cfg
+
+
+PROJECT_MODEL_LABELS = {"text": "文本", "video": "视频", "image": "图像",
+                        "tts": "配音", "music": "配乐", "lipsync": "口型"}
+
+
+@app.get("/api/dramas/{project_id}/model-routing")
+def get_model_routing(project_id: int):
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        rows = s.scalars(select(jobs_db.ProjectModelRoute).where(
+            jobs_db.ProjectModelRoute.project_id == project_id)).all()
+    routes = {r.kind: r for r in rows}
+    kinds = []
+    for kind in sup_config.MODEL_KINDS:
+        g = _model_config.get(kind, {})
+        r = routes.get(kind)
+        kinds.append({"kind": kind, "label": PROJECT_MODEL_LABELS.get(kind, kind),
+                      "global_model": g.get("model") or "",
+                      "global_api_url": g.get("api_url") or "",
+                      "global_key_set": bool(g.get("api_key")),
+                      "model": (r.model if r else "") or "",
+                      "api_url": (r.api_url if r else "") or "",
+                      "enabled": bool(r.enabled) if r else True,
+                      "override": bool(r and (r.model or r.api_url))})
+    return {"kinds": kinds, "note": "项目覆盖仅替换 model/api_url，Key 仍使用全局配置"}
+
+
+@app.put("/api/dramas/{project_id}/model-routing")
+def update_model_routing(project_id: int, body: dict):
+    routes = body.get("routes") or {}
+    if not isinstance(routes, dict):
+        raise HTTPException(status_code=422, detail="routes 需为对象")
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        for kind, cfg in routes.items():
+            if kind not in sup_config.MODEL_KINDS or not isinstance(cfg, dict):
+                continue
+            model = str(cfg.get("model") or "")[:128]
+            api_url = str(cfg.get("api_url") or "")[:256]
+            if api_url and not api_url.startswith(("http://", "https://")):
+                raise HTTPException(status_code=422, detail="API URL 必须以 http(s):// 开头")
+            row = s.scalars(select(jobs_db.ProjectModelRoute).where(
+                jobs_db.ProjectModelRoute.project_id == project_id,
+                jobs_db.ProjectModelRoute.kind == kind)).first()
+            if row is None:
+                row = jobs_db.ProjectModelRoute(project_id=project_id, kind=kind)
+                s.add(row)
+            row.model = model
+            row.api_url = api_url
+            row.enabled = bool(cfg.get("enabled", True))
+        s.commit()
+    return get_model_routing(project_id)
+
+
+TEMPLATE_CATEGORIES = ("分镜", "运镜", "风格", "对白", "提示词", "其他")
+
+
+def _template_json(t):
+    return {"id": t.id, "name": t.name, "category": t.category,
+            "content": t.content, "tags": t.tags or [],
+            "updated_at": t.updated_at.isoformat() if t.updated_at else ""}
+
+
+def _norm_tags(v):
+    if isinstance(v, str):
+        v = [x.strip() for x in v.replace("，", ",").split(",")]
+    if not isinstance(v, list):
+        return []
+    return [str(x).strip()[:24] for x in v if str(x).strip()][:10]
+
+
+@app.get("/api/templates")
+def list_templates(q: str = "", category: str = ""):
+    with Session() as s:
+        query = select(jobs_db.Template)
+        if q.strip():
+            like = "%" + q.strip() + "%"
+            query = query.where(or_(jobs_db.Template.name.ilike(like),
+                                    jobs_db.Template.content.ilike(like)))
+        if category:
+            query = query.where(jobs_db.Template.category == category)
+        rows = s.scalars(query.order_by(jobs_db.Template.updated_at.desc())).all()
+    return {"items": [_template_json(t) for t in rows],
+            "categories": list(TEMPLATE_CATEGORIES)}
+
+
+@app.post("/api/templates")
+def create_template(body: dict):
+    name = str(body.get("name") or "").strip()
+    content = str(body.get("content") or "").strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="模板名称必填")
+    if not content:
+        raise HTTPException(status_code=422, detail="模板内容必填")
+    category = str(body.get("category") or "分镜")
+    if category not in TEMPLATE_CATEGORIES:
+        category = "其他"
+    with Session() as s:
+        t = jobs_db.Template(name=name[:128], category=category,
+                             content=content[:4000], tags=_norm_tags(body.get("tags")))
+        s.add(t)
+        s.commit()
+        return _template_json(t)
+
+
+@app.patch("/api/templates/{template_id}")
+def update_template(template_id: int, body: dict):
+    with Session() as s:
+        t = s.get(jobs_db.Template, template_id)
+        if t is None:
+            raise HTTPException(status_code=404, detail="模板不存在")
+        if "name" in body:
+            name = str(body.get("name") or "").strip()
+            if not name:
+                raise HTTPException(status_code=422, detail="模板名称必填")
+            t.name = name[:128]
+        if "content" in body:
+            content = str(body.get("content") or "").strip()
+            if not content:
+                raise HTTPException(status_code=422, detail="模板内容必填")
+            t.content = content[:4000]
+        if "category" in body:
+            category = str(body.get("category") or "其他")
+            t.category = category if category in TEMPLATE_CATEGORIES else "其他"
+        if "tags" in body:
+            t.tags = _norm_tags(body.get("tags"))
+        s.commit()
+        return _template_json(t)
+
+
+@app.delete("/api/templates/{template_id}")
+def delete_template(template_id: int):
+    with Session() as s:
+        t = s.get(jobs_db.Template, template_id)
+        if t is None:
+            raise HTTPException(status_code=404, detail="模板不存在")
+        s.delete(t)
+        s.commit()
+    return {"deleted": True, "id": template_id}
+
+
 @app.get("/api/jobs/summary")
 def jobs_summary(limit: int = 100, offset: int = 0):
     """跨项目任务聚合：状态 + 真实进度 / 失败原因 / 尝试次数 / 租约 epoch。"""
@@ -1617,7 +1777,7 @@ def get_memory(project_id: int):
             jobs_db.Script.project_id == project_id).order_by(jobs_db.Script.episode_id)).all()
     m = memmod.make_memory()
     records = []
-    ad = sup_adapter.make_adapter("text", _model_config.get("text", {}))
+    ad = sup_adapter.make_adapter("text", _project_model_config(project_id).get("text", {}))
     for sc in scripts:
         ol = {"form": sc.form, "scenes": sc.scenes or []}
         m = memmod.update_memory(m, sc.episode_id, ol,
@@ -1674,7 +1834,7 @@ def provider_tasks(project_id: int):
     by_kind = {}
     for r in rows:
         by_kind.setdefault(r.kind, []).append({"stage": r.stage, "status": r.status})
-    cfg = _model_config
+    cfg = _project_model_config(project_id)
     return {"kinds": [{"kind": k, "stages": v,
                        "configured": sup_config.is_configured(cfg.get(k, {}))} for k, v in by_kind.items()],
             "note": "无凭据走 Mock；有凭据切换真实供应商，三段式流程不变"}

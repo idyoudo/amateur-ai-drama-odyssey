@@ -337,6 +337,40 @@ check("字幕列表", r.status_code == 200 and len(r.json()["items"]) >= 2)
 r = client.delete("/api/subtitles/%d" % tid, headers=H)
 check("删除字幕轨", r.status_code == 200 and r.json()["deleted"] is True)
 
+# 项目级模型路由
+r = client.get("/api/dramas/%d/model-routing" % p2, headers=H)
+check("模型路由 6 类", r.status_code == 200 and len(r.json()["kinds"]) == 6)
+r = client.put("/api/dramas/%d/model-routing" % p2, headers=H,
+               json={"routes": {"text": {"model": "qwen3-max",
+                                         "api_url": "https://example.com/v1",
+                                         "enabled": True}}})
+d = r.json()
+text_route = [k for k in d["kinds"] if k["kind"] == "text"][0]
+check("模型路由覆盖", r.status_code == 200 and text_route["model"] == "qwen3-max"
+      and text_route["override"] is True)
+r = client.put("/api/dramas/%d/model-routing" % p2, headers=H,
+               json={"routes": {"text": {"model": "", "api_url": "", "enabled": False}}})
+d = r.json()
+text_route = [k for k in d["kinds"] if k["kind"] == "text"][0]
+check("模型路由可停用", r.status_code == 200 and text_route["enabled"] is False)
+
+# 模板 / 提示词库
+r = client.post("/api/templates", headers=H,
+                json={"name": "雨夜对峙分镜", "category": "分镜",
+                      "content": "中景 → 特写，雨夜，冷色，强反差",
+                      "tags": "雨夜,对峙"})
+d = r.json()
+tpl_id = d["id"]
+check("创建模板", r.status_code == 200 and "雨夜" in d["tags"][0])
+r = client.patch("/api/templates/%d" % tpl_id, headers=H,
+                 json={"name": "雨夜对峙分镜（修订）", "category": "分镜",
+                       "content": "中景 → 特写，雨夜，冷色", "tags": ["雨夜"]})
+check("更新模板", r.status_code == 200 and "修订" in r.json()["name"])
+r = client.get("/api/templates?q=%E9%9B%A8%E5%A4%9C", headers=H)
+check("模板搜索", r.status_code == 200 and len(r.json()["items"]) >= 1)
+r = client.delete("/api/templates/%d" % tpl_id, headers=H)
+check("删除模板", r.status_code == 200 and r.json()["deleted"] is True)
+
 # Playground
 r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
 check("Playground 生成 200", r.status_code == 200)

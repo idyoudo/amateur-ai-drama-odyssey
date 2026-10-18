@@ -173,6 +173,21 @@ class ModuleParams(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class ProjectModelRoute(Base):
+    """项目级模型路由：覆盖全局供应商的 model/api_url（Key 仍取全局配置）。"""
+    __tablename__ = "project_model_routes"
+    __table_args__ = (UniqueConstraint("project_id", "kind", name="uq_project_model_kind"),
+                      Index("ix_project_model_project", "project_id"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=True)
+    api_url: Mapped[str] = mapped_column(String(256), nullable=True)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class SubtitleTrack(Base):
     """字幕轨：项目/分集/语言 + 状态 + 时间轴文本（SRT 可导入导出）。"""
     __tablename__ = "subtitle_tracks"
@@ -207,6 +222,19 @@ class Distribution(Base):
     external_url: Mapped[str] = mapped_column(String(512), nullable=True)
     metrics: Mapped[dict] = mapped_column(JSON, default=dict)
     note: Mapped[str] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class Template(Base):
+    """模板/提示词库：分镜、运镜、风格、对白等可复用模板。"""
+    __tablename__ = "templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), default="分镜")
+    content: Mapped[str] = mapped_column(String(4000), nullable=False)
+    tags: Mapped[dict] = mapped_column(JSON, default=list)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 

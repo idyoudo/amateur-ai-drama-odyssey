@@ -173,7 +173,7 @@ function ico(name, cls) {
 /* ---------- 外壳（带文字标签的侧边栏） ---------- */
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
-  ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["playground","生成台","lab"]]],
+  ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
   ["运行", [["distribution","分发","route"],["reviews","审核","check"],["jobs","任务","list"]]],
   ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
 ];
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "playground", "distribution", "reviews", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "jobs", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -299,6 +299,7 @@ async function routeView(name, param) {
   if (name === "new-project") return viewProjectCreate();
   if (name === "assets") return viewAssets();
   if (name === "subtitles") return viewSubtitles();
+  if (name === "templates") return viewTemplates();
   if (name === "playground") return viewPlayground();
   if (name === "distribution") return viewDistribution();
   if (name === "reviews") return viewReviews();
@@ -761,6 +762,10 @@ async function viewProject(id) {
         <div class="k">流水线</div><div>${run ? `<span class="pill ${run.summary.deliverable ? "ok" : "bad"}">${passed}/${total} 阶段通过 ${run.summary.deliverable ? "· 可交付" : ""}</span>` : `<span class="pill">尚未运行</span>`}</div>
       </div>
     </div>
+    <details class="params" id="modelrouting" style="margin:16px 0">
+      <summary>项目模型路由 <span class="muted">· 默认继承全局配置</span></summary>
+      <div id="mroutebody" style="margin-top:12px">加载中…</div>
+    </details>
     <h2>制作流程 <span class="hint">点击阶段查看成果</span></h2>
     ${stepper}
     <div id="stagedetail"></div>`,
@@ -771,6 +776,7 @@ async function viewProject(id) {
     () => produceAll(id), "开始制作");
   $("#setbtn").onclick = () => editProject(p);
   renderStageDetail(byName[CUR.stage]);
+  renderModelRouting(id);
   // 分集看板（每集卡片：镜数 + 集内剧本场数）
   api("/api/dramas/" + id + "/episodes").then(async ep => {
     const bar = $("#epbar"); if (!bar) return;
@@ -809,6 +815,41 @@ async function viewProject(id) {
   });
   window.pickStage = (n) => { CUR.stage = n; syncHash(hashFor("project", id, n)); viewProject(id); };
   replaceHash(hashFor("project", id, CUR.stage));
+}
+async function renderModelRouting(projectId) {
+  const box = $("#mroutebody"); if (!box) return;
+  try {
+    const d = await api("/api/dramas/" + projectId + "/model-routing");
+    box.innerHTML = `<div class="table-scroll"><table><thead><tr>
+        <th>类型</th><th>全局模型</th><th>项目覆盖模型</th><th>项目 API URL</th><th>启用</th></tr></thead>
+      <tbody>${(d.kinds || []).map(k => `<tr data-kind="${esc(k.kind)}">
+        <td>${esc(k.label)}</td>
+        <td class="muted">${esc(k.global_model || "—")}${k.global_key_set ? "" : " · 未配置 Key"}</td>
+        <td><input class="mr-model" value="${esc(k.model)}" placeholder="${esc(k.global_model || "继承全局")}"></td>
+        <td><input class="mr-url" value="${esc(k.api_url)}" placeholder="${esc(k.global_api_url || "继承全局")}"></td>
+        <td><input class="mr-enabled" type="checkbox" ${k.enabled ? "checked" : ""} style="width:auto"></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="form-actions" style="margin-top:12px">
+        <button class="btn sm" onclick="saveModelRouting(${projectId})">保存路由</button>
+        <span class="muted" style="font-size:var(--fs-sm)">${esc(d.note || "")}</span></div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="muted" style="color:var(--bad)">模型路由加载失败：${esc(e.message)}</div>`;
+  }
+}
+async function saveModelRouting(projectId) {
+  const routes = {};
+  document.querySelectorAll("#mroutebody tr[data-kind]").forEach(tr => {
+    routes[tr.dataset.kind] = {
+      model: tr.querySelector(".mr-model").value.trim(),
+      api_url: tr.querySelector(".mr-url").value.trim(),
+      enabled: tr.querySelector(".mr-enabled").checked,
+    };
+  });
+  try {
+    await api("/api/dramas/" + projectId + "/model-routing", { method: "PUT",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ routes }) });
+    toast("模型路由已保存"); renderModelRouting(projectId);
+  } catch (e) { toast("保存失败：" + e.message); }
 }
 async function renderStageDetail(st) {
   await _renderStageDetail(st);
@@ -1881,6 +1922,112 @@ function deleteSubtitleTrack() {
     try { await api("/api/subtitles/" + SUB.track.id, { method: "DELETE" });
       toast("已删除"); SUB.track = null; await loadSubtitleTracks(); }
     catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
+}
+
+/* ---------- 模板 / 提示词库 ---------- */
+const TPL = { items: [], categories: [], selected: null, draft: null, q: "", category: "" };
+let _tplTimer = null;
+function scheduleTemplateSearch() { clearTimeout(_tplTimer); _tplTimer = setTimeout(reloadTemplates, 300); }
+async function viewTemplates() { await reloadTemplates(); }
+async function reloadTemplates() {
+  TPL.q = ($("#tpl_q") || {}).value || TPL.q;
+  TPL.category = ($("#tpl_cat") || {}).value || TPL.category;
+  const params = new URLSearchParams();
+  if (TPL.q) params.set("q", TPL.q);
+  if (TPL.category) params.set("category", TPL.category);
+  try {
+    const d = await api("/api/templates?" + params.toString());
+    TPL.items = d.items || [];
+    TPL.categories = d.categories || [];
+  } catch (e) { return toast("模板加载失败：" + e.message); }
+  if (TPL.selected && !TPL.items.find(t => t.id === TPL.selected.id)) TPL.selected = null;
+  renderTemplates();
+  const q = $("#tpl_q");
+  if (q && TPL.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function tplEditorData() {
+  return TPL.selected || TPL.draft || { name: "", category: "分镜", tags: [], content: "" };
+}
+function renderTemplates() {
+  const cur = tplEditorData();
+  const isNew = !TPL.selected;
+  const cats = TPL.categories.length ? TPL.categories : ["分镜", "运镜", "风格", "对白", "提示词", "其他"];
+  setMain({
+    title: "模板",
+    top: `<div class="right"><button class="btn sm" onclick="newTemplate()">新建模板</button></div>`,
+    body: `<div class="sub-layout">
+      <aside class="sub-side">
+        <div class="card"><div class="stack">
+          <input id="tpl_q" placeholder="搜索模板名称 / 内容" value="${esc(TPL.q)}" oninput="scheduleTemplateSearch()">
+          <select id="tpl_cat" onchange="reloadTemplates()">
+            <option value="">全部分类</option>
+            ${cats.map(c => `<option value="${esc(c)}" ${TPL.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
+          </select>
+          <button class="btn sm" onclick="newTemplate()">新建模板</button>
+        </div></div>
+        <div class="sub-list">${TPL.items.length ? TPL.items.map(t => `
+          <div class="sub-item ${TPL.selected && TPL.selected.id === t.id ? "on" : ""}" onclick="selectTemplate(${t.id})">
+            <div class="sub-item-head"><b>${esc(t.name)}</b><span class="pill">${esc(t.category)}</span></div>
+            <div class="sub-item-meta">${esc((t.content || "").slice(0, 60))}${(t.content || "").length > 60 ? "…" : ""}</div>
+          </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击「新建模板」</div>`}</div>
+      </aside>
+      <section class="card sub-editor"><div class="stack">
+        <div class="row2">
+          <input id="tpl_name" value="${esc(cur.name || "")}" placeholder="模板名称">
+          <select id="tpl_category">${cats.map(c => `<option value="${esc(c)}" ${cur.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+        </div>
+        <input id="tpl_tags" value="${esc((cur.tags || []).join(", "))}" placeholder="标签，逗号分隔">
+        <textarea id="tpl_content" rows="12" placeholder="模板内容，例如分镜描述、运镜指令、风格提示词…">${esc(cur.content || "")}</textarea>
+        <div class="form-actions">
+          <button class="btn" onclick="saveTemplate()">${isNew ? "创建模板" : "保存模板"}</button>
+          ${TPL.selected ? `<button class="btn ghost" onclick="deleteTemplate()">删除</button>` : ""}
+          <span class="muted" style="font-size:var(--fs-sm)">模板可用于分镜、运镜、风格与提示词复用</span>
+        </div>
+      </div></section>
+    </div>`,
+  }, true);
+}
+function selectTemplate(id) {
+  TPL.selected = TPL.items.find(t => t.id === id) || null;
+  TPL.draft = null;
+  renderTemplates();
+}
+function newTemplate() {
+  TPL.selected = null;
+  TPL.draft = { name: "", category: "分镜", tags: [], content: "" };
+  renderTemplates();
+}
+async function saveTemplate() {
+  const payload = {
+    name: (($("#tpl_name") || {}).value || "").trim(),
+    category: ($("#tpl_category") || {}).value || "其他",
+    tags: ($("#tpl_tags") || {}).value || "",
+    content: (($("#tpl_content") || {}).value || "").trim(),
+  };
+  try {
+    let d;
+    if (TPL.selected) {
+      d = await api("/api/templates/" + TPL.selected.id, { method: "PATCH",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      toast("模板已保存");
+    } else {
+      d = await api("/api/templates", { method: "POST",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      toast("模板已创建");
+    }
+    TPL.selected = d; TPL.draft = null;
+    await reloadTemplates();
+    await selectTemplate(d.id);
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+function deleteTemplate() {
+  if (!TPL.selected) return;
+  confirmDialog("删除模板？", "删除后不可恢复。", async () => {
+    try {
+      await api("/api/templates/" + TPL.selected.id, { method: "DELETE" });
+      toast("已删除"); TPL.selected = null; TPL.draft = null; await reloadTemplates();
+    } catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }
 
