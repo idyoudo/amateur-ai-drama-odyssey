@@ -804,7 +804,7 @@ async function viewProjectCreate() {
   pickSource("original");
   refreshFormatRec();
 }
-const PROJS = { items: [], total: 0, page: 1, pages: 1, limit: 12, q: "", sort: "id" };
+const PROJS = { items: [], total: 0, page: 1, pages: 1, limit: 30, q: "", sort: "id" };
 let _projListTimer = null;
 function scheduleProjectSearch() { PROJS.page = 1; clearTimeout(_projListTimer); _projListTimer = setTimeout(reloadProjectsList, 300); }
 function changeProjectSort() { PROJS.page = 1; reloadProjectsList(); }
@@ -834,11 +834,6 @@ async function projectsGoPage(n) {
   PROJS.page = n;
   await reloadProjectsList();
 }
-async function projectsSetSize(v) {
-  PROJS.limit = Number(v) || 12;
-  PROJS.page = 1;
-  await reloadProjectsList();
-}
 function renderProjects() {
   const ae = document.activeElement;
   const focusId = ae && ae.id ? ae.id : null;
@@ -854,7 +849,7 @@ function renderProjects() {
         <option value="id" ${PROJS.sort === "id" ? "selected" : ""}>按创建时间</option>
         <option value="title" ${PROJS.sort === "title" ? "selected" : ""}>按片名</option>
         <option value="deliverable" ${PROJS.sort === "deliverable" ? "selected" : ""}>可交付优先</option></select>
-      <span class="muted" style="font-size:var(--fs-sm)">共 ${PROJS.total} 个 · 第 ${PROJS.page}/${PROJS.pages} 页</span>
+      <span class="muted" style="font-size:var(--fs-sm)">共 ${PROJS.total} 个</span>
       <div style="display:flex;gap:4px;margin-left:auto">
         <button class="btn ghost sm" id="viewlist" onclick="setProjView('list')">列表</button>
         <button class="btn ghost sm" id="viewboard" onclick="setProjView('board')">看板</button>
@@ -862,7 +857,7 @@ function renderProjects() {
     </div>
     <div class="cards" id="plist">${PROJS.items.length ? PROJS.items.map(projectCard).join("") : ""}</div>
     <div id="pboard" class="hide"></div>
-    <div id="projpager">${pagerBar(PROJS, "projectsGoPage", "projectsSetSize", "个", [12, 24, 48])}</div>
+    <div id="projpager">${pagerBar(PROJS, "projectsGoPage")}</div>
     ${PROJS.total ? "" : `<div class="card empty">${ico("film")}<div>${PROJS.q ? "无匹配项目" : "还没有项目"}</div>
       ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
       <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div>`}</div>`}`,
@@ -1036,7 +1031,7 @@ async function viewProject(id) {
   window.pickStage = (n) => { CUR.stage = n; syncHash(hashFor("project", id, n)); viewProject(id); };
   replaceHash(hashFor("project", id, CUR.stage));
 }
-const EPBOARD = { project_id: null, page: 1, limit: 24, episodes: 0 };
+const EPBOARD = { project_id: null, page: 1, limit: 30, episodes: 0 };
 async function loadEpisodeBoard(id) {
   const bar = $("#epbar"); if (!bar) return;
   if (EPBOARD.project_id !== String(id)) { EPBOARD.project_id = String(id); EPBOARD.page = 1; }
@@ -1063,22 +1058,16 @@ async function loadEpisodeBoard(id) {
       <div class="muted" style="font-size:var(--fs-meta);margin-top:6px">${cnt} 镜 · ${sc} 场 · ${ep.minutes} 分</div></div>`);
   }
   bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:var(--fs-sm);color:var(--accent)">分集看板 <span class="muted">· 共 ${EPBOARD.episodes} 集 · 第 ${EPBOARD.page}/${pages} 页</span></div>
+      <div style="font-size:var(--fs-sm);color:var(--accent)">分集看板 <span class="muted">· 共 ${EPBOARD.episodes} 集</span></div>
       ${pages > 1 ? `<span class="muted" style="font-size:var(--fs-sm)">第 ${start}–${end} 集</span>` : ""}
     </div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>
-    ${pagerBar({ total: EPBOARD.episodes, page: EPBOARD.page, pages, limit: EPBOARD.limit },
-      "epBoardPage", "epBoardSetSize", "集", [12, 24, 48, 96])}`;
+    ${pagerBar({ total: EPBOARD.episodes, page: EPBOARD.page, pages, limit: EPBOARD.limit }, "epBoardPage")}`;
 }
 async function epBoardPage(n) {
   const pages = Math.max(1, Math.ceil(EPBOARD.episodes / EPBOARD.limit));
   if (n < 1 || n > pages || n === EPBOARD.page) return;
   EPBOARD.page = n;
-  await loadEpisodeBoard(EPBOARD.project_id);
-}
-async function epBoardSetSize(v) {
-  EPBOARD.limit = Number(v) || 24;
-  EPBOARD.page = 1;
   await loadEpisodeBoard(EPBOARD.project_id);
 }
 async function renderModelRouting(projectId) {
@@ -1764,9 +1753,9 @@ async function runPipeline(id) {
 /* ---------- 爆款分析 ---------- */
 const HITS = {
   tab: "projects",
-  projList: [], projTotal: 0, projPage: 1, projPages: 1, projLimit: 12, projQ: "",
+  projList: [], projTotal: 0, projPage: 1, projPages: 1, projLimit: 30, projQ: "",
   project_id: "", check: null,
-  cases: [], playbook: {}, total: 0, page: 1, pages: 1, limit: 12,
+  cases: [], playbook: {}, total: 0, page: 1, pages: 1, limit: 30,
   q: "", genre: "", formula: "", filters: { genres: [], formulas: [] },
 };
 let _hitTimer = null;
@@ -1776,8 +1765,8 @@ function scheduleProjSearch() { clearTimeout(_projTimer); _projTimer = setTimeou
 async function viewHits() {
   try {
     const [d, p] = await Promise.all([
-      api("/api/hits?limit=12&offset=0"),
-      api("/api/dramas?limit=12&offset=0"),
+      api("/api/hits?limit=" + HITS.limit + "&offset=0"),
+      api("/api/dramas?limit=" + HITS.projLimit + "&offset=0"),
     ]);
     HITS.cases = d.items || [];
     HITS.total = d.total || 0;
@@ -1867,38 +1856,31 @@ async function projGoPage(n) {
   HITS.projPage = n;
   try { await loadProjects(); } catch (e) { toast("项目加载失败：" + e.message); }
 }
-const PAGER_SIZES = [10, 20, 50, 100];
-function pagerBar(state, goFn, sizeFn, unit, sizes) {
+function pagerBar(state, goFn) {
   const total = Number(state.total || 0);
-  const limit = Number(state.limit || 20);
+  const limit = Number(state.limit || 30);
   const pages = Math.max(1, Number(state.pages || Math.ceil(total / limit)));
   const page = Math.min(Math.max(1, Number(state.page || 1)), pages);
   const start = total ? (page - 1) * limit + 1 : 0;
   const end = Math.min(total, page * limit);
-  const opts = (sizes || PAGER_SIZES).map(n =>
-    `<option value="${n}" ${n === limit ? "selected" : ""}>${n} ${unit || "条"}</option>`).join("");
   return `<div class="pagerbar">
     <div class="pagerbar-info">
-      <span>当前 ${start}-${end}/${total} ${unit || "条"}</span>
-      <span class="pagerbar-size">每页 <select onchange="${sizeFn}(this.value)">${opts}</select></span>
+      <span>第 ${page} 页，共 ${pages} 页</span>
+      <span class="pagerbar-total">共 ${total} 条 · ${total ? "当前 " + start + "-" + end + " 条" : "当前 0 条"}</span>
     </div>
     <div class="pagerbar-ctrl">
       <button class="btn ghost sm" ${page <= 1 ? "disabled" : ""} onclick="${goFn}(${page - 1})">上一页</button>
-      <span class="pagerbar-page">${page}/${pages}</span>
+      <span class="pagerbar-page">${page}</span>
       <button class="btn ghost sm" ${page >= pages ? "disabled" : ""} onclick="${goFn}(${page + 1})">下一页</button>
     </div>
   </div>`;
 }
 function hitPager() {
-  return pagerBar({ total: HITS.total, page: HITS.page, pages: HITS.pages, limit: HITS.limit },
-    "hitPage", "hitSetSize", "条", [12, 24, 48]);
+  return pagerBar({ total: HITS.total, page: HITS.page, pages: HITS.pages, limit: HITS.limit }, "hitPage");
 }
 function projPager() {
-  return pagerBar({ total: HITS.projTotal, page: HITS.projPage, pages: HITS.projPages, limit: HITS.projLimit },
-    "projGoPage", "hitProjSetSize", "个", [12, 24, 48]);
+  return pagerBar({ total: HITS.projTotal, page: HITS.projPage, pages: HITS.projPages, limit: HITS.projLimit }, "projGoPage");
 }
-function hitSetSize(v) { HITS.limit = Number(v); HITS.page = 1; loadHits().catch(e => toast("案例加载失败：" + e.message)); }
-function hitProjSetSize(v) { HITS.projLimit = Number(v); HITS.projPage = 1; loadProjects().catch(e => toast("项目加载失败：" + e.message)); }
 async function runHitCheck(render) {
   try { HITS.check = await api("/api/dramas/" + HITS.project_id + "/hit-check"); }
   catch (e) { HITS.check = null; toast("爆款体检失败：" + e.message); }
@@ -1968,7 +1950,7 @@ function renderHitProjects() {
       <div class="toolbar">
         <input id="proj_q" placeholder="搜索项目名称 / 题材 / 平台" value="${esc(HITS.projQ)}" oninput="scheduleProjSearch()">
         <button class="btn ghost" onclick="resetProjFilters()">重置</button>
-        <span class="muted" style="font-size:var(--fs-sm)">共 ${HITS.projTotal} 个项目 · 第 ${HITS.projPage}/${HITS.projPages} 页</span>
+        <span class="muted" style="font-size:var(--fs-sm)">共 ${HITS.projTotal} 个项目</span>
       </div>
       <div class="table-scroll hit-proj-table">
         <table><thead><tr><th>项目</th><th>题材</th><th>规格</th><th>镜头</th><th>状态</th><th></th></tr></thead>
@@ -2021,7 +2003,7 @@ function renderHitCases() {
       <div class="stat"><div class="k">${(pb.hooks || []).length}</div><div class="l">前 3 秒钩子</div></div>
       <div class="stat"><div class="k">${(pb.cliffhangers || []).length}</div><div class="l">断章类型</div></div>
     </div>
-    <h2 style="margin-top:0">爆款案例 <span class="hint">共 ${HITS.total} 条 · 第 ${HITS.page}/${HITS.pages} 页</span></h2>
+    <h2 style="margin-top:0">爆款案例 <span class="hint">共 ${HITS.total} 条</span></h2>
     <div class="card" style="margin-bottom:14px"><div class="toolbar">
       <input id="hit_q" placeholder="搜索标题 / 题材 / 分析" value="${esc(HITS.q)}" oninput="scheduleHitSearch()">
       <select id="hit_genre" onchange="reloadHits()"><option value="">全部题材</option>
@@ -2185,7 +2167,7 @@ async function saveAnalyzedCase() {
 
 /* ---------- 资产库（角色 + 镜头：筛选 / 详情 / 复用 / 导出） ---------- */
 const ASSET = { projects: [], chars: [], shots: [], totals: {}, shotTotal: 0,
-  project_id: "", q: "", kind: "all", status: "", limit: 24, page: 1, pages: 1 };
+  project_id: "", q: "", kind: "all", status: "", limit: 30, page: 1, pages: 1 };
 const ASSET_STATUS_LABEL = { "__generated": "已生成（含已选定）", "已生成": "已生成",
   "已选定": "已选定", "待生成": "待生成", "已定妆": "已定妆", "待定妆": "待定妆" };
 let _assetTimer = null;
@@ -2279,14 +2261,7 @@ function assetCharacterSection(chars) {
 }
 function assetPager() {
   const total = ASSET.kind === "characters" ? (ASSET.characterTotal || 0) : (ASSET.shotTotal || 0);
-  return pagerBar({ total, page: ASSET.page, pages: ASSET.pages,
-    limit: ASSET.limit }, "assetPage", "assetSetSize", "个", [12, 24, 48, 96]);
-}
-async function assetSetSize(v) {
-  ASSET.limit = Number(v) || 24;
-  ASSET.page = 1;
-  try { await fetchAssets(); renderAssets(); }
-  catch (e) { toast("资产加载失败：" + e.message); }
+  return pagerBar({ total, page: ASSET.page, pages: ASSET.pages, limit: ASSET.limit }, "assetPage");
 }
 function assetShotSection(shots) {
   return `<h2 id="shotsec">镜头 <span class="hint">共 ${ASSET.shotTotal || 0} 个</span></h2>
@@ -2611,7 +2586,7 @@ function deleteSubtitleTrack() {
 
 /* ---------- 模板 / 提示词库 ---------- */
 const TPL = { items: [], categories: [], selected: null, draft: null, q: "", category: "",
-  total: 0, page: 1, pages: 1, limit: 12 };
+  total: 0, page: 1, pages: 1, limit: 30 };
 let _tplTimer = null;
 function scheduleTemplateSearch() {
   TPL.page = 1;
@@ -2647,11 +2622,6 @@ async function tplGoPage(n) {
   await reloadTemplates();
 }
 function tplChangeFilter() { TPL.page = 1; reloadTemplates(); }
-async function tplSetSize(v) {
-  TPL.limit = Number(v) || 12;
-  TPL.page = 1;
-  await reloadTemplates();
-}
 function tplEditorData() {
   return TPL.selected || TPL.draft || { name: "", category: "分镜", tags: [], content: "" };
 }
@@ -2676,7 +2646,7 @@ function renderTemplates() {
             <div class="sub-item-head"><b>${esc(t.name)}</b><span class="pill">${esc(t.category)}</span></div>
             <div class="sub-item-meta">${esc((t.content || "").slice(0, 60))}${(t.content || "").length > 60 ? "…" : ""}</div>
           </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击右上角「新建模板」</div>`}</div>
-        ${pagerBar(TPL, "tplGoPage", "tplSetSize", "条", [12, 24, 48])}
+        ${pagerBar(TPL, "tplGoPage")}
       </aside>
       <section class="card sub-editor"><div class="stack">
         <div class="row2">
@@ -2742,7 +2712,7 @@ function deleteTemplate() {
 
 /* ---------- 分发中心（渠道 / 排期 / 发布 / 运营数据） ---------- */
 const DIST = { items: [], summary: {}, channels: [], projects: [],
-  total: 0, page: 1, pages: 1, limit: 20 };
+  total: 0, page: 1, pages: 1, limit: 30 };
 function fmtNum(n) { return Number(n || 0).toLocaleString("zh-CN"); }
 function fmtDateTime(s) { return s ? String(s).slice(0, 16).replace("T", " ") : "—"; }
 async function viewDistribution() {
@@ -2771,11 +2741,6 @@ async function loadDistributions() {
 async function distGoPage(n) {
   if (n < 1 || n > DIST.pages || n === DIST.page) return;
   DIST.page = n;
-  await loadDistributions();
-}
-async function distSetSize(v) {
-  DIST.limit = Number(v) || 20;
-  DIST.page = 1;
   await loadDistributions();
 }
 function renderDistribution() {
@@ -2820,7 +2785,7 @@ function renderDistribution() {
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteDistribution(${d.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="9" style="text-align:center;color:var(--dim)">还没有分发记录</td></tr>`}</tbody>
     </table></div>
-    ${pagerBar(DIST, "distGoPage", "distSetSize", "条")}
+    ${pagerBar(DIST, "distGoPage")}
     </div>`,
   }, true);
 }
@@ -2901,7 +2866,7 @@ async function saveDistribution(id) {
 
 /* ---------- 审核中心 ---------- */
 const REVIEW = { items: [], summary: {}, projects: [],
-  total: 0, page: 1, pages: 1, limit: 20 };
+  total: 0, page: 1, pages: 1, limit: 30 };
 const REVIEW_TARGET_OPTS = [["project", "项目"], ["episode", "剧集"], ["shot", "镜头"], ["delivery", "交付"]];
 async function viewReviews() {
   REVIEW.page = 1;
@@ -2928,11 +2893,6 @@ async function loadReviews() {
 async function reviewsGoPage(n) {
   if (n < 1 || n > REVIEW.pages || n === REVIEW.page) return;
   REVIEW.page = n;
-  await loadReviews();
-}
-async function reviewsSetSize(v) {
-  REVIEW.limit = Number(v) || 20;
-  REVIEW.page = 1;
   await loadReviews();
 }
 function renderReviews() {
@@ -2969,7 +2929,7 @@ function renderReviews() {
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteReview(${r.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有审核记录</td></tr>`}</tbody>
     </table></div>
-    ${pagerBar(REVIEW, "reviewsGoPage", "reviewsSetSize", "条")}
+    ${pagerBar(REVIEW, "reviewsGoPage")}
     </div>`,
   }, true);
 }
@@ -3018,7 +2978,7 @@ function deleteReview(id) {
 
 /* ---------- 商业化结算台账 ---------- */
 const SETTLE = { items: [], summary: {}, channels: [], projects: [],
-  total: 0, page: 1, pages: 1, limit: 20 };
+  total: 0, page: 1, pages: 1, limit: 30 };
 async function viewSettlements() {
   SETTLE.page = 1;
   await loadSettlements();
@@ -3045,11 +3005,6 @@ async function loadSettlements() {
 async function settleGoPage(n) {
   if (n < 1 || n > SETTLE.pages || n === SETTLE.page) return;
   SETTLE.page = n;
-  await loadSettlements();
-}
-async function settleSetSize(v) {
-  SETTLE.limit = Number(v) || 20;
-  SETTLE.page = 1;
   await loadSettlements();
 }
 function settleTypeAmount(type) {
@@ -3097,7 +3052,7 @@ function renderSettlements() {
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteSettlement(${x.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有结算记录</td></tr>`}</tbody>
     </table></div>
-    ${pagerBar(SETTLE, "settleGoPage", "settleSetSize", "条")}
+    ${pagerBar(SETTLE, "settleGoPage")}
     </div>`,
   }, true);
 }
@@ -3154,7 +3109,7 @@ function deleteSettlement(id) {
 
 /* ---------- 团队与角色 ---------- */
 const TEAM = { items: [], roles: {}, me: {}, summary: {},
-  total: 0, page: 1, pages: 1, limit: 20 };
+  total: 0, page: 1, pages: 1, limit: 30 };
 async function viewTeam() {
   TEAM.page = 1;
   await loadTeam();
@@ -3180,11 +3135,6 @@ async function loadTeam() {
 async function teamGoPage(n) {
   if (n < 1 || n > TEAM.pages || n === TEAM.page) return;
   TEAM.page = n;
-  await loadTeam();
-}
-async function teamSetSize(v) {
-  TEAM.limit = Number(v) || 20;
-  TEAM.page = 1;
   await loadTeam();
 }
 function renderTeam() {
@@ -3217,7 +3167,7 @@ function renderTeam() {
           ${u.username === TEAM.me.username ? "" : `<button class="btn ghost sm" style="margin-left:4px" onclick="deleteMember(${u.id})">删除</button>`}</td>` : ""}
       </tr>`).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无成员</td></tr>`}</tbody>
     </table></div>
-    ${pagerBar(TEAM, "teamGoPage", "teamSetSize", "人")}
+    ${pagerBar(TEAM, "teamGoPage")}
     </div>
     <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">角色：管理员可管理团队与模型配置；法务只读；其余角色可执行制作类写入。</div>`,
   }, true);
@@ -3501,7 +3451,7 @@ function jobRowsHtml(jobs) {
     <td>${jobActionHtml(j)}</td></tr>`;
   }).join("");
 }
-const JOBS = { items: [], total: 0, page: 1, pages: 1, limit: 20, status: "" };
+const JOBS = { items: [], total: 0, page: 1, pages: 1, limit: 30, status: "" };
 const JOB_STATUS_LABELS = { queued: "排队中", running: "运行中", completed: "已完成",
   failed: "失败", cancelled: "已取消" };
 function jobsQuery() {
@@ -3530,17 +3480,11 @@ async function jobsGoPage(n) {
   JOBS.page = n;
   await reloadJobs();
 }
-function jobsPager() { return pagerBar(JOBS, "jobsGoPage", "jobsSetSize", "条"); }
-async function jobsSetSize(v) {
-  JOBS.limit = Number(v) || 20;
-  JOBS.page = 1;
-  await reloadJobs();
-}
+function jobsPager() { return pagerBar(JOBS, "jobsGoPage"); }
 async function renderJobs() {
   setMain({
     title: "任务",
-    top: `<div class="right"><span class="muted" style="font-size:var(--fs-sm)">每 5 秒刷新</span>
-      <span class="pill" id="jobstotal">共 ${JOBS.total} 个任务</span></div>`,
+    top: `<div class="right"><span class="muted" style="font-size:var(--fs-sm)">每 5 秒刷新</span></div>`,
     body: `<div class="card">
       <div class="toolbar">
         <input id="job_pid" placeholder="项目 ID" style="max-width:180px">
@@ -3567,8 +3511,6 @@ async function refreshJobRows() {
     const t = $("#jobstbl"); if (!t) { stopJobsPoll(); return; }
     t.innerHTML = jobRowsHtml(JOBS.items);
     const pg = $("#jobspager"); if (pg) pg.innerHTML = jobsPager();
-    const tot = $("#jobstotal");
-    if (tot) tot.textContent = `共 ${JOBS.total} 个任务`;
   } catch (e) { /* 轮询失败保留上次好数据，不打断操作 */ }
 }
 async function submitJob(btn) {
