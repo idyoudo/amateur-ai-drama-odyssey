@@ -205,7 +205,8 @@ function setMain(html, wide) {
     top = `<div class="right">${helpBtn}</div>` + top;
   }
   const title = html.title ? `<span class="topbar-title">${html.title}</span>` : "";
-  m.innerHTML = `<div class="topbar">${title}${top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
+  const leading = `<div class="topbar-leading">${title}${html.left || ""}</div>`;
+  m.innerHTML = `<div class="topbar">${leading}${top}</div><div class="view ${wide ? "wide" : ""}">${html.body}</div>`;
   refreshBell();
 }
 async function refreshBell() {
@@ -234,7 +235,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -296,7 +297,7 @@ async function navigate(name, param) {
   }
   shell(name === "project" || name === "new-project" ? "projects"
     : name === "hit-analyze" ? "hits"
-      : name === "model-add" ? "models" : name);
+      : (name === "model-add" || name === "model-guide") ? "models" : name);
   if (SKELETON_ROUTES.has(name)) skeleton();
   return routeView(name, param);
 }
@@ -320,6 +321,7 @@ async function routeView(name, param) {
   if (name === "team") return viewTeam();
   if (name === "models") return viewModels();
   if (name === "model-add") return viewModelAdd(param);
+  if (name === "model-guide") return viewModelGuide();
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
 }
@@ -3776,6 +3778,84 @@ function renderModelAdd() {
   }, true);
   modelAddRenderGrid();
 }
+const MODEL_RECS = [
+  { kind: "text", first: "DeepSeek（deepseek-chat）",
+    alt: "通义千问 qwen3-max / Kimi K2", cost: "低",
+    why: "剧本和大纲调用量最大，DeepSeek 中文强、OpenAI 兼容、价格低；通义在国内生态与稳定性上更稳。" },
+  { kind: "image", first: "通义万相（wanx-v1）",
+    alt: "豆包 Seedream / OpenAI gpt-image-1", cost: "低–中",
+    why: "定妆和关键帧依赖中文提示词与参考图；国内端点延迟低。OpenAI 质量高，但网络与成本门槛更高。" },
+  { kind: "video", first: "可灵 Kling v2",
+    alt: "豆包 Seedance / MiniMax 海螺 / Vidu", cost: "高（按秒计费）",
+    why: "视频是成本大头，先看参考图一致性、动作稳定性和国内可用性；可灵这三点较稳，Seedance 价格与速度更有优势。" },
+  { kind: "tts", first: "CosyVoice（DashScope）",
+    alt: "OpenAI tts-1 / ElevenLabs", cost: "低",
+    why: "台词量随集数线性增长，中文情绪和音色克隆优先；CosyVoice 单价低、国内延迟低，多语言再考虑 OpenAI 或 ElevenLabs。" },
+  { kind: "music", first: "ACE-Step（自托管）",
+    alt: "Suno Pro/Premier / Stable Audio", cost: "低（自托管）–中",
+    why: "版权最干净：Apache-2.0 可自托管；Suno 仅 Pro/Premier 可商用且不保证版权，商用前必须确认授权档位。" },
+  { kind: "lipsync", first: "可灵 Lip Sync",
+    alt: "Sync.so / HeyGen / D-ID", cost: "中–高",
+    why: "口型单价通常是 TTS 的 10–50 倍，只对近景正脸镜开启；与视频同一家供应商，链路和计费更简单。" },
+];
+function viewModelGuide() {
+  const cards = MODEL_RECS.map(r => {
+    const meta = MODEL_KIND_META[r.kind];
+    return `<div class="card">
+      <div class="mk-title">${ico(meta[2])}<div><b>${esc(meta[0])}</b><span>${esc(r.kind)} · ${esc(meta[1])}</span></div></div>
+      <div class="rec-rows">
+        <div class="rec-row"><span class="k">首选</span><div><b>${esc(r.first)}</b></div></div>
+        <div class="rec-row"><span class="k">备选</span><div>${esc(r.alt)}</div></div>
+        <div class="rec-row"><span class="k">成本</span><div>${esc(r.cost)}</div></div>
+        <div class="rec-row"><span class="k">为什么</span><div>${esc(r.why)}</div></div>
+      </div>
+      <button class="btn ghost sm" style="margin-top:12px" onclick="go('model-add:${r.kind}')">去添加</button>
+    </div>`;
+  }).join("");
+  const criteria = [
+    ["中文理解", "剧本、台词、分镜提示词都是中文，优先中文语料强的模型。"],
+    ["OpenAI 兼容", "直接填 URL 和 Key 就能接，少改代码、少踩协议坑。"],
+    ["参考图与一致性", "图像和视频必须支持参考图，否则角色脸和服装会跳。"],
+    ["成本", "视频按秒、口型按条，先控制这两个大头，文本/图像单价低。"],
+    ["授权合规", "音乐与人脸相关模型先确认商用授权，别等成片再换。"],
+    ["稳定性与网络", "生产优先国内可达、延迟低的端点；每类至少配一家备用。"],
+  ];
+  setMain({
+    title: "设置指南",
+    top: `<div class="right"><button class="btn ghost sm" onclick="go('models')">返回模型配置</button></div>`,
+    body: `
+    <div class="card" style="padding:22px 24px">
+      <div class="guide-hero-t">六类模型怎么选</div>
+      <p class="muted" style="font-size:var(--fs-body);line-height:1.85;margin:10px 0 14px;max-width:920px">
+        下面按「当前较稳妥、国内可用、成本可控」给出首选与备选，不追求唯一答案。每类都可以配多个提供商，
+        先主用一家、再留一家备用；具体价格与授权以厂商当期条款为准。</p>
+      <div class="guide-jump">
+        <button class="btn ghost sm" onclick="go('model-add:text')">先配文本</button>
+        <button class="btn ghost sm" onclick="go('model-add:image')">配图像</button>
+        <button class="btn ghost sm" onclick="go('model-add:video')">配视频</button>
+        <button class="btn ghost sm" onclick="go('model-add:tts')">配语音</button>
+        <button class="btn ghost sm" onclick="go('model-add:music')">配音乐</button>
+        <button class="btn ghost sm" onclick="go('model-add:lipsync')">配口型</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top:24px">推荐组合 <span class="hint">2026-10 时点，按能力、成本、合规综合</span></h2>
+    <div class="rec-cards">${cards}</div>
+
+    <h2 style="margin-top:26px">推荐依据</h2>
+    <div class="guide-terms">${criteria.map(([k, v]) => `<div class="guide-term"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("")}</div>
+
+    <h2 style="margin-top:26px">建议配置顺序 <span class="hint">不要一次全配，先用试播集验证</span></h2>
+    <div class="card"><ul class="guide-plan">
+      <li><b>第 1 步</b>先配文本 + 图像，跑通 6 集试播的剧本与定妆。</li>
+      <li><b>第 2 步</b>再配视频，先做 10–20 个关键镜，验证一致性与单镜成本。</li>
+      <li><b>第 3 步</b>然后配语音与口型；口型只对近景正脸镜开启，控制单价。</li>
+      <li><b>第 4 步</b>最后配音乐；商用发布前确认授权档位，保留授权凭证。</li>
+    </ul></div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">
+      提示：同一类配两家后，可在模型页随时「设为生效」切换；切换只影响新任务，已有任务结果不变。</div>`,
+  }, true);
+}
 async function modelActivate(id) {
   try {
     await api("/api/models/providers/" + id + "/activate", { method: "POST" });
@@ -3873,6 +3953,7 @@ function renderModels() {
   }).join("");
   setMain({
     title: "模型配置",
+    left: "<button class=\"btn ghost sm\" onclick=\"go('model-guide')\">设置指南</button>",
     top: `<div class="right"><span class="pill ${available.length ? "ok" : ""}">已生效 ${available.length}/6 类</span></div>`,
     body: `<div class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin-bottom:14px">
       每类模型可配置多个提供商，<b style="color:var(--ink-2)">同一时间只有一个生效</b>；切换后新任务使用新提供商。

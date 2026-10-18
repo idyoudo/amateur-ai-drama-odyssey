@@ -85,6 +85,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
   border-bottom:1px solid var(--line);padding:9px 52px;display:flex;align-items:center;justify-content:space-between;
   gap:16px;flex-wrap:wrap}
 .topbar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.topbar-leading{display:flex;align-items:center;gap:12px;min-width:0}
 .topbar-title{font-size:var(--fs-h2);font-weight:600;letter-spacing:-.01em;color:var(--ink);line-height:1.2;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
 
@@ -632,3 +633,12 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .prov-actions{display:flex;justify-content:flex-start;margin-top:16px}
 .prov-save{width:auto;height:40px;padding:0 22px}
 @media (max-width:860px){.prov-grid,.prov-form-grid{grid-template-columns:1fr}}
+
+/* G3：设置指南推荐组合 */
+.rec-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:12px}
+@media (max-width:560px){.rec-cards{grid-template-columns:1fr}}
+.rec-rows{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.rec-row .k{display:block;font-size:var(--fs-micro);color:var(--dim-2);font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+.rec-row div{font-size:var(--fs-sm);line-height:1.7;color:var(--ink-2)}
+.rec-row div b{font-size:var(--fs-table);color:var(--ink)}
