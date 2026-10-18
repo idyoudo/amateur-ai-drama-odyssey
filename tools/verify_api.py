@@ -159,6 +159,13 @@ check("厂商预设分组", set(_presets.get("provider_groups") or [])
 check("预设字段完整", all(
     all(k in p for k in ("vendor", "model", "api_url", "group", "site"))
     for ps in _presets["presets"].values() for p in ps))
+_img = {p["vendor"]: p for p in _presets["presets"]["image"]}
+check("图像预设含 Seedream 5.0 Pro",
+      _img.get("豆包 Seedream 5.0 Pro", {}).get("model", "").startswith("doubao-seedream-5-0-pro"))
+check("图像预设含 Wan 2.5",
+      _img.get("通义万相 Wan 2.5", {}).get("model") == "wan2.5-t2i-preview")
+check("图像预设不再用 wanx-v1",
+      all(p["model"] != "wanx-v1" for p in _presets["presets"]["image"]))
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])

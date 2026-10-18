@@ -3782,9 +3782,9 @@ const MODEL_RECS = [
   { kind: "text", first: "DeepSeek（deepseek-chat）",
     alt: "通义千问 qwen3-max / Kimi K2", cost: "低",
     why: "剧本和大纲调用量最大，DeepSeek 中文强、OpenAI 兼容、价格低；通义在国内生态与稳定性上更稳。" },
-  { kind: "image", first: "通义万相（wanx-v1）",
-    alt: "豆包 Seedream / OpenAI gpt-image-1", cost: "低–中",
-    why: "定妆和关键帧依赖中文提示词与参考图；国内端点延迟低。OpenAI 质量高，但网络与成本门槛更高。" },
+  { kind: "image", first: "豆包 Seedream 5.0 Pro",
+    alt: "Nano Banana 2.1 / GPT Image 2.5 / 通义万相 Wan 2.5", cost: "中–高（Pro）· 低（Wan 2.5）",
+    why: "定妆与关键帧最看重参考图一致性和中文提示词。Seedream 5.0 Pro 国内可用、最多 10 张参考图、2K；Nano Banana 2.1 最多 14 张参考图、可保持 4 个角色一致，一致性最强；GPT Image 2.5 在盲测榜单第一梯队；Wan 2.5 便宜、中文排版好，但画质不是第一梯队。DeepSeek 官方 API 不做图像生成。" },
   { kind: "video", first: "可灵 Kling v2",
     alt: "豆包 Seedance / MiniMax 海螺 / Vidu", cost: "高（按秒计费）",
     why: "视频是成本大头，先看参考图一致性、动作稳定性和国内可用性；可灵这三点较稳，Seedance 价格与速度更有优势。" },
@@ -3841,6 +3841,12 @@ function viewModelGuide() {
 
     <h2 style="margin-top:24px">推荐组合 <span class="hint">2026-10 时点，按能力、成本、合规综合</span></h2>
     <div class="rec-cards">${cards}</div>
+    <div class="card" style="margin-top:12px;background:var(--surface-2)">
+      <b>关于图像模型的两点澄清</b>
+      <p class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin:6px 0 0">
+        1）通义万相 Wan 2.5 是性价比选择，不是画质第一梯队；当前盲测榜单前列是 GPT Image 2.5、Nano Banana 2.1、Seedream 5 系列。<br>
+        2）DeepSeek 官方 API 只做文本与视觉理解，不做图像生成；Janus-Pro 是 MIT 开源研究模型，画质和一致性不适合生产定妆/关键帧。建议用 DeepSeek 写剧本和优化提示词，出图交给专业图像模型。</p>
+    </div>
 
     <h2 style="margin-top:26px">推荐依据</h2>
     <div class="guide-terms">${criteria.map(([k, v]) => `<div class="guide-term"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("")}</div>
