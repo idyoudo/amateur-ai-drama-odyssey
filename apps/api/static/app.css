@@ -474,6 +474,7 @@ body.dark{color-scheme:dark;
   color:var(--dim);font-weight:600;font-size:var(--fs-table);line-height:1;display:inline-flex;align-items:center;justify-content:center;
   transition:.15s var(--ease);margin-left:4px}
 .help-btn:hover{color:var(--ink);border-color:var(--dim-2);background:var(--surface-2)}
+.help-btn svg{width:15px;height:15px}
 .modal .box.help{max-width:940px}
 .help-body{display:grid;grid-template-columns:220px 1fr;min-height:460px}
 .help-nav{border-right:1px solid var(--line);padding:14px 10px;overflow-y:auto;max-height:76vh}

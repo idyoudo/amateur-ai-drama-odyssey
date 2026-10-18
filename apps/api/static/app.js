@@ -172,7 +172,7 @@ function ico(name, cls) {
 
 /* ---------- 外壳（带文字标签的侧边栏） ---------- */
 const NAV = [
-  ["制作", [["guide","新手指南","play"],["overview","概览","home"],["projects","项目","film"],["hits","爆款分析","pulse"]]],
+  ["制作", [["overview","概览","home"],["projects","项目","film"],["hits","爆款分析","pulse"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
   ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["marketing","营销","sparkle"],["jobs","任务","list"]]],
   ["系统", [["team","团队","users"],["models","模型","sliders"],["settings","设置","gear"]]],
@@ -196,6 +196,7 @@ function setMain(html, wide) {
   if (!m) return;
   let top = String(html.top || "");
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
+    `<button class="help-btn" title="新手指南" onclick="go('guide')">${ico("doc")}</button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
   if (top.includes("</div>")) {
     const i = top.lastIndexOf("</div>");
