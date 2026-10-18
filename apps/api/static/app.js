@@ -172,7 +172,7 @@ function ico(name, cls) {
 
 /* ---------- 外壳（带文字标签的侧边栏） ---------- */
 const NAV = [
-  ["制作", [["overview","概览","home"],["projects","项目","film"],["hits","爆款分析","pulse"]]],
+  ["制作", [["guide","新手指南","play"],["overview","概览","home"],["projects","项目","film"],["hits","爆款分析","pulse"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
   ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["marketing","营销","sparkle"],["jobs","任务","list"]]],
   ["系统", [["team","团队","users"],["models","模型","sliders"],["settings","设置","gear"]]],
@@ -233,7 +233,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -294,6 +294,7 @@ async function navigate(name, param) {
   return routeView(name, param);
 }
 async function routeView(name, param) {
+  if (name === "guide") return viewGuide();
   if (name === "overview") return viewOverview();
   if (name === "projects") return viewProjects();
   if (name === "project") return viewProject(param);
@@ -355,6 +356,177 @@ async function viewOverview() {
         <div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
         <button class="btn ghost" style="margin-left:8px" onclick="go('projects')">手动立项</button></div></div>`}`,
   });
+}
+/* ---------- 新手指南 ---------- */
+function guideJump(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function viewGuide() {
+  const steps = [
+    { t: "定方向（立项）", p: "先想清楚三件事：给谁看、在哪个平台播、每集多长。红果、抖音、快手是竖屏，一集 1–2 分钟；YouTube 横屏，可以 10 分钟。新手建议先做 6 集、每集 2–3 分钟的试播。", a: "新建项目时选平台，系统会给出集数、单集时长、画幅与季度拆分建议。" },
+    { t: "写故事（剧本）", p: "用一句话说清主角是谁、遇到什么麻烦、要干什么，这叫 logline。再把故事拆成每集 3–5 场。每集至少两次冲突升级，结尾留一个「然后呢」。", a: "剧本工作台可以逐集写场次；结构体检会用事实数据告诉你钩子、冲突、断章够不够。" },
+    { t: "定角色（选角定妆）", p: "给每个角色定一张脸：年龄、长相、发型、服装、声音。后面几十集都要靠这张脸保持连贯，不能一集一个样。", a: "角色资产库保存定妆信息，可跨项目复用；改一次，后续镜头统一引用。" },
+    { t: "画分镜", p: "把「他走进房间」拆成镜头：先拍门、再拍脸、再拍手。每个镜头要标清景别（特写/中景/全景）和运镜（推、拉、摇、移）。", a: "分镜工作台能从剧本自动派生镜头，并检查安全框与镜头契约。" },
+    { t: "生成画面", p: "每个镜头让 AI 出 4 个版本，挑最好的一个；不满意就改提示词再抽。新手容易犯的错是只抽一次就用。", a: "候选抽卡 + 批量生成；没有 GPU 或付费凭据时用 Mock 模式先跑通流程。" },
+    { t: "保一致", p: "同一张脸、同一件衣服、同一个道具，不能上一集长这样、下一集变样。观众一眼就能看出来。", a: "连续性表 + 一致性 QC 会列出人脸、服装、道具、光线的偏差。" },
+    { t: "配音与口型", p: "给角色配音，让口型和台词对齐；不同角色用不同音色，别让所有人一个声音。", a: "配音与口型模块按角色音色生成，可回到镜头逐条检查。" },
+    { t: "做声音", p: "对白、环境音、音效、配乐都要有。平台对响度有要求，太吵或太轻都会被压。", a: "声音设计与配乐；母版按 −23 LUFS、峰值 ≤ −1 dBTP 校验。" },
+    { t: "剪辑加字幕", p: "按时间线把镜头接起来，加中文字幕；要出海就做多语言字幕，注意字幕不要超框。", a: "时间线剪辑 + SRT 导入导出 + 多语言翻译稿，支持逐条校对。" },
+    { t: "调色出母版", p: "统一颜色和画幅，再做一次全面体检（QC）：黑帧、音画不同步、字幕超框、响度异常都要查。", a: "调色与母版 QC 清单逐项给出阈值、实测值和判定。" },
+    { t: "交付分发", p: "导出母版和平台版，写好标题、简介、封面，按排期发到各平台。不同平台要不同画幅。", a: "交付单 + 分发中心：母版、平台版、竖屏衍生版与渠道排期一处管理。" },
+    { t: "看数据再迭代", p: "重点看前三秒留存、完播率、付费率。拆解同行的爆款结构，改自己的下一批，而不是凭感觉加戏。", a: "爆款分析拆配方、钩子与断章；项目结构体检给出强/中/弱与证据。" },
+  ];
+  const terms = [
+    ["短剧", "竖屏、单集 1–2 分钟、几十到上百集的剧；靠节奏和钩子留住人。"],
+    ["logline", "一句话故事：谁、遇到什么、要做什么。"],
+    ["景别", "镜头拍到多大范围：特写看脸、中景看上半身、全景看环境。"],
+    ["运镜", "镜头怎么动：推近、拉远、摇摄、平移、跟拍。"],
+    ["分镜", "把剧本拆成一个个可拍摄的镜头。"],
+    ["钩子 / 断章", "开头 3 秒抓人的设计 / 每集结尾让人想点下一集的设计。"],
+    ["爽点", "观众情绪被满足的瞬间：打脸、反转、复仇成功、身份揭露。"],
+    ["母版", "最终剪好、调好色、混好音的成片文件。"],
+    ["交付规格", "画幅、帧率、色彩、响度等技术要求，不达标平台会拒收或压画质。"],
+    ["IAP / IAA", "用户付费解锁 / 看广告免费，短剧最常见的两种赚钱方式。"],
+    ["完播率", "看完这一集的人占打开人数的比例，是短剧最关键的指标之一。"],
+    ["Mock", "没有真实模型时用模拟数据跑通流程，用来学流程和验收，不产出真实画面。"],
+  ];
+  const hits = [
+    ["前 3 秒", "第一秒就给冲突、结果或身份反差，不要先讲背景。"],
+    ["冲突升级", "每集至少两次对抗升级；连续解释设定会掉人。"],
+    ["结尾断章", "绝境反转、身份暴露、新敌登场、真相半揭、情感决裂，五选一。"],
+    ["情绪回报", "每 2–3 集给一次明确爽点，让观众有追更理由。"],
+    ["标题封面", "标题 2–10 字，带题材关键词和冲突意象；封面要有反差。"],
+    ["视觉奇观", "破败 vs 力量、日常 vs 高光、近景 vs 大全景，制造对比。"],
+  ];
+  const days = [
+    ["第 1 天", "跑通示例", "创建示例项目，点一次「一键全流程」，看每个阶段产出什么。"],
+    ["第 2 天", "看爆款", "在爆款分析里读 3 个案例，记下它们的配方、钩子和断章。"],
+    ["第 3 天", "写故事", "写自己的 logline 和 6 集大纲，每集写清冲突与结尾。"],
+    ["第 4 天", "定角色", "给 3–5 个主要角色做定妆，确定音色与外形锚点。"],
+    ["第 5 天", "做分镜", "把前两集拆成分镜，标清景别、运镜和时长。"],
+    ["第 6 天", "出画面", "每镜抽 4 个候选、挑选；用一致性检查过一遍。"],
+    ["第 7 天", "后期交付", "配音、字幕、剪辑、QC、交付单，完整走一遍再复盘。"],
+  ];
+  const phases = [
+    ["0 立项评审", "平台、题材、集数、预算、合规结论", "新建项目 + 格式建议", "题材与预算通过"],
+    ["1 剧本锁定", "logline、分集大纲、场景表", "剧本工作台 + 结构体检", "六维无「弱」或已解释"],
+    ["2 视觉开发", "角色 bible、定妆、场景与风格", "资产库 + 模板", "主要角色定妆锁定"],
+    ["3 分镜预演", "镜头表：景别/运镜/时长/角色/提示词", "分镜工作台 + 安全框预检", "镜头契约完整"],
+    ["4 生成筛选", "每镜候选与最终选定", "生成台 + 任务队列", "选定率 100%"],
+    ["5 后期制作", "配音、口型、声音、字幕、剪辑、调色", "各制作工作台", "QC 全项通过"],
+    ["6 交付母版", "母版 + 平台版 + 衍生版 + 交付单", "交付模块", "QC 与法务双签"],
+    ["7 分发商业化", "渠道排期、发布、结算台账", "分发 + 商业化", "渠道与账期确认"],
+    ["8 数据复盘", "完播/付费/留存 + 下一批选题", "爆款分析", "复盘会结论"],
+  ];
+  const roles = [
+    ["管理员", "账号、模型、权限、团队", "模型与团队的最终配置权"],
+    ["制片", "预算、排期、交付与分发", "对成本和进度负责"],
+    ["导演", "视觉风格、分镜、表演与成片", "对画面与节奏负责"],
+    ["编剧", "logline、分集大纲、场次与台词", "对故事与钩子负责"],
+    ["剪辑", "时间线、字幕、节奏与成片", "对最终剪辑版本负责"],
+    ["QC", "画质、响度、字幕、连续性", "对技术指标负责"],
+    ["法务", "版权、授权、合规", "只读 + 交付签字"],
+  ];
+  const specs = [
+    ["画幅", "主母版 2.39:1；竖屏平台 9:16"],
+    ["帧率", "24 fps"],
+    ["色彩", "Rec.709 SDR"],
+    ["响度", "−23 LUFS"],
+    ["真峰值", "≤ −1 dBTP"],
+    ["音频", "24-bit / 48 kHz"],
+  ];
+  const checks = [
+    ["开工前 10 项", ["平台与画幅确定", "题材与受众确定", "集数与单集时长确定", "预算与周期确定", "logline 通过", "6 集大纲完成", "主要角色定妆", "团队角色分配", "模型 Key 配置", "版权与合规确认"]],
+    ["每集 6 项", ["前 3 秒有钩子", "至少 2 次冲突升级", "结尾有断章", "有一个明确爽点", "角色与道具连续", "时长符合平台"]],
+    ["交付前 8 项", ["画幅与帧率正确", "色彩与母版一致", "响度与峰值达标", "字幕无超框与错字", "QC 全项通过", "法务签字", "交付单齐全", "分发素材与标题就绪"]],
+  ];
+  const stepHtml = steps.map((s, i) => `<div class="guide-step">
+    <div class="n">${i + 1}</div><h3>${esc(s.t)}</h3><p>${esc(s.p)}</p>
+    <div class="g-do"><b>在 AADO 里：</b>${esc(s.a)}</div></div>`).join("");
+  const termHtml = terms.map(([k, v]) => `<div class="guide-term"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("");
+  const hitHtml = hits.map(([k, v], i) => `<div class="guide-term"><b>${i + 1}. ${esc(k)}</b><p>${esc(v)}</p></div>`).join("");
+  const dayHtml = days.map(([d, t, p]) => `<div class="guide-day"><span class="pill">${esc(d)}</span>
+    <b>${esc(t)}</b><p>${esc(p)}</p></div>`).join("");
+  const phaseRows = phases.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join("");
+  const roleRows = roles.map(r => `<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("");
+  const specHtml = specs.map(([k, v]) => `<div class="guide-spec"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
+  const checkHtml = checks.map(([t, items]) => `<div class="card"><h3 style="margin:0 0 10px">${esc(t)}</h3>
+    <ul class="guide-check">${items.map(x => `<li>${ico("check")}<span>${esc(x)}</span></li>`).join("")}</ul></div>`).join("");
+  setMain({
+    title: "新手指南",
+    body: `
+    <div class="card guide-hero">
+      <div class="guide-hero-t">第一次做短剧？先看这一页</div>
+      <p>短剧不是「拍一集电视剧」，而是用很低的成本快速做出一批 1–2 分钟一集的竖屏内容，
+      用前 3 秒抓人、用每集结尾的钩子让人继续点。下面先用大白话讲一遍流程，再给专业版开工方案。</p>
+      <div class="guide-jump">
+        <button class="btn ghost sm" onclick="guideJump('g-flow')">大白话流程</button>
+        <button class="btn ghost sm" onclick="guideJump('g-terms')">术语小抄</button>
+        <button class="btn ghost sm" onclick="guideJump('g-hits')">为什么会火</button>
+        <button class="btn ghost sm" onclick="guideJump('g-days')">7 天上手</button>
+        <button class="btn ghost sm" onclick="guideJump('g-pro')">专业版方案</button>
+      </div>
+    </div>
+
+    <section id="g-flow" class="guide-sec">
+      <h2>大白话：一部短剧怎么做出来 <span class="hint">12 步，按顺序做就不会乱</span></h2>
+      <div class="guide-steps">${stepHtml}</div>
+    </section>
+
+    <section id="g-terms" class="guide-sec">
+      <h2>先记住这些词 <span class="hint">跟人聊项目时够用了</span></h2>
+      <div class="guide-terms">${termHtml}</div>
+    </section>
+
+    <section id="g-hits" class="guide-sec">
+      <h2>为什么会火 <span class="hint">结构规律，不是玄学，也不保证结果</span></h2>
+      <div class="guide-terms">${hitHtml}</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:12px">这些规律来自公开爆款拆解与平台节奏常识，真正的胜负仍要看题材、投放和成片质量。</div>
+    </section>
+
+    <section id="g-days" class="guide-sec">
+      <h2>新手 7 天上手计划 <span class="hint">每天 1–2 小时，先跑通再谈质量</span></h2>
+      <div class="guide-days">${dayHtml}</div>
+    </section>
+
+    <section id="g-pro" class="guide-sec">
+      <h2>专业版使用方案 <span class="hint">按阶段推进，每阶段有产出和门禁</span></h2>
+      <div class="card"><div class="table-scroll"><table>
+        <thead><tr><th>阶段</th><th>关键产出</th><th>对应 AADO</th><th>通过门禁</th></tr></thead>
+        <tbody>${phaseRows}</tbody></table></div></div>
+
+      <h3 class="guide-sub">角色分工</h3>
+      <div class="card"><div class="table-scroll"><table>
+        <thead><tr><th>角色</th><th>负责什么</th><th>签字/拍板范围</th></tr></thead>
+        <tbody>${roleRows}</tbody></table></div></div>
+
+      <h3 class="guide-sub">交付硬指标</h3>
+      <div class="guide-specs">${specHtml}</div>
+
+      <h3 class="guide-sub">90 天节奏 <span class="hint">以 6 集试点为例，可等比放大</span></h3>
+      <div class="card"><ul class="guide-plan">
+        <li><b>第 1–2 周</b>立项 + 剧本锁定 + 主要角色定妆</li>
+        <li><b>第 3 周</b>分镜 + 预演 + 安全框预检</li>
+        <li><b>第 4–6 周</b>镜头生成 + 候选筛选 + 一致性检查</li>
+        <li><b>第 7–8 周</b>配音、音乐、字幕、剪辑、调色</li>
+        <li><b>第 9 周</b>母版 QC + 交付 + 渠道分发</li>
+        <li><b>第 10–12 周</b>数据复盘 + 第二批选题与配方调整</li>
+      </ul></div>
+
+      <h3 class="guide-sub">三张清单</h3>
+      <div class="guide-checks">${checkHtml}</div>
+
+      <div class="guide-cta">
+        <button class="btn" onclick="go('new-project')">新建项目</button>
+        <button class="btn ghost" onclick="seedDemo()">创建示例项目</button>
+        <button class="btn ghost" onclick="go('hits')">打开爆款分析</button>
+        <button class="btn ghost" onclick="go('assets')">打开资产库</button>
+        <button class="btn ghost" onclick="go('models')">配置模型</button>
+      </div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">建议顺序：先跑示例项目 → 看爆款案例 → 写自己的 logline → 再正式立项。</div>
+    </section>`,
+  }, true);
 }
 /* 项目卡：与全站一致的浅色内容卡（无深色封面） */
 function projectCard(p) {
