@@ -258,8 +258,19 @@ def _facts(project, scenes, shots):
     return facts, by_ep, avg_conflict
 
 
+DIM_DESC = {
+    "hook": "开头 3 秒能否用冲突或悬念抓住观众",
+    "conflict": "每集是否有足够的对抗与升级",
+    "cliffhanger": "每集结尾是否留悬念（断章）",
+    "payoff": "是否有明确的爽点或情绪释放",
+    "title": "片名是否有题材关键词与点击欲",
+    "spectacle": "镜头数量、景别与运镜是否有视觉变化",
+}
+
+
 def _dim(key, label, band, evidence, suggestion, status="ok"):
     return {"key": key, "label": label, "band": band, "status": status,
+            "desc": DIM_DESC.get(key, ""),
             "evidence": evidence, "suggestion": suggestion}
 
 

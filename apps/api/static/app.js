@@ -1619,16 +1619,24 @@ function renderHits() {
       <div class="stat"><div class="k">${(pb.hooks || []).length}</div><div class="l">前 3 秒钩子</div></div>
       <div class="stat"><div class="k">${(pb.cliffhangers || []).length}</div><div class="l">断章类型</div></div>
     </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="muted" style="font-size:var(--fs-sm);line-height:1.8">
+        <b style="color:var(--ink-2)">这是什么：</b>给当前项目做结构体检。上半部分是项目真实数据（集数/场景/镜头/标题），
+        下半部分是 6 项影响追更的结构判断（强/中/弱），每项都附证据。<br>
+        <b style="color:var(--ink-2)">怎么用：</b>先补「数据不足」的剧本/分镜，再优先改「弱」项；这不是播放量预测。
+      </div>
+    </div>
     <div class="card">
       <div class="toolbar">
         <select id="hit_project">${hitsProjectOptions()}</select>
         <button class="btn" onclick="switchHitProject()">重新体检</button>
-        <span class="muted" style="font-size:var(--fs-sm)">结构启发式评分，不代表真实播放量；上线后用平台数据复核。</span>
+        <span class="muted" style="font-size:var(--fs-sm)">结构启发式判断，不代表真实播放量；上线后用平台数据复核。</span>
       </div>
-      ${c ? `<div class="muted" style="font-size:var(--fs-sm);margin-top:12px">结构体检（非播放预测） · ${c.assessable || 0}/6 项可评估${(c.missing && c.missing.length) ? " · 数据不足：" + esc(c.missing.join("、")) : ""}</div>
+      ${c ? `<h2 style="margin-top:18px">项目事实 <span class="hint">来自剧本 / 分镜 / 项目信息</span></h2>
       <div class="hit-facts">${(c.facts || []).map(f => `<div class="hit-fact">
         <span>${esc(f.label)}</span><b>${f.value ? esc(f.value) : "数据不足"}</b></div>`).join("")}</div>
-      <div style="margin-top:16px">
+      <h2 style="margin-top:20px">结构判断 <span class="hint">规则判断，非播放预测 · ${c.assessable || 0}/6 项可评估${(c.missing && c.missing.length) ? " · 数据不足：" + esc(c.missing.join("、")) : ""}</span></h2>
+      <div>
         <div style="font-size:var(--fs-table)"><b>${esc((c.formula || {}).name || "")}</b>
           <span class="muted"> · ${esc((c.formula || {}).desc || "")}</span></div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">${esc(c.hook_suggestion || "")}</div>
@@ -1638,6 +1646,7 @@ function renderHits() {
       <div class="hit-dims">${(c.dimensions || []).map(d => `<div class="hit-dim ${d.status === "missing" ? "missing" : ""}">
         <div class="hd-head"><span>${esc(d.label)}</span>
           <span class="pill ${hitBandClass(d.band)}">${esc(d.band)}</span></div>
+        ${d.desc ? `<div class="hit-desc">${esc(d.desc)}</div>` : ""}
         <ul class="hit-evidence">${(d.evidence || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul>
         ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>` : ""}
     </div>
@@ -1793,6 +1802,7 @@ function renderHitAnalysis() {
     <div class="hit-dims">${(a.dimensions || []).map(d => `<div class="hit-dim ${d.status === "missing" ? "missing" : ""}">
       <div class="hd-head"><span>${esc(d.label)}</span>
         <span class="pill ${hitBandClass(d.band)}">${esc(d.band)}</span></div>
+      ${d.desc ? `<div class="hit-desc">${esc(d.desc)}</div>` : ""}
       <ul class="hit-evidence">${(d.evidence || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul>
       ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>
     <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(r.note || "")}</div>`;

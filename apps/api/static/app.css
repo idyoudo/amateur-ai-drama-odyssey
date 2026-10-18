@@ -216,13 +216,14 @@ h2:first-child{margin-top:0}
 /* 爆款分析 */
 .hit-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px}
 .hit-fact{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-md);
-  padding:10px 12px;display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-table)}
-.hit-fact span{color:var(--dim)}
+  padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:var(--fs-table)}
+.hit-fact span{color:var(--dim);white-space:nowrap}
 .hit-fact b{font-weight:600}
 .hit-dims{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:18px}
 .hit-dim{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px}
 .hit-dim.missing{border-style:dashed;opacity:.85}
 .hit-dim .hd-head{display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-table)}
+.hit-desc{font-size:var(--fs-sm);color:var(--dim);margin-top:4px;line-height:1.5}
 .hit-evidence{margin:8px 0 0;padding-left:16px;font-size:var(--fs-sm);color:var(--dim);line-height:1.5}
 .hit-evidence li{margin-bottom:3px}
 .hit-dim p{margin:8px 0 0;font-size:var(--fs-sm);color:var(--dim);line-height:1.5}
