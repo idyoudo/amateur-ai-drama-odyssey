@@ -128,6 +128,9 @@ h2:first-child{margin-top:0}
 .stat .k{font-family:var(--serif);font-size:var(--fs-stat);font-weight:400;color:var(--ink);line-height:1;letter-spacing:-.02em}
 .stat .l{font-size:var(--fs-meta);color:var(--dim-2);margin-top:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.stat.clickable{cursor:pointer;transition:.15s var(--ease)}
+.stat.clickable:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm)}
+.stat.on{border-color:var(--accent);background:var(--accent-soft)}
 
 /* 资产卡 */
 .asset{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;
@@ -163,6 +166,8 @@ h2:first-child{margin-top:0}
 .cand-box svg{width:26px;height:26px}
 .cand-box b{font-size:var(--fs-table);color:var(--ink-2)}
 .cand-box span{font-size:var(--fs-sm)}
+.pager{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.pager .btn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
 
 /* 表格 */
 table{width:100%;border-collapse:collapse}

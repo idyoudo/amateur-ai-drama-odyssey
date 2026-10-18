@@ -994,12 +994,15 @@ def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
     q = (q or "").strip()
     with Session() as s:
         projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
-        cc = []
+        base_char = []
         if project_id:
-            cc.append(jobs_db.Character.project_id == project_id)
+            base_char.append(jobs_db.Character.project_id == project_id)
         if q:
-            cc.append(jobs_db.Character.name.ilike("%" + q + "%"))
-        if status:
+            base_char.append(jobs_db.Character.name.ilike("%" + q + "%"))
+        char_base_count = s.scalar(select(func.count()).select_from(jobs_db.Character)
+                                   .where(*base_char)) or 0
+        cc = list(base_char)
+        if status and status != "__generated":
             cc.append(jobs_db.Character.status == status)
         chars = s.scalars(select(jobs_db.Character).where(*cc)
                           .order_by(jobs_db.Character.id.desc())).all()
@@ -1014,9 +1017,12 @@ def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
                             jobs_db.Shot.size.ilike(like),
                             jobs_db.Shot.move.ilike(like)))
         sc = list(base)
-        if status:
+        if status == "__generated":
+            sc.append(jobs_db.Shot.status.in_(("已生成", "已选定")))
+        elif status:
             sc.append(jobs_db.Shot.status == status)
-        total_shots = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(*base)) or 0
+        shot_base_count = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(*base)) or 0
+        shot_total = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(*sc)) or 0
         generated = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(
             *(base + [jobs_db.Shot.status.in_(("已生成", "已选定"))]))) or 0
         selected = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(
@@ -1026,8 +1032,8 @@ def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
     return {"characters": [_char_json(c, projs) for c in chars],
             "character_total": len(chars),
             "shots": [_shot_json(sh, projs) for sh in shots],
-            "shot_total": total_shots,
-            "stats": {"characters": len(chars), "shots": total_shots,
+            "shot_total": shot_total,
+            "stats": {"characters": char_base_count, "shots": shot_base_count,
                       "generated": generated, "selected": selected},
             "limit": limit, "offset": offset}
 

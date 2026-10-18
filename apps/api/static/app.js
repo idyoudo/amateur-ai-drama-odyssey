@@ -1454,7 +1454,9 @@ async function runPipeline(id) {
 /* ---------- 资产库 ---------- */
 /* ---------- 资产库（角色 + 镜头：筛选 / 详情 / 复用 / 导出） ---------- */
 const ASSET = { projects: [], chars: [], shots: [], totals: {}, shotTotal: 0,
-  project_id: "", q: "", kind: "all", status: "", limit: 60, offset: 0 };
+  project_id: "", q: "", kind: "all", status: "", limit: 24, page: 1, pages: 1 };
+const ASSET_STATUS_LABEL = { "__generated": "已生成（含已选定）", "已生成": "已生成",
+  "已选定": "已选定", "待生成": "待生成", "已定妆": "已定妆", "待定妆": "待定妆" };
 let _assetTimer = null;
 
 function scheduleAssetSearch() { clearTimeout(_assetTimer); _assetTimer = setTimeout(reloadAssets, 300); }
@@ -1464,41 +1466,42 @@ function assetProjectOptions() {
 }
 function assetStatusOptions() {
   const opts = ASSET.kind === "characters" ? ["已定妆", "待定妆"]
-    : ASSET.kind === "shots" ? ["待生成", "已生成", "已选定"]
-      : ["已定妆", "待定妆", "待生成", "已生成", "已选定"];
+    : ASSET.kind === "shots" ? ["__generated", "已生成", "已选定", "待生成"]
+      : ["已定妆", "待定妆", "__generated", "已生成", "已选定", "待生成"];
   return `<option value="">全部状态</option>` + opts.map(s =>
-    `<option value="${s}" ${ASSET.status === s ? "selected" : ""}>${s}</option>`).join("");
+    `<option value="${s}" ${ASSET.status === s ? "selected" : ""}>${ASSET_STATUS_LABEL[s] || s}</option>`).join("");
 }
-async function fetchAssets(append) {
+async function fetchAssets() {
   const params = new URLSearchParams({ limit: String(ASSET.limit),
-    offset: String(append ? ASSET.shots.length : 0) });
+    offset: String((ASSET.page - 1) * ASSET.limit) });
   if (ASSET.q) params.set("q", ASSET.q);
   if (ASSET.project_id) params.set("project_id", ASSET.project_id);
   if (ASSET.status) params.set("status", ASSET.status);
   const d = await api("/api/assets?" + params.toString());
+  ASSET.chars = d.characters || [];
+  ASSET.shots = d.shots || [];
   ASSET.totals = d.stats || {};
   ASSET.shotTotal = d.shot_total || 0;
   ASSET.characterTotal = d.character_total || 0;
-  if (append) ASSET.shots = ASSET.shots.concat(d.shots || []);
-  else { ASSET.chars = d.characters || []; ASSET.shots = d.shots || []; }
+  ASSET.pages = Math.max(1, Math.ceil(ASSET.shotTotal / ASSET.limit));
 }
 async function reloadAssets() {
   ASSET.q = ($("#asset_q") || {}).value || "";
   ASSET.project_id = ($("#asset_project") || {}).value || "";
   ASSET.status = ($("#asset_status") || {}).value || "";
-  ASSET.offset = 0;
-  try { await fetchAssets(false); } catch (e) { return toast("资产加载失败：" + e.message); }
+  ASSET.page = 1;
+  try { await fetchAssets(); } catch (e) { return toast("资产加载失败：" + e.message); }
   renderAssets();
   const q = $("#asset_q");
   if (q && ASSET.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
 }
 function setAssetKind(kind) {
-  ASSET.kind = kind; ASSET.status = "";
+  ASSET.kind = kind; ASSET.status = ""; ASSET.page = 1;
   const s = $("#asset_status"); if (s) s.value = "";
   reloadAssets();
 }
 function resetAssetFilters() {
-  ASSET.q = ""; ASSET.project_id = ""; ASSET.status = ""; ASSET.kind = "all";
+  ASSET.q = ""; ASSET.project_id = ""; ASSET.status = ""; ASSET.kind = "all"; ASSET.page = 1;
   const q = $("#asset_q"), p = $("#asset_project"), s = $("#asset_status"), k = $("#asset_kind");
   if (q) q.value = "";
   if (p) p.value = "";
@@ -1506,9 +1509,31 @@ function resetAssetFilters() {
   if (k) k.value = "all";
   reloadAssets();
 }
-async function loadMoreAssets() {
-  try { await fetchAssets(true); renderAssets(); }
-  catch (e) { toast("加载失败：" + e.message); }
+function assetActive(key) {
+  if (key === "characters") return ASSET.kind === "characters";
+  if (key === "shots") return ASSET.kind === "shots" && !ASSET.status;
+  if (key === "generated") return ASSET.kind === "shots" && ASSET.status === "__generated";
+  if (key === "selected") return ASSET.kind === "shots" && ASSET.status === "已选定";
+  return false;
+}
+async function assetQuickFilter(key) {
+  if (key === "characters") { ASSET.kind = "characters"; ASSET.status = ""; }
+  else if (key === "shots") { ASSET.kind = "shots"; ASSET.status = ""; }
+  else if (key === "generated") { ASSET.kind = "shots"; ASSET.status = "__generated"; }
+  else if (key === "selected") { ASSET.kind = "shots"; ASSET.status = "已选定"; }
+  ASSET.page = 1;
+  try { await fetchAssets(); renderAssets(); }
+  catch (e) { toast("资产加载失败：" + e.message); }
+}
+async function assetPage(n) {
+  if (n < 1 || n > ASSET.pages || n === ASSET.page) return;
+  ASSET.page = n;
+  try {
+    await fetchAssets();
+    renderAssets();
+    const el = $("#shotsec");
+    if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+  } catch (e) { toast("加载失败：" + e.message); }
 }
 function assetCharacterSection(chars) {
   return `<h2>角色 <span class="hint">${ASSET.characterTotal || 0} 个 · 点击查看定妆与复用</span></h2>
@@ -1520,8 +1545,29 @@ function assetCharacterSection(chars) {
       </div></div>`).join("")}</div>`
       : `<div class="card empty">${ico("face")}<div>没有匹配的角色资产</div></div>`}`;
 }
+function assetPager() {
+  if (ASSET.pages <= 1) return "";
+  const cur = ASSET.page, pages = ASSET.pages;
+  const nums = [];
+  const push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
+  push(1);
+  for (let n = cur - 2; n <= cur + 2; n++) push(n);
+  push(pages);
+  nums.sort((a, b) => a - b);
+  let mid = "", prev = 0;
+  nums.forEach(n => {
+    if (n - prev > 1) mid += `<span class="muted">…</span>`;
+    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="assetPage(${n})">${n}</button>`;
+    prev = n;
+  });
+  return `<div class="pager">
+    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="assetPage(${cur - 1})">上一页</button>
+    ${mid}
+    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="assetPage(${cur + 1})">下一页</button>
+  </div>`;
+}
 function assetShotSection(shots) {
-  return `<h2>镜头 <span class="hint">已显示 ${shots.length} / 共 ${ASSET.shotTotal || 0}</span></h2>
+  return `<h2 id="shotsec">镜头 <span class="hint">第 ${ASSET.page} / ${ASSET.pages} 页 · 共 ${ASSET.shotTotal || 0} 个</span></h2>
     ${shots.length ? `<div class="cards">${shots.map(s => `<div class="asset clickable" onclick="openAssetShot(${s.id})">
       <div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
         <span class="tag">${esc(s.project)} · E${s.episode_id || 1} · 镜${s.shot_no}</span></div>
@@ -1529,7 +1575,7 @@ function assetShotSection(shots) {
         <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}">${esc(s.status)}</span></div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">${esc((s.characters || []).join("、") || s.prompt || "—")}</div>
       </div></div>`).join("")}</div>` : `<div class="card empty">${ico("frame")}<div>没有匹配的镜头资产</div></div>`}
-    ${shots.length < (ASSET.shotTotal || 0) ? `<div style="margin-top:14px"><button class="btn ghost" onclick="loadMoreAssets()">加载更多</button></div>` : ""}`;
+    ${assetPager()}`;
 }
 function renderAssets() {
   const stats = ASSET.totals || {};
@@ -1538,10 +1584,14 @@ function renderAssets() {
     top: `<div class="right"><button class="btn ghost sm" onclick="exportAssets()">导出清单</button></div>`,
     body: `
     <div class="stats" style="margin-bottom:14px">
-      <div class="stat"><div class="k">${stats.characters || 0}</div><div class="l">角色资产</div></div>
-      <div class="stat"><div class="k">${stats.shots || 0}</div><div class="l">镜头资产</div></div>
-      <div class="stat"><div class="k">${stats.generated || 0}</div><div class="l">已生成镜头</div></div>
-      <div class="stat"><div class="k">${stats.selected || 0}</div><div class="l">已选定镜头</div></div>
+      <div class="stat clickable ${assetActive("characters") ? "on" : ""}" onclick="assetQuickFilter('characters')">
+        <div class="k">${stats.characters || 0}</div><div class="l">角色资产</div></div>
+      <div class="stat clickable ${assetActive("shots") ? "on" : ""}" onclick="assetQuickFilter('shots')">
+        <div class="k">${stats.shots || 0}</div><div class="l">镜头资产</div></div>
+      <div class="stat clickable ${assetActive("generated") ? "on" : ""}" onclick="assetQuickFilter('generated')">
+        <div class="k">${stats.generated || 0}</div><div class="l">已生成镜头</div></div>
+      <div class="stat clickable ${assetActive("selected") ? "on" : ""}" onclick="assetQuickFilter('selected')">
+        <div class="k">${stats.selected || 0}</div><div class="l">已选定镜头</div></div>
     </div>
     <div class="card">
       <div class="toolbar">
@@ -1563,7 +1613,8 @@ async function viewAssets() {
   try {
     const projs = await api("/api/dramas");
     ASSET.projects = projs;
-    await fetchAssets(false);
+    ASSET.page = 1;
+    await fetchAssets();
   } catch (e) {
     return setMain({ title: "资产库", body: `<div class="card empty">资产加载失败：${esc(e.message)}
       <div style="margin-top:12px"><button class="btn" onclick="viewAssets()">重试</button></div></div>` });

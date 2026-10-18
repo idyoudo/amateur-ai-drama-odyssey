@@ -240,6 +240,14 @@ d = r.json()
 check("资产库 200", r.status_code == 200 and d["character_total"] > 0 and d["shot_total"] > 0)
 check("资产库统计", d["stats"]["generated"] > 0)
 check("资产库分页", len(d["shots"]) <= 5)
+_base_stats = d["stats"]
+r = client.get("/api/assets?status=__generated&limit=5", headers=H)
+d = r.json()
+check("资产已生成筛选", d["shot_total"] > 0
+      and all(s["status"] in ("已生成", "已选定") for s in d["shots"]))
+check("资产统计不随状态变", d["stats"]["shots"] == _base_stats["shots"])
+r = client.get("/api/assets?limit=2&offset=2", headers=H)
+check("资产 offset 分页", len(r.json()["shots"]) == 2)
 cid, sid = d["characters"][0]["id"], d["shots"][0]["id"]
 _p2chars = client.get("/api/dramas/%d/characters" % p2, headers=H).json()
 if _p2chars:
