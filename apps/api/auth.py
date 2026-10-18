@@ -3,9 +3,27 @@ import base64
 import hashlib
 import hmac
 import json
+import secrets
 import time
 
 TOKEN_TTL = 86400  # 24 小时
+
+
+def hash_password(password, salt=None):
+    salt = salt or secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", str(password).encode(), salt.encode(), 120000)
+    return "pbkdf2$%s$%s" % (salt, base64.b64encode(dk).decode())
+
+
+def verify_password(password, stored):
+    try:
+        algo, salt, digest = str(stored).split("$", 2)
+    except ValueError:
+        return False
+    if algo != "pbkdf2":
+        return False
+    dk = hashlib.pbkdf2_hmac("sha256", str(password).encode(), salt.encode(), 120000)
+    return hmac.compare_digest(base64.b64encode(dk).decode(), digest)
 
 
 def sign_token(username, secret):

@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -70,6 +70,38 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 
+ROLES = {"admin": "管理员", "producer": "制片", "director": "导演",
+         "writer": "编剧", "editor": "剪辑", "qc": "QC", "legal": "法务"}
+ROLE_WRITE = {"admin", "producer", "director", "writer", "editor", "qc"}
+
+
+def _bootstrap_admin():
+    if not ADMIN_PASSWORD:
+        return
+    with Session() as s:
+        existing = s.scalars(select(jobs_db.User).where(
+            jobs_db.User.username == ADMIN_USERNAME)).first()
+        if existing:
+            return
+        s.add(jobs_db.User(username=ADMIN_USERNAME,
+                           password_hash=auth.hash_password(ADMIN_PASSWORD),
+                           role="admin", active=True))
+        s.commit()
+
+
+_bootstrap_admin()
+
+
+def _role_for(username):
+    with Session() as s:
+        u = s.scalars(select(jobs_db.User).where(
+            jobs_db.User.username == username)).first()
+    if u is not None:
+        return u.role if u.active else None
+    if username == ADMIN_USERNAME:
+        return "admin"
+    return None
+
 
 @app.middleware("http")
 async def static_cache_middleware(request, call_next):
@@ -91,8 +123,22 @@ async def auth_middleware(request, call_next):
     if path.startswith("/api/") and path != "/api/auth/login":
         token = request.headers.get("authorization", "")
         token = token[7:] if token.startswith("Bearer ") else ""
-        if not auth.verify_token(token, SECRET_KEY):
+        username = auth.verify_token(token, SECRET_KEY)
+        if not username:
             return JSONResponse({"detail": "未登录或登录已过期"}, status_code=401)
+        role = _role_for(username)
+        if not role:
+            return JSONResponse({"detail": "账号不存在或已停用"}, status_code=401)
+        request.state.username = username
+        request.state.role = role
+        method = request.method.upper()
+        if method in ("POST", "PUT", "PATCH", "DELETE"):
+            if role not in ROLE_WRITE:
+                return JSONResponse({"detail": "当前角色无写入权限"}, status_code=403)
+            if path.startswith("/api/team") and role != "admin":
+                return JSONResponse({"detail": "仅管理员可管理团队"}, status_code=403)
+            if path == "/api/models/config" and role != "admin":
+                return JSONResponse({"detail": "仅管理员可修改模型配置"}, status_code=403)
     return await call_next(request)
 
 
@@ -178,9 +224,117 @@ class LoginBody(BaseModel):
 
 @app.post("/api/auth/login")
 def login(body: LoginBody):
-    if not auth.check_credentials(body.username, body.password, ADMIN_USERNAME, ADMIN_PASSWORD):
+    with Session() as s:
+        u = s.scalars(select(jobs_db.User).where(
+            jobs_db.User.username == body.username)).first()
+    if u is not None:
+        if u.active and auth.verify_password(body.password, u.password_hash):
+            return {"token": auth.sign_token(u.username, SECRET_KEY),
+                    "username": u.username, "role": u.role,
+                    "role_label": ROLES.get(u.role, u.role)}
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    return {"token": auth.sign_token(body.username, SECRET_KEY), "username": ADMIN_USERNAME}
+    if auth.check_credentials(body.username, body.password, ADMIN_USERNAME, ADMIN_PASSWORD):
+        return {"token": auth.sign_token(ADMIN_USERNAME, SECRET_KEY),
+                "username": ADMIN_USERNAME, "role": "admin", "role_label": "管理员"}
+    raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request):
+    role = getattr(request.state, "role", "")
+    return {"username": getattr(request.state, "username", ""), "role": role,
+            "role_label": ROLES.get(role, role)}
+
+
+def _require_admin(request):
+    if getattr(request.state, "role", "") != "admin":
+        raise HTTPException(status_code=403, detail="仅管理员可执行此操作")
+
+
+def _user_json(u):
+    return {"id": u.id, "username": u.username, "role": u.role,
+            "role_label": ROLES.get(u.role, u.role), "active": bool(u.active),
+            "created_at": u.created_at.isoformat() if u.created_at else ""}
+
+
+def _active_admin_count(s):
+    return s.query(jobs_db.User).filter(jobs_db.User.role == "admin",
+                                        jobs_db.User.active.is_(True)).count()
+
+
+@app.get("/api/team")
+def list_team():
+    with Session() as s:
+        users = s.scalars(select(jobs_db.User).order_by(jobs_db.User.id)).all()
+    return {"items": [_user_json(u) for u in users], "roles": ROLES}
+
+
+@app.post("/api/team")
+def create_member(body: dict, request: Request):
+    _require_admin(request)
+    username = str(body.get("username") or "").strip()
+    password = str(body.get("password") or "")
+    role = str(body.get("role") or "writer")
+    if len(username) < 3:
+        raise HTTPException(status_code=422, detail="用户名至少 3 个字符")
+    if len(password) < 6:
+        raise HTTPException(status_code=422, detail="密码至少 6 个字符")
+    if role not in ROLES:
+        raise HTTPException(status_code=422, detail="角色非法")
+    with Session() as s:
+        existing = s.scalars(select(jobs_db.User).where(
+            jobs_db.User.username == username)).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="用户名已存在")
+        u = jobs_db.User(username=username, password_hash=auth.hash_password(password),
+                         role=role, active=True)
+        s.add(u)
+        s.commit()
+        return _user_json(u)
+
+
+@app.patch("/api/team/{user_id}")
+def update_member(user_id: int, body: dict, request: Request):
+    _require_admin(request)
+    with Session() as s:
+        u = s.get(jobs_db.User, user_id)
+        if u is None:
+            raise HTTPException(status_code=404, detail="成员不存在")
+        current = getattr(request.state, "username", "")
+        new_role = str(body.get("role") or u.role)
+        if new_role not in ROLES:
+            raise HTTPException(status_code=422, detail="角色非法")
+        new_active = bool(body.get("active", u.active))
+        if u.username == current and (not new_active or new_role != "admin"):
+            raise HTTPException(status_code=409, detail="不能停用或降级当前登录账户")
+        if u.role == "admin" and (new_role != "admin" or not new_active):
+            if _active_admin_count(s) <= 1:
+                raise HTTPException(status_code=409, detail="必须保留至少一名启用中的管理员")
+        u.role = new_role
+        u.active = new_active
+        if body.get("password"):
+            password = str(body.get("password"))
+            if len(password) < 6:
+                raise HTTPException(status_code=422, detail="密码至少 6 个字符")
+            u.password_hash = auth.hash_password(password)
+        s.commit()
+        return _user_json(u)
+
+
+@app.delete("/api/team/{user_id}")
+def delete_member(user_id: int, request: Request):
+    _require_admin(request)
+    with Session() as s:
+        u = s.get(jobs_db.User, user_id)
+        if u is None:
+            raise HTTPException(status_code=404, detail="成员不存在")
+        if u.username == getattr(request.state, "username", ""):
+            raise HTTPException(status_code=409, detail="不能删除当前登录账户")
+        if u.role == "admin" and _active_admin_count(s) <= 1:
+            raise HTTPException(status_code=409, detail="必须保留至少一名启用中的管理员")
+        s.delete(u)
+        s.commit()
+    return {"deleted": True, "id": user_id}
 
 
 @app.get("/health")

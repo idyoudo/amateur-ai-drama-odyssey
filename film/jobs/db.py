@@ -245,6 +245,19 @@ class Settlement(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class User(Base):
+    """平台用户与角色（多用户登录、权限控制）。"""
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), default="writer")
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Template(Base):
     """模板/提示词库：分镜、运镜、风格、对白等可复用模板。"""
     __tablename__ = "templates"

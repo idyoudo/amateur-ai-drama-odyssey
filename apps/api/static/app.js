@@ -175,7 +175,7 @@ const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
   ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["jobs","任务","list"]]],
-  ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
+  ["系统", [["team","团队","users"],["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
   document.body.innerHTML = `<aside class="sidebar" id="sidebar">
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "team", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -305,6 +305,7 @@ async function routeView(name, param) {
   if (name === "reviews") return viewReviews();
   if (name === "settlements") return viewSettlements();
   if (name === "jobs") return viewJobs();
+  if (name === "team") return viewTeam();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
@@ -2375,6 +2376,102 @@ function deleteSettlement(id) {
   }, "确认删除");
 }
 
+/* ---------- 团队与角色 ---------- */
+const TEAM = { items: [], roles: {}, me: {} };
+async function viewTeam() {
+  try {
+    const [d, me] = await Promise.all([api("/api/team"), api("/api/auth/me")]);
+    TEAM.items = d.items || [];
+    TEAM.roles = d.roles || {};
+    TEAM.me = me || {};
+  } catch (e) {
+    return setMain({ title: "团队", body: `<div class="card empty">团队数据加载失败：${esc(e.message)}</div>` });
+  }
+  renderTeam();
+}
+function renderTeam() {
+  const isAdmin = TEAM.me.role === "admin";
+  const roleOpts = Object.entries(TEAM.roles).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("");
+  setMain({
+    title: "团队",
+    top: `<div class="right"><span class="pill">${esc(TEAM.me.role_label || TEAM.me.role || "")}</span></div>`,
+    body: `
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="k">${TEAM.items.length}</div><div class="l">成员</div></div>
+      <div class="stat"><div class="k">${TEAM.items.filter(u => u.active).length}</div><div class="l">启用中</div></div>
+      <div class="stat"><div class="k">${TEAM.items.filter(u => u.role === "admin").length}</div><div class="l">管理员</div></div>
+      <div class="stat"><div class="k">${TEAM.items.filter(u => !u.active).length}</div><div class="l">已停用</div></div>
+    </div>
+    ${isAdmin ? `<div class="card"><div class="toolbar">
+      <input id="tm_user" placeholder="用户名">
+      <input id="tm_pass" type="password" placeholder="初始密码（≥6 位）">
+      <select id="tm_role">${roleOpts}</select>
+      <button class="btn" onclick="createMember()">添加成员</button>
+    </div></div>` : ""}
+    <div class="card table-scroll"><table>
+      <thead><tr><th>用户名</th><th>角色</th><th>状态</th><th>创建时间</th>${isAdmin ? "<th>操作</th>" : ""}</tr></thead>
+      <tbody>${TEAM.items.map(u => `<tr>
+        <td>${esc(u.username)}${u.username === TEAM.me.username ? ' <span class="muted">（我）</span>' : ""}</td>
+        <td><span class="pill ${u.role === "admin" ? "gold" : ""}">${esc(u.role_label)}</span></td>
+        <td><span class="pill ${u.active ? "ok" : ""}">${u.active ? "启用" : "停用"}</span></td>
+        <td>${esc(fmtDateTime(u.created_at))}</td>
+        ${isAdmin ? `<td><button class="btn ghost sm" onclick="editMember(${u.id})">编辑</button>
+          ${u.username === TEAM.me.username ? "" : `<button class="btn ghost sm" style="margin-left:4px" onclick="deleteMember(${u.id})">删除</button>`}</td>` : ""}
+      </tr>`).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无成员</td></tr>`}</tbody>
+    </table></div>
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">角色：管理员可管理团队与模型配置；法务只读；其余角色可执行制作类写入。</div>`,
+  }, true);
+}
+async function createMember() {
+  const username = (($("#tm_user") || {}).value || "").trim();
+  const password = ($("#tm_pass") || {}).value || "";
+  if (!username) return toast("填写用户名");
+  if (password.length < 6) return toast("密码至少 6 位");
+  try {
+    await api("/api/team", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, role: ($("#tm_role") || {}).value }) });
+    toast("已添加成员"); viewTeam();
+  } catch (e) { toast("添加失败：" + e.message); }
+}
+function editMember(id) {
+  const u = TEAM.items.find(x => x.id === id); if (!u) return;
+  const roleOpts = Object.entries(TEAM.roles).map(([k, v]) =>
+    `<option value="${esc(k)}" ${k === u.role ? "selected" : ""}>${esc(v)}</option>`).join("");
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "teammodal";
+  modal.innerHTML = `<div class="box" style="max-width:560px">
+    <div class="mhead"><h2>编辑成员 · ${esc(u.username)}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="stack">
+      <label class="fld"><small>角色</small><select id="me_role">${roleOpts}</select></label>
+      <label class="fld"><small>状态</small><select id="me_active">
+        <option value="true" ${u.active ? "selected" : ""}>启用</option>
+        <option value="false" ${!u.active ? "selected" : ""}>停用</option></select></label>
+      <label class="fld"><small>重置密码（留空不修改）</small><input id="me_pass" type="password" placeholder="≥6 位"></label>
+      <div class="form-actions"><button class="btn" onclick="saveMember(${u.id})">保存</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function saveMember(id) {
+  const body = { role: ($("#me_role") || {}).value,
+    active: ($("#me_active") || {}).value === "true" };
+  const pw = ($("#me_pass") || {}).value || "";
+  if (pw) body.password = pw;
+  try {
+    await api("/api/team/" + id, { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    toast("已保存"); closeModal(); viewTeam();
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+function deleteMember(id) {
+  const u = TEAM.items.find(x => x.id === id); if (!u) return;
+  confirmDialog("删除成员？", `将删除成员「${u.username}」，不可恢复。`, async () => {
+    try { await api("/api/team/" + id, { method: "DELETE" }); toast("已删除"); viewTeam(); }
+    catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
+}
+
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */
 const JOB_STATUS_COLOR = { queued: "muted", running: "gold", completed: "ok", failed: "bad", waiting_human: "gold", retry_exhausted: "bad", cancelled: "muted" };
 const JOB_STATUS_LABEL = { queued: "排队中", running: "运行中", completed: "已完成", failed: "失败", waiting_human: "待人工", retry_exhausted: "重试耗尽", cancelled: "已取消" };
@@ -2573,12 +2670,14 @@ async function viewModels() {
 }
 
 /* ---------- 设置 ---------- */
-function viewSettings() {
+async function viewSettings() {
+  let me = {};
+  try { me = await api("/api/auth/me"); } catch (e) {}
   setMain({
     title: "设置",
     top: `<div class="right"></div>`,
     body: `<div class="card"><div class="kv">
-        <div class="k">登录账户</div><div>admin</div>
+        <div class="k">登录账户</div><div>${esc(me.username || "admin")}${me.role_label ? " · " + esc(me.role_label) : ""}</div>
         <div class="k">API 文档</div><div><a href="/docs" target="_blank">/docs</a></div>
         <div class="k">健康检查</div><div><a href="/health" target="_blank">/health</a></div>
       </div><div style="margin-top:18px"><button class="btn ghost" onclick="toggleTheme()">切换深色 / 浅色</button>

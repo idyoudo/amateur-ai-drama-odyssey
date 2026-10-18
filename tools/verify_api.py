@@ -529,6 +529,37 @@ d = r.json()
 check("通知 200", r.status_code == 200)
 check("通知含 items/count", "items" in d and "count" in d)
 
+# 团队与角色权限
+r = client.get("/api/auth/me", headers=H)
+check("管理员身份", r.status_code == 200 and r.json()["role"] == "admin")
+r = client.post("/api/team", headers=H,
+                json={"username": "writer1", "password": "secret1", "role": "writer"})
+wid = r.json().get("id")
+check("创建成员", r.status_code == 200 and r.json()["role"] == "writer")
+r = client.post("/api/team", headers=H,
+                json={"username": "legal1", "password": "secret1", "role": "legal"})
+lid = r.json().get("id")
+check("创建法务成员", r.status_code == 200)
+r = client.post("/api/auth/login", json={"username": "writer1", "password": "secret1"})
+check("成员登录", r.status_code == 200 and r.json()["role"] == "writer")
+WH = {"Authorization": "Bearer " + r.json()["token"]}
+r = client.post("/api/dramas", headers=WH,
+                json={"title": "编剧项目", "logline": "编剧可写", "platform": "p",
+                      "rating": "全龄", "genre": "悬疑"})
+check("编剧可写", r.status_code == 200)
+r = client.post("/api/team", headers=WH,
+                json={"username": "x2", "password": "secret1", "role": "writer"})
+check("非管理员不能管理团队", r.status_code == 403)
+r = client.post("/api/auth/login", json={"username": "legal1", "password": "secret1"})
+LH = {"Authorization": "Bearer " + r.json()["token"]}
+check("法务可读", client.get("/api/dramas", headers=LH).status_code == 200)
+r = client.post("/api/dramas", headers=LH,
+                json={"title": "法务项目", "logline": "法务不可写", "platform": "p",
+                      "rating": "全龄", "genre": "悬疑"})
+check("法务只读", r.status_code == 403)
+check("删除成员", client.delete("/api/team/%d" % wid, headers=H).status_code == 200)
+check("删除法务", client.delete("/api/team/%d" % lid, headers=H).status_code == 200)
+
 total = _total[0]
 passed = total - len(_failed)
 print(json.dumps({"module": "apps-api-smoke", "total": total, "pass": passed, "fail": len(_failed)}, ensure_ascii=False))
