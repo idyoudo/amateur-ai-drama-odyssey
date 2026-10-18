@@ -647,6 +647,57 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .help-page .help-nav{max-height:none}
 .help-page .help-content{max-height:none;overflow:visible;min-height:520px}
 
+/* G6：短剧制作课程 */
+.course-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;
+  border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:10px;
+  padding:16px 20px;margin-bottom:14px}
+.course-banner b{font-size:var(--fs-table);color:var(--ink)}
+.course-banner p{margin:4px 0 0;font-size:var(--fs-sm);color:var(--dim);line-height:1.6}
+.course-banner .btn{flex:none}
+@media (max-width:720px){.course-banner{flex-direction:column;align-items:flex-start}}
+.course-page .help-nav{padding:18px 12px}
+.course-page .help-item{padding:9px 11px;line-height:1.45;white-space:normal}
+.course-page .help-item b{display:inline-block;min-width:24px;color:var(--dim-2);font-weight:600;font-variant-numeric:tabular-nums}
+.course-page .help-content{padding:30px 34px 40px}
+.course-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:var(--fs-meta);color:var(--dim-2);margin:-6px 0 26px}
+.course-meta .dot{opacity:.6}
+.course-body{max-width:820px}
+.course-sec{margin:0 0 38px}
+.course-sec:last-child{margin-bottom:8px}
+.course-sec h3{font-family:var(--serif);font-size:var(--fs-h3);font-weight:400;letter-spacing:-.01em;color:var(--ink);margin:0 0 10px}
+.course-sec p{font-size:var(--fs-table);line-height:1.95;color:var(--ink-2);margin:0 0 12px}
+.course-sec ul,.course-sec ol{padding-left:20px;margin:0 0 14px;color:var(--ink-2);font-size:var(--fs-table);line-height:1.95}
+.course-sec li{margin-bottom:7px}
+.course-sec li b,.course-sec p b{color:var(--ink);font-weight:600}
+.course-sec .compare-table{min-width:560px}
+.course-sec .compare-table th,.course-sec .compare-table td{white-space:normal;vertical-align:top;line-height:1.7}
+.course-sec .table-scroll{overflow-x:auto;margin:14px 0 18px}
+.course-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0 8px}
+.course-kpi{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:var(--surface-2)}
+.course-kpi b{display:block;font-size:var(--fs-table);color:var(--ink);margin-bottom:6px}
+.course-kpi p{font-size:var(--fs-sm);line-height:1.8;color:var(--dim);margin:0}
+.course-note{border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:var(--accent-soft);
+  padding:13px 17px;margin:16px 0;font-size:var(--fs-sm);line-height:1.85;color:var(--ink-2)}
+.course-flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:16px 0 18px}
+.course-flow span{border:1px solid var(--line-strong);border-radius:999px;background:var(--surface-2);
+  padding:5px 11px;font-size:var(--fs-meta);color:var(--ink-2);white-space:nowrap}
+.course-flow i{color:var(--dim-2);font-style:normal;font-size:var(--fs-meta)}
+.course-nav{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:36px;
+  padding-top:18px;border-top:1px solid var(--line)}
+.course-nav .btn{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:860px){
+  .course-page .help-body{grid-template-columns:minmax(0,1fr)}
+  .course-page .help-nav{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:12px}
+  .course-page .help-item{flex:0 0 auto;max-width:78vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--surface-2)}
+  .course-page .help-item.on{background:var(--surface-3)}
+  .course-page .help-content{min-width:0}
+  .course-body{max-width:none;min-width:0}
+  .course-sec .table-scroll{min-width:0}
+  .course-page .help-content{padding:22px 18px 30px}
+  .course-nav{flex-direction:column;align-items:stretch}
+  .course-nav .btn{max-width:none}
+}
+
 /* G5：图像模型对比表 */
 .compare-table{min-width:980px}
 .compare-table th,.compare-table td{white-space:nowrap;padding:10px 12px}

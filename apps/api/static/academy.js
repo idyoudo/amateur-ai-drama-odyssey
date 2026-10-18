@@ -1,0 +1,870 @@
+/* AADO 短剧制作课程（右上角「课程」入口）
+   面向零基础学员，目标达到专业剪辑/制作水平。
+   所有标准值均可在 PRD/91 与 PRD/96 中回溯；经验值会明确标注。 */
+window.ACADEMY = {
+  title: "AI 短剧制作课程",
+  subtitle: "从零基础到专业编辑的完整知识体系",
+  chapters: [
+    {
+      id: "start",
+      eyebrow: "00 · ORIENTATION",
+      title: "课程导览：你要成为什么样的制作者",
+      lede: "这不是一份「按钮说明书」。学完之后，你应该能对一条镜头、一段声音、一次配乐做出专业判断，并说清楚判断的依据。",
+      html: `
+        <section class="course-sec">
+          <h3>三个能力层级</h3>
+          <div class="course-grid">
+            <div class="course-kpi"><b>操作员</b><p>知道按钮在哪，能按流程把片子跑出来。产出可用，但不知道为什么好、为什么坏。</p></div>
+            <div class="course-kpi"><b>编辑</b><p>能判断一条镜头能不能用、问题出在哪、怎么修；能按叙事节奏组织镜头与声音。这是本课程的主目标。</p></div>
+            <div class="course-kpi"><b>导演</b><p>在编辑能力之上，能预先设计镜头与声音，让每个技术选择服务于故事。这需要长期实践，课程给出路径。</p></div>
+          </div>
+        </section>
+
+        <section class="course-sec">
+          <h3>这门课怎么用</h3>
+          <p>每章采用同一结构：<b>概念 → 参数 → 判断标准 → 常见误区 → 练习</b>。建议顺序阅读，不要跳章。第 3–5 章建立画面判断，第 6–7 章建立表演与口型判断，第 8–10 章建立声音判断，第 11–13 章建立交付与选型判断。</p>
+          <table class="compare-table">
+            <thead><tr><th>阶段</th><th>章节</th><th>学完能做到</th></tr></thead>
+            <tbody>
+              <tr><td>建立全局观</td><td>1–2</td><td>说清一条 AI 短剧流水线有哪些环节、每个环节的产出物与验收标准</td></tr>
+              <tr><td>画面能力</td><td>3–5</td><td>写得出可执行的镜头提示词，选得出可用镜头，看得出画面问题</td></tr>
+              <tr><td>声音能力</td><td>6–10</td><td>设计四层声音、组织配乐 Cue、完成混音与响度交付</td></tr>
+              <tr><td>交付与选型</td><td>11–13</td><td>做母版 QC、按场景选模型、搭出自己的供应商组合</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>两类数字，别混用</h3>
+          <p><b>标准值</b>来自规范或平台硬要求，例如归档母版 −23.0 LUFS、真峰值 ≤ −1 dBTP、音画偏移 +90/−185 ms。它们不能凭感觉改。<b>经验值</b>来自实践，例如「每场 1–3 镜」「候选出 4 条」。它们可以按项目调整，课程会明确标注。</p>
+          <div class="course-note">学习建议：准备一个练习项目，每读完一章就回到项目里找一个对应环节动手。看十遍不如改一条镜头。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>30 天学习路径（经验值）</h3>
+          <ol>
+            <li><b>第 1 周</b>：第 1–5 章。目标：独立完成一场 30 秒戏的分镜与 6 条镜头候选。</li>
+            <li><b>第 2 周</b>：第 6–7 章。目标：给这场戏配好对白与口型，能解释每一条为什么开/不开口型。</li>
+            <li><b>第 3 周</b>：第 8–10 章。目标：做出四层 stem，混音通过响度与可懂度检查。</li>
+            <li><b>第 4 周</b>：第 11–13 章。目标：导出母版与 QC 报告，写一份模型选型说明。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "pipeline",
+      eyebrow: "01 · THE PIPELINE",
+      title: "全局图：一条 AI 短剧是怎么生产出来的",
+      lede: "先看整条流水线，再学每个零件。否则你会把「工具」当成「工艺」。",
+      html: `
+        <section class="course-sec">
+          <h3>从小说到母版的十六个环节</h3>
+          <p>真人影视工业的分工，在 AI 流水线里依然成立，只是执行者从人变成了模型加人。AADO 把它压缩成 19 个模块，主干顺序是：</p>
+          <div class="course-flow">
+            <span>小说 / 创意</span><i>→</i><span>剧本</span><i>→</i><span>选角定妆</span><i>→</i><span>分镜</span><i>→</i><span>previz</span><i>→</i><span>镜头生成</span><i>→</i><span>一致性</span><i>→</i><span>配音</span><i>→</i><span>口型</span><i>→</i><span>声音设计</span><i>→</i><span>剪辑</span><i>→</i><span>调色母版</span><i>→</i><span>QC</span><i>→</i><span>交付</span><i>→</i><span>VFX</span><i>→</i><span>合规</span>
+          </div>
+          <p>注意两个容易被低估的环节：<b>previz</b>（预览片）决定你能不能低成本试错；<b>一致性</b>不是生成完再修，而是贯穿选角、分镜、生成、剪辑的连续约束。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>三条主线，而不是一条</h3>
+          <table class="compare-table">
+            <thead><tr><th>主线</th><th>包含环节</th><th>核心问题</th><th>失败的表现</th></tr></thead>
+            <tbody>
+              <tr><td><b>画面主线</b></td><td>定妆 → 分镜 → 生成 → 一致性 → 剪辑</td><td>观众是否相信这是同一个人、同一个世界</td><td>脸跳、服装跳、光跳、轴线乱</td></tr>
+              <tr><td><b>声音主线</b></td><td>配音 → 口型 → 音乐 / 音效 / 环境 → 混音</td><td>观众是否听得清、听得信、听得进情绪</td><td>对白糊、口型飘、切镜爆音、音乐抢戏</td></tr>
+              <tr><td><b>可审计主线</b></td><td>门禁 → 成本 → 存储血缘 → 合规</td><td>这条片子能不能被平台接收、被追溯、被复用</td><td>无署名、超预算、素材找不到来源、AI 标识缺失</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>质量优先级：先保什么</h3>
+          <p>当预算和时间有限时，专业制作者的取舍顺序通常是：<b>故事可懂 &gt; 人物一致 &gt; 表演可信 &gt; 声音清楚 &gt; 画质精致</b>。这不是审美排序，而是观众流失的先后顺序：故事看不懂，三秒就划走；脸不像同一个人，十秒出戏；声音听不清，三十秒放弃；画质差，观众反而更能忍。</p>
+          <div class="course-note">反直觉结论：把 1080P 降到 720P 省下的钱，投到角色一致性和配音上，成片观感通常更好。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>每个环节的产出物</h3>
+          <table class="compare-table">
+            <thead><tr><th>环节</th><th>产出物</th><th>交给谁</th></tr></thead>
+            <tbody>
+              <tr><td>剧本</td><td>场次表、对白、动作描述</td><td>分镜、配音</td></tr>
+              <tr><td>定妆</td><td>角色锚点图集、音色档案</td><td>生成、配音、一致性</td></tr>
+              <tr><td>分镜</td><td>镜头表（景别、时长、运镜、同框角色）</td><td>生成、剪辑、成本</td></tr>
+              <tr><td>镜头生成</td><td>候选视频、选中版本、生成参数</td><td>一致性、剪辑</td></tr>
+              <tr><td>配音</td><td>逐句音轨、时间码、情绪标记</td><td>口型、声音设计、字幕</td></tr>
+              <tr><td>声音设计</td><td>D/M/E/Amb 四路 stem</td><td>混音、交付</td></tr>
+              <tr><td>剪辑</td><td>锁定时间线、EDL/XML</td><td>母版、VFX</td></tr>
+              <tr><td>母版与 QC</td><td>母版文件、QC 报告、交付单</td><td>平台、归档</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>把一部你看过的短剧拆成 10 个镜头，写出每个镜头的景别、时长、是否对白、有没有音乐。</li>
+            <li>在这条流水线上标出：哪一步最花钱、哪一步最容易返工、哪一步最影响观众留存。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "shot",
+      eyebrow: "02 · SHOT LANGUAGE",
+      title: "镜头语言：观众没意识到、但一直在被引导的东西",
+      lede: "镜头不是「拍到了什么」，而是「让观众在这一秒看什么、怎么感受」。生成模型只执行参数，判断仍然在你。",
+      html: `
+        <section class="course-sec">
+          <h3>画幅：先决定观众在哪看</h3>
+          <p><b>2.39:1</b> 宽银幕，电影感强，适合大场面与双人对峙；<b>16:9</b> 平台横屏通用；<b>9:16</b> 竖屏短剧主战场，人脸占比大，构图必须重排，不能把横屏画面裁一刀了事。专业做法是生成 16:9 open gate 母版，再按画幅派生，避免为每个画幅重复生成。</p>
+          <div class="course-note">竖屏的第一原则：主体放中上部，给字幕和平台 UI 留出下方安全区。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>景别：信息量与情绪距离</h3>
+          <table class="compare-table">
+            <thead><tr><th>景别</th><th>画面范围</th><th>作用</th><th>常见误用</th></tr></thead>
+            <tbody>
+              <tr><td>大全景 ELS</td><td>环境为主，人很小</td><td>交代地点、规模、孤立感</td><td>连续使用导致节奏拖沓</td></tr>
+              <tr><td>全景 LS</td><td>人物全身</td><td>动作、走位、空间关系</td><td>看不清表情，却用来演情绪</td></tr>
+              <tr><td>中景 MS</td><td>腰部以上</td><td>对话主力景别</td><td>全片只用一个景别，像监控</td></tr>
+              <tr><td>中近景 MCU</td><td>胸部以上</td><td>对话 + 表情，短剧最常用</td><td>与中景混用导致跳切</td></tr>
+              <tr><td>近景 CU</td><td>头部</td><td>情绪、反应、口型</td><td>没有动机地频繁切</td></tr>
+              <tr><td>特写 ECU</td><td>眼睛、手、道具</td><td>强调关键信息</td><td>滥用会削弱强调效果</td></tr>
+            </tbody>
+          </table>
+          <p>景别变化的专业原则：<b>相邻镜头景别至少差一级</b>，否则观众会感到「跳了一下」。这就是 30 度规则的视觉版本。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>机位与角度</h3>
+          <ul>
+            <li><b>平视</b>：中性、客观，最不容易出错。</li>
+            <li><b>仰拍</b>：人物显强、显压迫；注意背景容易露出天花板。</li>
+            <li><b>俯拍</b>：人物显弱、显渺小；也用于交代空间。</li>
+            <li><b>荷兰角（倾斜）</b>：不安、失衡，慎用，一集一两次足够。</li>
+            <li><b>过肩镜 OTS</b>：对话标准解法，同时带到对方肩膀，建立空间关系。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>运镜：为什么要动</h3>
+          <p>推（dolly in）聚焦、拉（dolly out）抽离、摇（pan）扫视、移（track）跟随、升降（crane）改变视点。生成模型里的「运镜控制」不是装饰，它决定观众注意力的移动路径。<b>没有动机的运镜，比不动更糟</b>。</p>
+          <div class="course-note">生成视频的视角跨度超过 90° 时，角色一致性会显著下降；这不是模型缺陷，是训练数据里没见过的视角。跨轴镜头要靠参考图或首尾帧补。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>轴线：为什么两个人的位置不能乱</h3>
+          <p>两人对话时，摄影机和他们之间有一条假想连线，叫<b>轴线</b>。所有镜头都应在轴线同一侧拍摄，否则观众会觉得两人突然换了位置。这就是 180 度规则。</p>
+          <ul>
+            <li><b>正反打</b>：A 看画右、B 看画左，剪辑后视线相接。</li>
+            <li><b>越轴</b>：不是绝对不能，但必须用中性镜头、运动镜头或人物移动来过渡。</li>
+            <li><b>视线匹配</b>：看的方向与下一镜被看对象的方向要一致。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>剪辑节奏：ASL 与 J/L cut</h3>
+          <p><b>ASL（平均镜头长度）</b>是节奏的量化指标。短剧常用 2–4 秒；情绪段落可以拉到 6–8 秒，动作段落可以压到 1 秒以内。<b>J cut</b> 是下一镜的声音先进来，<b>L cut</b> 是上一镜的声音延续到下一镜；两者都能让剪辑更顺，避免「一段一段拼」的机械感。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>找一段 60 秒双人对话，画轴线图，标出有没有越轴。</li>
+            <li>统计它的 ASL；把其中三个镜头改写成与你原稿不同的景别，比较叙事差异。</li>
+            <li>用一句话说明每个运镜镜头的动机。说不出来，就删掉运镜。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "genvideo",
+      eyebrow: "03 · GENERATIVE VIDEO",
+      title: "生成视频：模型在做什么，参数在控制什么",
+      lede: "把生成模型当成一位执行能力很强、但不会读心的摄影师。你给的条件越确定，它越可靠。",
+      html: `
+        <section class="course-sec">
+          <h3>原理：从噪声到时空片段</h3>
+          <p>主流视频生成模型在「潜空间」里从随机噪声逐步去噪，生成一段连续的时空表示。它同时学习三件事：<b>外观</b>（长什么样）、<b>运动</b>（怎么动）、<b>物理</b>（东西怎么相互作用）。三者的学习难度不同，所以你会看到「画质很好但走路像滑行」「手一碰杯子就变形」之类的现象。</p>
+          <p>条件控制决定生成方向：文本（prompt）、首帧（image-to-video）、首尾帧、参考图/视频/音频（reference-to-video）、镜头运动参数。控制条件越强，自由度越低，但可复现性越高。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>三种模式，别用错</h3>
+          <table class="compare-table">
+            <thead><tr><th>模式</th><th>输入</th><th>适合</th><th>风险</th></tr></thead>
+            <tbody>
+              <tr><td><b>T2V 文生视频</b></td><td>文本</td><td>概念镜头、空镜、氛围</td><td>人物一致性最差</td></tr>
+              <tr><td><b>I2V 图生视频</b></td><td>首帧（可选尾帧）</td><td>已有定妆/关键帧的叙事镜头</td><td>首帧之外的动作不可控</td></tr>
+              <tr><td><b>R2V 参考生视频</b></td><td>多张参考图 / 参考视频 / 音频</td><td>角色一致性要求高的镜头</td><td>参考素材质量决定上限</td></tr>
+            </tbody>
+          </table>
+          <p>短剧主干应默认走 I2V 或 R2V：先用图像模型把角色、服装、场景固定下来，再让视频模型只负责「动起来」。这是把不确定性前置到可控环节。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>核心参数</h3>
+          <table class="compare-table">
+            <thead><tr><th>参数</th><th>控制什么</th><th>调法</th></tr></thead>
+            <tbody>
+              <tr><td>分辨率</td><td>细节与成本</td><td>抽卡用 480P/720P，定稿再上 1080P</td></tr>
+              <tr><td>时长</td><td>单镜信息量</td><td>短剧单镜 3–5 秒；30 秒长镜只在必要时用</td></tr>
+              <tr><td>帧率</td><td>运动流畅度</td><td>成片统一 24fps；生成帧率与时间线对齐</td></tr>
+              <tr><td>seed</td><td>随机种子</td><td>同场景复用稳定色调；跨视角不依赖 seed</td></tr>
+              <tr><td>运动强度</td><td>动作幅度</td><td>过高会形变，过低像PPT；先中档再微调</td></tr>
+              <tr><td>参考素材</td><td>身份与风格</td><td>锚点图越多越稳，但超过模型上限会互相干扰</td></tr>
+              <tr><td>原生音频</td><td>现场声</td><td>只当氛围参考，不替代配音与音效</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>提示词：确定性编译，而不是文学创作</h3>
+          <p>专业流水线里，提示词不是手写散文，而是从镜头契约字段<b>确定性编译</b>出来的：主体、动作、环境、景别、机位、运镜、光线、风格、约束。同一组字段必须产出字节级一致的提示词，否则无法复现、无法追责。</p>
+          <ol>
+            <li><b>身份锁放最前面</b>：角色名 + 锚点特征。放末尾会被服装/场景描述冲掉。</li>
+            <li><b>一个镜头一个动作</b>：不要在一句里塞三个动作。</li>
+            <li><b>写可见的东西</b>：「她很难过」不可见，「她低头、肩膀塌下、眼眶发红」可见。</li>
+            <li><b>负向约束</b>：不要出现文字、不要换脸、不要额外人物。用模型支持的负向词或参数表达。</li>
+          </ol>
+          <div class="course-note">判断提示词好坏的标准不是「读起来美」，而是「换一个人照着写，能否得到同一条镜头」。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>失败模式与诊断</h3>
+          <table class="compare-table">
+            <thead><tr><th>现象</th><th>常见原因</th><th>对策</th></tr></thead>
+            <tbody>
+              <tr><td>人物脸漂移</td><td>参考不足、视角跨度过大、动作太复杂</td><td>加锚点图、缩短镜头、减少动作</td></tr>
+              <tr><td>闪烁 / 抖动</td><td>纹理过细、运动强度过高</td><td>降运动强度、换 seed、提高分辨率</td></tr>
+              <tr><td>手部 / 物体形变</td><td>遮挡、快速运动、训练数据不足</td><td>改构图避开手部特写，或换镜头设计</td></tr>
+              <tr><td>物理错误</td><td>碰撞、负重、液体</td><td>拆分动作，用剪辑掩盖，或走 VFX 修复</td></tr>
+              <tr><td>文字乱码</td><td>画面里出现招牌、屏幕、字幕</td><td>后期替换屏幕内容，或避免生成文字</td></tr>
+              <tr><td>色彩跳变</td><td>跨镜生成参数不一致</td><td>同场景固定 seed、参考图与色彩描述</td></tr>
+              <tr><td>口型不对</td><td>原生音频与台词无关</td><td>后期口型环节修复，不指望生成模型</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>速度档：Prime 与标准版</h3>
+          <p>同一代模型常有「标准版」与「高速版」。高速版保持能力集不变，用更高单价换更短等待，官方定价约高 40%–50%。它适合有人等着看结果的场景（关键镜、客户审片），不适合夜间批量渲染。判断公式：<b>每条节省的时间 × 你每分钟的时间价值 &gt; 每条溢价</b>。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>用同一组提示词生成同一镜头三次，只改 seed，观察哪些元素稳定、哪些漂移。</li>
+            <li>把一个含三个动作的提示词拆成三个镜头，比较成片可看率。</li>
+            <li>为一条失败镜头写出诊断：现象、原因、下一步动作。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "storyboard",
+      eyebrow: "04 · STORYBOARD",
+      title: "从剧本到镜头：分镜是成本控制的第一道闸",
+      lede: "分镜不是画得好看，而是把「要拍什么」变成「能生成什么」的可执行清单。",
+      html: `
+        <section class="course-sec">
+          <h3>场次、镜头、镜次</h3>
+          <p><b>场（scene）</b>是连续时空单位；<b>镜头（shot）</b>是一次不间断的画面；<b>镜次（take）</b>是同一镜头的第几次生成。短剧一集 30 分钟，通常 150–250 个镜头（经验值）。分镜阶段每场先派生 1–3 镜，不要一次铺满，否则返工成本会失控。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>镜头表的必备字段</h3>
+          <table class="compare-table">
+            <thead><tr><th>字段</th><th>为什么必须</th></tr></thead>
+            <tbody>
+              <tr><td>场次 / 镜号</td><td>全流程唯一引用，返工与审计的锚点</td></tr>
+              <tr><td>景别 / 机位 / 运镜</td><td>决定构图与生成参数</td></tr>
+              <tr><td>时长</td><td>对齐配音；决定成本（按秒计费）</td></tr>
+              <tr><td>同框角色</td><td>硬上限 3；超过就拆镜</td></tr>
+              <tr><td>动作 / 情绪</td><td>提示词与表演的依据</td></tr>
+              <tr><td>是否对白</td><td>决定是否走 TTS、口型、字幕</td></tr>
+              <tr><td>场景 / 时间 / 天气</td><td>连续性检查</td></tr>
+              <tr><td>参考素材</td><td>一致性命门</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>抽卡：把随机性当预算来管理</h3>
+          <p>生成视频本质是采样。专业流程不是「一次生成到满意」，而是<b>固定候选数、固定评审标准、固定淘汰规则</b>。常见做法是每镜 4 条候选（经验值），先看可用性，再看表演，最后看构图。</p>
+          <ol>
+            <li><b>可用性</b>：有没有形变、闪烁、穿帮。不可用直接淘汰，不进入审美比较。</li>
+            <li><b>一致性</b>：脸、服装、发型是否与锚点一致。</li>
+            <li><b>表演</b>：动作是否可信、情绪是否到位。</li>
+            <li><b>构图与光线</b>：是否符合分镜意图。</li>
+            <li><b>可剪性</b>：入点出点是否留有余量，能否与前后镜衔接。</li>
+          </ol>
+          <div class="course-note">候选不覆盖已选定版本。选定后再生成，应另开版本，保留可回溯的记录。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>连续性检查清单</h3>
+          <ul>
+            <li>屏幕方向：上一镜左出，下一镜应右入。</li>
+            <li>视线：看的方向与被看对象的位置一致。</li>
+            <li>道具：杯子、手机、伤口的位置与状态连续。</li>
+            <li>服装：领口、袖口、扣子、污渍连续。</li>
+            <li>光线：主光方向、色温、强弱连续。</li>
+            <li>时间与天气：白天/夜晚、雨/晴不能跳。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>previz：先做便宜的版本</h3>
+          <p>在正式生成前，用低分辨率、低帧率、甚至静态图加运镜做出 animatic。它的作用不是好看，而是验证三件事：<b>时长对不对、节奏顺不顺、镜头够不够</b>。previz 阶段改一个镜头几乎零成本，成片阶段改一个镜头可能要重跑配音、口型、混音。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>把一场 2 页剧本拆成镜头表，标出每个镜头的景别、时长、是否对白。</li>
+            <li>用 4 条候选的规则，为其中一镜写评审记录：淘汰理由、选中理由。</li>
+            <li>找出你镜头表里「说不清为什么要存在」的镜头，删掉它，看叙事是否受损。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "voice",
+      eyebrow: "05 · VOICE & PERFORMANCE",
+      title: "配音与表演：声音是角色的第二张脸",
+      lede: "观众能容忍画面差一点，但很难容忍声音不像这个人。配音不是「把字读出来」，是表演。",
+      html: `
+        <section class="course-sec">
+          <h3>声音的五个可调维度</h3>
+          <table class="compare-table">
+            <thead><tr><th>维度</th><th>是什么</th><th>怎么影响表演</th></tr></thead>
+            <tbody>
+              <tr><td>音高（pitch）</td><td>声音高低</td><td>紧张时升高，压低声线显威胁或疲惫</td></tr>
+              <tr><td>音色（timbre）</td><td>声音的「质地」</td><td>决定年龄感、健康感、地域感</td></tr>
+              <tr><td>语速（rate）</td><td>单位时间字数</td><td>加快显急躁，放慢显沉重或强调</td></tr>
+              <tr><td>停顿（pause）</td><td>句间/句内静默</td><td>停顿位置比音量更能表达潜台词</td></tr>
+              <tr><td>重音（stress）</td><td>强调哪个词</td><td>同一句台词，重音不同，意思完全不同</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>TTS 的三种用法</h3>
+          <ol>
+            <li><b>预置音色</b>：开箱即用，成本低，适合配角与群杂。</li>
+            <li><b>声音克隆</b>：用 8–20 秒干净参考音频复刻音色，适合主角与常驻角色。必须取得授权。</li>
+            <li><b>描述式合成</b>：用自然语言描述音色与风格，适合快速探索，但一致性较弱。</li>
+          </ol>
+          <p>连续剧的核心不是「哪个模型更像人」，而是<b>同一个角色跨集听起来是不是同一个人</b>。因此每个常驻角色都要有一份音色档案：音高、音色、语速、口音、情绪范围、授权参考片段。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>情绪控制：有默认值，也要有回退</h3>
+          <p>台词只标「愤怒」「悲伤」是不够的。专业做法是给每个角色设默认情绪与语速，未知情绪统一回落到 neutral，避免模型自由发挥导致跨镜不一致。情绪强度建议分级（1–5），并与配乐强度曲线同源，方便后期对齐。</p>
+          <div class="course-note">旁白是独立音轨，不是「没人要的对白」。它有自己的音色、电平与空间感，混音时单独处理。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>中文 TTS 的常见坑</h3>
+          <ul>
+            <li><b>多音字</b>：「行」「重」「长」在上下文里可能读错，需要人工复核或改写。</li>
+            <li><b>数字与单位</b>：「2026」「3.5 亿」的读法要显式指定。</li>
+            <li><b>专名</b>：人名、地名、品牌名要加发音词典。</li>
+            <li><b>气口</b>：长句需要手动插入停顿，否则听起来像背书。</li>
+            <li><b>情绪跳变</b>：相邻两句情绪差异过大时，中间要有停顿或呼吸。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>校验：机器报警，人来判断</h3>
+          <p>用 ASR 把生成音频转回文字，核对字词、说话人、语速与情绪标记。ASR 只能告诉你「可能错了」，不能判断「像不像这个人」。后者要靠相邻片段的 A/B 盲听。</p>
+          <p>技术指标上，角色间对白电平差应控制在 ≤1 dB，避免一个角色总是比另一个响。对白还要高于稳态掩蔽 ≥15 dB，这是可懂度的硬门槛。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>给同一句台词标三种重音位置，生成三条，比较意思变化。</li>
+            <li>为一个角色写音色档案，包含五个维度与一段参考音频描述。</li>
+            <li>用 ASR 复核一段 30 秒配音，找出至少两个需要人工修正的地方。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "lipsync",
+      eyebrow: "06 · LIP SYNC",
+      title: "口型同步：让嘴「看起来在说」",
+      lede: "口型不是画面生成的一部分，而是后期的一道修复工序。它的目标只有一个：让观众不注意到嘴。",
+      html: `
+        <section class="course-sec">
+          <h3>原理：音素到口型</h3>
+          <p>语音由音素组成，音素对应可见的嘴部形态，叫<b>视素（viseme）</b>。例如 /p/、/b/、/m/ 需要闭唇，/f/、/v/ 需要上齿碰下唇，/a/ 张嘴，/i/ 嘴角拉开。口型模型要做的是：从音轨推断每个时刻的视素，再把这组口型映射到画面里人物的嘴部。</p>
+          <p>难点不在「张嘴」，而在<b>协同发音</b>：连续说话时，一个音的口型会被前后音影响。好的模型会处理这种过渡，差的模型会让嘴像机械开合。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>三条技术路线</h3>
+          <table class="compare-table">
+            <thead><tr><th>路线</th><th>输入</th><th>输出</th><th>代表</th><th>适合</th></tr></thead>
+            <tbody>
+              <tr><td><b>修复型</b></td><td>已有视频 + 音轨</td><td>同一画面，只改嘴部</td><td>Sync.so、可灵 Lip Sync</td><td>已有生成镜头，保画面一致性</td></tr>
+              <tr><td><b>生成型</b></td><td>人物图 + 音轨</td><td>一段新的说话视频</td><td>HeyGen Avatar、Hedra、OmniHuman</td><td>数字人口播、单镜头表演</td></tr>
+              <tr><td><b>表演驱动</b></td><td>视频/图 + 驱动信号</td><td>表情、头部、嘴部一起变</td><td>Runway Act-Two</td><td>需要更强表演的镜头</td></tr>
+            </tbody>
+          </table>
+          <div class="course-note">已有镜头只能交给修复型。用生成型等于把画面重新生成一遍，跨镜一致性会断。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>什么时候开，什么时候不开</h3>
+          <p>口型单价通常是语音的 10–50 倍（经验值），因此必须按镜头条件开启：</p>
+          <ul>
+            <li><b>开</b>：近景/中近景、正脸或 3/4 侧脸、有对白、嘴部清晰可见。</li>
+            <li><b>不开</b>：全景、背影、侧脸超过 45°、嘴被遮挡、无对白、镜头运动过快。</li>
+            <li><b>降级</b>：口型失败时回退为「不做口型」，而不是重抽整条镜头。观众对「没做口型」的容忍度，高于对「口型错乱」的容忍度。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>同步标准</h3>
+          <p>行业参考是 ITU-R BT.1359-1：音频超前 +90 ms 到滞后 −185 ms 之间，观众一般不易察觉。工程目标通常更严，控制在 ≤±25 ms（约一帧）。广播与流媒体交付还要做同步检测，重点检查整体偏移与漂移。</p>
+          <table class="compare-table">
+            <thead><tr><th>指标</th><th>含义</th><th>怎么看</th></tr></thead>
+            <tbody>
+              <tr><td>整体偏移</td><td>音频整体早于或晚于画面</td><td>拍手、关门等瞬态声与画面帧对比</td></tr>
+              <tr><td>漂移</td><td>偏移随时间累积变大</td><td>片头片尾各测一次，差值即漂移</td></tr>
+              <tr><td>开口延迟</td><td>声音起播到嘴张开的时间差</td><td>逐镜抽检，记录异常镜头</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>失败与回退</h3>
+          <ul>
+            <li><b>嘴部模糊</b>：修复强度过高或分辨率不足。降低强度、提高输入分辨率。</li>
+            <li><b>牙齿/舌头异常</b>：模型对口腔内部建模不足。改构图，减少大张嘴特写。</li>
+            <li><b>头部抖动</b>：驱动信号过强。限制头部运动幅度。</li>
+            <li><b>表情僵死</b>：只改了嘴，没保留表演。修复型应尽量保留原始表情与眼神。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>取一条有对白的近景，分别做「不做口型」和「做口型」，让朋友盲看，记录他们的第一反应。</li>
+            <li>测一条镜头的开口延迟，判断它是否在 ±25 ms 内。</li>
+            <li>为一场戏列出哪些镜头开/不开口型，并写明理由。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "sound",
+      eyebrow: "07 · SOUND DESIGN",
+      title: "四层声音：对白、音乐、音效、环境",
+      lede: "成片的声音不是一条轨，而是四层独立生产、最后混合的结构。理解这一点，你就超过了大多数 AI 短剧团队。",
+      html: `
+        <section class="course-sec">
+          <h3>为什么必须分层</h3>
+          <p>四层分别是：<b>D 对白</b>（角色说的话）、<b>M 音乐</b>（配乐，角色听不到）、<b>E 音效</b>（脚步、开门、打斗等）、<b>Amb 环境</b>（房间底噪、街道、雨声）。分层的根本原因是它们<b>服务不同的目的、遵循不同的规则、需要独立修改</b>。</p>
+          <table class="compare-table">
+            <thead><tr><th>层</th><th>作用</th><th>关键规则</th><th>失败表现</th></tr></thead>
+            <tbody>
+              <tr><td>D 对白</td><td>推进叙事、传递信息</td><td>永远优先，高于掩蔽 ≥15 dB</td><td>听不清、串音、电平跳</td></tr>
+              <tr><td>M 音乐</td><td>情绪、节奏、暗示</td><td>按 Cue 写，禁止整集循环</td><td>抢戏、切镜重启、情绪错位</td></tr>
+              <tr><td>E 音效</td><td>动作可信、空间真实</td><td>对齐动作帧，误差 ≤1 帧</td><td>打斗像放气、脚步对不上</td></tr>
+              <tr><td>Amb 环境</td><td>空间连续、沉浸感</td><td>无缝循环，跨场景交叉淡化</td><td>切镜爆音、房间忽大忽小</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>Foley 与硬音效</h3>
+          <p><b>Foley（拟音）</b>是人工表演出来的日常声音：脚步、衣物摩擦、开门、持物、落座。它追求的是「与动作严丝合缝」，不是「真实录音」。<b>硬音效（hard effects）</b>是预先录制的具体声音：枪声、汽车、电话铃。两者不能混为一谈：Foley 靠表演，硬音效靠素材库。</p>
+          <div class="course-note">影视里的打斗声往往比真实更夸张。观众要的是「力感」，不是物理准确。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>环境床与房间声</h3>
+          <p>每个场景需要一条<b>环境床（ambience bed）</b>，铺满整场。它的循环点必须零爆音、零静音缝隙，跨场景切换要有交叉淡化。否则每次切镜，观众都会听到「房间换了」。</p>
+          <p><b>房间声（room tone）</b>是空间本身的底噪与早期反射。室内、室外、大空间的房间声完全不同。对白如果「贴脸干声」，会显得像在录音棚，不像在故事里。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>对白优先：可懂度是硬指标</h3>
+          <p>AES TD1009 的实践结论：语音需要高于稳态掩蔽 <b>≥15 dB</b> 才能全线索可闻；低到 −15 dB 时可懂度接近于零。这意味着音乐和音效必须为对白让路。</p>
+          <ul>
+            <li><b>Ducking（闪避）</b>：对白出现时，音乐自动降低 3–6 dB，对白结束再恢复。</li>
+            <li><b>EQ 让位</b>：在对白频段（大约 1–4 kHz）给音乐做轻微衰减。</li>
+            <li><b>动态控制</b>：压缩器不要压掉辅音，否则「s」「t」会消失。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>J/L cut 与音桥</h3>
+          <p>声音先于画面进入（J cut）或延续到下一镜（L cut），能让剪辑更顺滑。音桥是用一段连续的声音（雨声、音乐、脚步声）跨过镜头切换，把两个空间连起来。短剧节奏快，音桥是避免「一段一段拼」的关键手法。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>stem 与 5.1</h3>
+          <p>四路 stem 必须<b>逐帧等长</b>：同样起点、同样时长、样本级对齐。这样混音、返工、译制才能独立进行。5.1 交付时，中置与环绕各下混 −3 dB；<b>关键内容不得只放在 LFE</b>，因为 LFE 不参与下混，立体声观众会丢失信息。</p>
+          <p><b>M&amp;E（Music &amp; Effects）</b>是去掉对白的版本，用于译制与二次配音。它要求音乐与音效本身就是独立的，不能从混好的音轨里「抠」出来。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>找一段 30 秒成片，分别静音音乐、静音音效、静音环境，记录每次观感变化。</li>
+            <li>为一场室内戏列 Foley 清单：哪些动作需要拟音，哪些用硬音效。</li>
+            <li>做一条 10 秒环境床，检查循环点有没有咔哒声。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "music",
+      eyebrow: "08 · SCORE",
+      title: "配乐：Cue、动机与情绪曲线",
+      lede: "配乐不是「找一首好听的歌垫在下面」，而是按场次写出来的叙事结构。",
+      html: `
+        <section class="course-sec">
+          <h3>Cue：配乐的最小单位</h3>
+          <p>一条 <b>Cue</b> 是一段有明确入点、出点、情绪与强度的音乐。它可能 15 秒，也可能 2 分钟。专业配乐先做 <b>spotting</b>：和导演一起看片，标记「这里需要音乐」「这里需要停」「这里要打一个点」。短剧一集通常 6–10 条 Cue（经验值），而不是一首歌循环到底。</p>
+          <table class="compare-table">
+            <thead><tr><th>Cue 字段</th><th>含义</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td>入点 / 出点</td><td>时间码</td><td>01:02:14:08 → 01:02:48:00</td></tr>
+              <tr><td>情绪</td><td>主导感受</td><td>压抑 → 爆发</td></tr>
+              <tr><td>强度</td><td>1–5 级</td><td>2 → 5</td></tr>
+              <tr><td>处理</td><td>淡入淡出、stinger</td><td>2 秒淡入，结尾硬切</td></tr>
+              <tr><td>Hit point</td><td>必须对齐的画面点</td><td>耳光落下的那一帧</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>动机（Motif）：让音乐记得角色</h3>
+          <p><b>主导动机（leitmotif）</b>是给角色、关系或地点绑定的短旋律。它可以在不同场景里变形：大调变小调、快变慢、完整变碎片。观众未必意识到，但会建立「这个人来了」的直觉。短剧不需要复杂交响，三到五个动机就够撑起一季。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>情绪曲线：与表演同源</h3>
+          <p>配乐强度曲线应与表演情绪曲线同源对齐：同一场戏、同一套强度标尺。否则会出现「演员在哭，音乐在欢快」的错位。判断标准不是「好不好听」，而是<b>音乐是否在观众意识到之前，先一步推动了情绪</b>。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>Loop 与 Score 的区别</h3>
+          <p>Loop 是循环片段，Score 是为画面写的音乐。Loop 的问题是：观众会在 30 秒内听出重复，然后开始忽略它。专业做法是把 loop 当素材，做分层（节奏层、和声层、旋律层），按情绪强度增减，而不是整段循环。</p>
+          <div class="course-note">禁止整集单曲循环。这是 AI 短剧最容易被观众识破的「廉价感」来源之一。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>生成式、曲库、定制：三条路线</h3>
+          <table class="compare-table">
+            <thead><tr><th>路线</th><th>优点</th><th>缺点</th><th>适合</th></tr></thead>
+            <tbody>
+              <tr><td>生成式 AI</td><td>贴合叙事、可规模化、不重复</td><td>授权条款要逐家核；质量波动</td><td>量产短剧、需要情绪贴合</td></tr>
+              <tr><td>授权曲库</td><td>权利清晰、审核好过</td><td>重复、贴合度差、按项目付费</td><td>低预算、快速上线</td></tr>
+              <tr><td>定制作曲</td><td>最贴合、最可控</td><td>贵、慢</td><td>重点集、品牌项目</td></tr>
+            </tbody>
+          </table>
+          <p>商业平台常见的组合是：主干用生成式或曲库，重点段落用定制。无论哪条路线，都要记录<b>授权快照</b>：平台、档位、生成时间、条款版本、使用位置。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>为一场 60 秒戏画情绪曲线，标出 3 个 hit point。</li>
+            <li>用同一段画面配两条不同情绪的 Cue，比较叙事含义变化。</li>
+            <li>写一份 Cue 表，包含入出点、情绪、强度、处理方式。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "mix",
+      eyebrow: "09 · MIX & LOUDNESS",
+      title: "混音与响度：不是「调大一点」",
+      lede: "响度是交付标准，不是个人喜好。观众不会调音量，平台会按标准压缩你。",
+      html: `
+        <section class="course-sec">
+          <h3>响度、电平、峰值：三个不同的东西</h3>
+          <ul>
+            <li><b>电平（level）</b>：某一瞬间的信号强度，单位 dBFS。</li>
+            <li><b>响度（loudness）</b>：人耳感知的整体音量，按 ITU-R BS.1770 测量，单位 LUFS（等同 LKFS）。</li>
+            <li><b>真峰值（true peak）</b>：考虑数模转换后可能出现的峰值，单位 dBTP。</li>
+          </ul>
+          <p>把电平调高不等于响度变高：压缩动态可以短期提升响度，但会牺牲层次。专业混音追求的是「在标准响度下仍有动态」。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>交付标准</h3>
+          <table class="compare-table">
+            <thead><tr><th>版本</th><th>目标响度</th><th>真峰值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>归档母版</td><td>−23.0 LUFS（QC 容差 ±0.2 LU）</td><td>≤ −1 dBTP</td><td>EBU R 128，整节目测量，不按对白门控</td></tr>
+              <tr><td>广播版</td><td>−24 LKFS</td><td>&lt; −2 dBTP</td><td>按广播规范派生</td></tr>
+              <tr><td>流媒体版</td><td>−23 ~ −27 LKFS</td><td>按平台要求</td><td>由母版派生，不重新混音</td></tr>
+            </tbody>
+          </table>
+          <p>注意：平台会自己做响度归一化。你交付的版本如果过响，平台压下来后动态会更差；过轻则会被整体抬高，底噪暴露。所以按标准交付，不要「偷偷调大」。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>混音顺序</h3>
+          <ol>
+            <li><b>对白</b>：先保证每一句都清楚、电平一致（角色间 ≤1 dB）。</li>
+            <li><b>音效</b>：对齐动作，建立空间与力感。</li>
+            <li><b>环境</b>：铺满场景，填补静默，建立连续性。</li>
+            <li><b>音乐</b>：最后进，按对白让位，做 ducking。</li>
+            <li><b>总线处理</b>：整体压缩、限幅，检查真峰值。</li>
+          </ol>
+          <p>顺序不能反。先把音乐混得很满，再塞对白，最后只能靠压对白来让位，结果是「听得见但听不清」。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>监听环境</h3>
+          <p>AES TD1009 给出的参考：混音室约 76–78 dB SPL，家庭电视中位约 58 dB SPL，影院/回音壁约 65 dB SPL。这意味着你的混音在安静环境里好听，不代表观众在手机上听得好。专业做法是<b>至少用手机外放和耳机各听一遍</b>。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>用响度表测一段成片，记录 LUFS 与真峰值，判断是否达标。</li>
+            <li>把一段对白分别与「无音乐」「有音乐但无 ducking」「有 ducking」比较，记录可懂度。</li>
+            <li>用手机外放听你的混音，找出第一个听不清的词。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "master",
+      eyebrow: "10 · MASTER & QC",
+      title: "母版与 QC：让片子「能被平台接收」",
+      lede: "成片不是终点，合规母版才是。技术 QC 不过，内容再好也上不了线。",
+      html: `
+        <section class="course-sec">
+          <h3>唯一母版原则</h3>
+          <p>先生成一个 16:9 open gate 母版，再派生 2.39:1、9:16、平台版。不要为每个画幅重复生成：重复生成会导致人物、光线、色彩不一致，而且成本翻倍。派生关系要记录 parent_asset_id，形成血缘。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>技术规格</h3>
+          <table class="compare-table">
+            <thead><tr><th>项目</th><th>标准</th><th>为什么</th></tr></thead>
+            <tbody>
+              <tr><td>帧率</td><td>24fps，全片统一</td><td>电影感；混帧会导致抖动</td></tr>
+              <tr><td>色彩</td><td>Rec.709 SDR</td><td>平台兼容性最好</td></tr>
+              <tr><td>色彩一致性</td><td>镜头间 ΔE ≤3，肤色 ≤2</td><td>观众对肤色跳变最敏感</td></tr>
+              <tr><td>音频</td><td>24-bit / 48 kHz</td><td>影视交付标准</td></tr>
+              <tr><td>时间码</td><td>起点 01:00:00:00</td><td>行业惯例，便于回批</td></tr>
+              <tr><td>头尾黑场</td><td>≥1 帧且 ≤1 秒</td><td>平台与广播的技术要求</td></tr>
+              <tr><td>字幕</td><td>软字幕，母版禁硬字幕</td><td>便于多语言与平台处理</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>QC 清单</h3>
+          <ul>
+            <li>响度与真峰值：−23.0 LUFS ±0.2，≤ −1 dBTP。</li>
+            <li>四路 stem 逐帧等长，Σ 与母版差 ≤0.1 LU。</li>
+            <li>音画同步：整体偏移、漂移、开口延迟。</li>
+            <li>黑帧、闪帧、banding、爆音、相位问题。</li>
+            <li>字幕时长、行数、每行字数、安全区。</li>
+            <li>AI 标识：显式、隐式、导出文件三类齐备。</li>
+            <li>权利链与授权快照可追溯。</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>AI 标识与合规</h3>
+          <p>AI 生成内容需要三类标识：画面内显式标识、文件元数据隐式标识、交付文件中的说明。缺任何一类，平台都可能拒收。音乐与音效还要登记平台、档位、条款快照与使用位置，供权利链追溯。</p>
+          <div class="course-note">合规不是上线前补一张表，而是从第一次生成就开始记录。</div>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>按 QC 清单检查一条成片，写出通过项与不通过项。</li>
+            <li>用同一母版派生 2.39、16:9、9:16 三个版本，比较构图是否需要重排。</li>
+            <li>找一条硬字幕的片子，说明为什么母版不允许硬字幕。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "models",
+      eyebrow: "11 · MODEL SELECTION",
+      title: "模型选型：商业平台怎么做，你该怎么做",
+      lede: "选型的本质不是找「最强模型」，而是找「在你的预算、授权与交付约束下，最不容易失败的那一组」。",
+      html: `
+        <section class="course-sec">
+          <h3>六条选型准则</h3>
+          <ol>
+            <li><b>能力匹配</b>：先看能力矩阵（参考图、首尾帧、多镜头、运镜、原生音频、时间戳），参数缺失不得默认「支持」。</li>
+            <li><b>一致性</b>：角色跨镜/跨集是否稳定，比单帧画质更重要。</li>
+            <li><b>成本</b>：视频按秒、口型按条、TTS 按字符、音乐按分钟。先控视频与口型两个大头。</li>
+            <li><b>授权</b>：音乐与人脸/声音克隆优先确认商用档位，别等成片再换。</li>
+            <li><b>可复现</b>：同参数能否复现同结果；seed、版本、提示词是否可记录。</li>
+            <li><b>可达性</b>：网络、限流、排队、地域。生产环境优先稳定可达的端点。</li>
+          </ol>
+        </section>
+
+        <section class="course-sec">
+          <h3>按镜头路由，而不是全片一个模型</h3>
+          <table class="compare-table">
+            <thead><tr><th>镜头类型</th><th>路由策略</th><th>理由</th></tr></thead>
+            <tbody>
+              <tr><td>关键情绪镜</td><td>高质量档 + 更多候选</td><td>决定观众记忆点</td></tr>
+              <tr><td>过场 / 氛围镜</td><td>经济档 + 少量候选</td><td>可被剪辑弱化</td></tr>
+              <tr><td>动作 / 物理复杂</td><td>擅长大运动或物理的模型</td><td>避免形变</td></tr>
+              <tr><td>口播 / 数字人</td><td>生成型口型模型</td><td>不需要已有镜头</td></tr>
+              <tr><td>已有镜头修口型</td><td>修复型口型模型</td><td>保画面一致性</td></tr>
+            </tbody>
+          </table>
+          <p>每类至少一主一备。主用负责 80% 的稳定产出，备用负责故障切换与特殊镜头。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>商业平台的声音方案</h3>
+          <table class="compare-table">
+            <thead><tr><th>平台 / 方案</th><th>对白</th><th>音乐</th><th>音效</th><th>关键取舍</th></tr></thead>
+            <tbody>
+              <tr><td>Dashverse（Frameo.AI）</td><td>ElevenLabs v3</td><td>ElevenLabs Music</td><td>公开资料未单列</td><td>从曲库转向流程内生成，追求贴合与可扩展</td></tr>
+              <tr><td>腾讯云 AI 短漫剧</td><td>混元语音（多方言/复刻）</td><td>未点名</td><td>「语音与音效匹配」</td><td>全栈国产化、算法备案、IP 授权</td></tr>
+              <tr><td>国内通用工具链</td><td>CosyVoice、讯飞、阿里 TTS</td><td>Mureka、ACE-Step、曲库</td><td>素材库为主</td><td>成本优先，音效普遍是短板</td></tr>
+              <tr><td>海外通用工具链</td><td>ElevenLabs、Murf</td><td>Suno、Lyria、ElevenLabs Music</td><td>ElevenLabs SFX</td><td>质量优先，但要逐家核商用授权</td></tr>
+            </tbody>
+          </table>
+          <p>共同规律：<b>语音投入最大，音乐两条路线（生成或曲库），音效最容易被省略</b>。四层声音做完整的团队，在观感上会明显区别于「加 BGM」的团队。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>三套可落地的组合</h3>
+          <table class="compare-table">
+            <thead><tr><th>组合</th><th>文本</th><th>图像</th><th>视频</th><th>语音</th><th>音乐</th><th>口型</th></tr></thead>
+            <tbody>
+              <tr><td>成本 / 国内合规</td><td>DeepSeek V4-Pro</td><td>Seedream 5 Flash</td><td>Wan 3.0</td><td>Qwen TTS</td><td>ACE-Step 1.5</td><td>可灵 Avatar</td></tr>
+              <tr><td>质量优先（可出海）</td><td>GPT-6 Astra / Claude</td><td>Nano Banana 2.1 / GPT Image 2.5</td><td>Wan 3.0 / Seedance 2.5</td><td>Eleven v4</td><td>ElevenLabs Music / Mureka V9</td><td>Sync.so / HeyGen</td></tr>
+              <tr><td>开源自托管</td><td>Kimi K3</td><td>Qwen-Image 3</td><td>MiniMax H3</td><td>CosyVoice 3</td><td>ACE-Step 1.5</td><td>开源方案</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>订阅套餐的边界</h3>
+          <p>订阅制套餐（如 Token Plan）通常只允许在编程工具、智能体工具里交互使用，<b>禁止后端、脚本、批量调用</b>。流水线属于自动化调用，必须使用按量付费的 Key。把套餐额度当渲染预算，既不符合条款，也会在高峰期被限流。</p>
+        </section>
+
+        <section class="course-sec">
+          <h3>练习</h3>
+          <ol>
+            <li>为你的项目写一份选型说明：六类各选谁、为什么、备选是谁、切换条件是什么。</li>
+            <li>列出三项「如果预算砍半，先降哪类模型」的决策与理由。</li>
+            <li>核对一次音乐授权：平台、档位、是否允许影视商用、是否允许再分发。</li>
+          </ol>
+        </section>
+      `
+    },
+    {
+      id: "practice",
+      eyebrow: "12 · PRACTICE",
+      title: "从练习到专业：评审清单与常见误区",
+      lede: "专业不是知道更多名词，而是有一套稳定的判断顺序，并且在压力下仍然执行。",
+      html: `
+        <section class="course-sec">
+          <h3>四阶段练习计划</h3>
+          <table class="compare-table">
+            <thead><tr><th>阶段</th><th>任务</th><th>验收</th></tr></thead>
+            <tbody>
+              <tr><td>第 1 周 · 画面</td><td>30 秒戏，8 个镜头，含一次正反打</td><td>景别不跳、轴线不乱、人物一致</td></tr>
+              <tr><td>第 2 周 · 声音</td><td>同一场戏，配 TTS + 口型 + 四层声音</td><td>对白清楚、无爆音、口型只开该开的</td></tr>
+              <tr><td>第 3 周 · 混音</td><td>完成 Cue 表与混音，导出 stem</td><td>−23.0 LUFS ±0.2、≤−1 dBTP、stem 等长</td></tr>
+              <tr><td>第 4 周 · 交付</td><td>母版 QC、三画幅派生、交付单</td><td>QC 全项通过、AI 标识齐备</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>专业评审清单（每次交付前过一遍）</h3>
+          <ul>
+            <li><b>叙事</b>：每场戏的目标、冲突、结果是否清楚？有没有可以删的镜头？</li>
+            <li><b>画面</b>：景别是否有变化？轴线是否一致？人物脸/服装/光线是否连续？</li>
+            <li><b>表演</b>：情绪是否可信？有没有「念台词」感？口型是否只在必要镜头开？</li>
+            <li><b>声音</b>：每句对白是否清楚？音乐是否让位？切镜有没有爆音？环境是否连续？</li>
+            <li><b>技术</b>：响度、峰值、同步、色彩、字幕、AI 标识是否达标？</li>
+            <li><b>权利</b>：音乐、声音克隆、人脸、IP 的授权是否可追溯？</li>
+          </ul>
+        </section>
+
+        <section class="course-sec">
+          <h3>20 条常见误区</h3>
+          <ol>
+            <li>以为视频模型会自动生成配乐和音效。</li>
+            <li>把「有声音」当成「声音设计」。 </li>
+            <li>整集循环一首 BGM。</li>
+            <li>所有镜头都开高分辨率，抽卡也不降档。</li>
+            <li>所有镜头都开口型，预算失控。</li>
+            <li>用生成型口型去修已有镜头，画面被重生成。</li>
+            <li>提示词写得很文学，但不可执行、不可复现。</li>
+            <li>身份锁放在提示词末尾，被场景描述冲掉。</li>
+            <li>相邻镜头景别相同，产生跳切感。</li>
+            <li>越轴没有过渡镜头。</li>
+            <li>对白被音乐盖住，靠观众「猜」。 </li>
+            <li>环境床不循环，切镜时房间忽大忽小。</li>
+            <li>音效不对动作帧，打斗像放气。</li>
+            <li>把关键信息只放在 LFE，立体声观众听不到。</li>
+            <li>交付前把响度「偷偷调大」。</li>
+            <li>母版烧硬字幕。</li>
+            <li>为每个画幅重复生成，人物不一致。</li>
+            <li>用订阅套餐跑批量渲染。</li>
+            <li>音乐授权只看「免费下载」，不看商用档位。</li>
+            <li>没有 QC 报告就交付。</li>
+          </ol>
+        </section>
+
+        <section class="course-sec">
+          <h3>术语表</h3>
+          <table class="compare-table">
+            <thead><tr><th>术语</th><th>解释</th></tr></thead>
+            <tbody>
+              <tr><td>ASL</td><td>平均镜头长度，衡量剪辑节奏</td></tr>
+              <tr><td>J cut / L cut</td><td>声音先入 / 声音延后，用于顺滑剪辑</td></tr>
+              <tr><td>OTS</td><td>过肩镜，对话常用构图</td></tr>
+              <tr><td>180 度规则</td><td>摄影机保持在轴线同一侧</td></tr>
+              <tr><td>T2V / I2V / R2V</td><td>文生视频 / 图生视频 / 参考生视频</td></tr>
+              <tr><td>seed</td><td>随机种子，影响可复现性</td></tr>
+              <tr><td>viseme</td><td>视素，可见的口型单位</td></tr>
+              <tr><td>Cue</td><td>一段有入出点的配乐</td></tr>
+              <tr><td>Hit point</td><td>音乐必须对齐的画面点</td></tr>
+              <tr><td>Foley</td><td>拟音，人工表演的日常声音</td></tr>
+              <tr><td>Ambience bed</td><td>铺满场景的环境声床</td></tr>
+              <tr><td>Room tone</td><td>空间本身的底噪与反射</td></tr>
+              <tr><td>Ducking</td><td>对白出现时自动降低音乐</td></tr>
+              <tr><td>Stem</td><td>分轨音频，可独立混音与交付</td></tr>
+              <tr><td>M&amp;E</td><td>去掉对白的音乐+音效版本，用于译制</td></tr>
+              <tr><td>LUFS / LKFS</td><td>响度单位，两者等价</td></tr>
+              <tr><td>dBTP</td><td>真峰值单位</td></tr>
+              <tr><td>BS.1770</td><td>ITU 响度测量标准</td></tr>
+              <tr><td>EBU R 128</td><td>欧洲广播响度规范，−23 LUFS</td></tr>
+              <tr><td>open gate</td><td>未裁切的原始画幅，用于派生多画幅</td></tr>
+              <tr><td>ΔE</td><td>色差指标，越小越一致</td></tr>
+              <tr><td>AI 标识</td><td>显式、隐式、导出文件三类标识</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="course-sec">
+          <h3>最后一句话</h3>
+          <p>专业编辑与业余爱好者的区别，不在于会不会用某个模型，而在于<b>能不能在看片时说出「这里为什么不对」以及「下一步改什么」</b>。这套判断力，只能靠一条一条镜头、一段一段声音地练出来。</p>
+        </section>
+      `
+    }
+  ]
+};

@@ -163,6 +163,7 @@ const ICONS = {
   master:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v4M11 5v4M15 5v4"/>',
   inbox:'<path d="M3 12h5l1.5 3h5L16 12h5"/><path d="M4 5h16l1 7v6H3v-6z"/>',
   route:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h5a4 4 0 0 1 4 4v5.5"/>',
+  cap:'<path d="M3 8.5 12 4l9 4.5-9 4.5z"/><path d="M7 11v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5"/><path d="M21 9.5V15"/>',
 };
 function ico(name, cls) {
   const p = ICONS[name] || ICONS.box;
@@ -197,6 +198,7 @@ function setMain(html, wide) {
   let top = String(html.top || "");
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
     `<button class="help-btn" title="设置指南" onclick="go('model-guide')">${ico("sliders")}</button>` +
+    `<button class="help-btn" title="短剧制作课程" onclick="go('academy')">${ico("cap")}</button>` +
     `<button class="help-btn" title="新手指南" onclick="go('guide')">${ico("doc")}</button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
   if (top.includes("</div>")) {
@@ -236,7 +238,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "help", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "academy", "help", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -323,6 +325,7 @@ async function routeView(name, param) {
   if (name === "models") return viewModels();
   if (name === "model-add") return viewModelAdd(param);
   if (name === "model-guide") return viewModelGuide();
+  if (name === "academy") return viewAcademy();
   if (name === "help") return viewHelp();
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
@@ -3619,10 +3622,18 @@ const MODELS = { data: null, me: {} };
 const MODEL_KIND_META = {
   text: ["文本 / 剧本", "剧本、大纲、对白与结构分析", "doc"],
   image: ["图像生成", "定妆、参考图、关键帧", "frame"],
-  video: ["视频生成", "镜头画面与动态", "film"],
-  tts: ["语音合成", "角色配音与旁白", "wave"],
-  music: ["音乐 / 音效", "配乐与氛围声", "music"],
-  lipsync: ["口型同步", "对白口型对齐", "face"],
+  video: ["视频生成", "镜头画面与动态（自带现场声，不含配乐音效）", "film"],
+  tts: ["语音合成", "角色配音与旁白（只出声音，不管嘴型）", "wave"],
+  music: ["音乐 / 音效", "配乐、音效与环境声（独立于画面生成）", "music"],
+  lipsync: ["口型同步", "用配音修嘴型（只改嘴部，不改画面）", "face"],
+};
+const MODEL_KIND_DUTY = {
+  text: "写剧本、大纲、对白与提示词；只出文字。",
+  image: "出定妆照、参考图与关键帧；只出静帧，不负责运动。",
+  video: "把关键帧/参考图变成镜头画面；自带现场氛围声，但不含配乐和设计过的音效。",
+  tts: "把台词变成角色声音；只出声音，画面里的嘴由口型环节负责。",
+  music: "配乐 Cue、音效与环境床；按剪辑后的时间线铺，不属于任何单条镜头。",
+  lipsync: "用配音修已生成镜头里的嘴型；只改嘴部区域，不改画面内容与表演。",
 };
 async function viewModels() {
   try {
@@ -3865,6 +3876,7 @@ function viewModelGuide() {
     return `<div class="card">
       <div class="mk-title">${ico(meta[2])}<div><b>${esc(meta[0])}</b><span>${esc(r.kind)} · ${esc(meta[1])}</span></div></div>
       <div class="rec-rows">
+        <div class="rec-row"><span class="k">负责</span><div>${esc(MODEL_KIND_DUTY[r.kind] || "")}</div></div>
         <div class="rec-row"><span class="k">首选</span><div><b>${esc(r.first)}</b></div></div>
         <div class="rec-row"><span class="k">备选</span><div>${esc(r.alt)}</div></div>
         <div class="rec-row"><span class="k">成本</span><div>${esc(r.cost)}</div></div>
@@ -3935,6 +3947,46 @@ function viewModelGuide() {
         <button class="btn ghost sm" onclick="go('model-add:tts')">配语音</button>
         <button class="btn ghost sm" onclick="go('model-add:music')">配音乐</button>
         <button class="btn ghost sm" onclick="go('model-add:lipsync')">配口型</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top:26px">六类模型各管什么 <span class="hint">先分清职责，再谈选型</span></h2>
+    <div class="card" style="padding:22px 24px">
+      <p class="muted" style="font-size:var(--fs-body);line-height:1.85;margin:0 0 16px;max-width:960px">
+        一条流水线里，六类模型做六件不同的事，彼此不能替代。最常见的误解是「视频模型会把音乐和音效一起生成」——
+        它只带这一条镜头的<b style="color:var(--ink-2)">现场声</b>；配乐、音效与环境声属于成片的声音层，要按剪辑后的时间线单独做。
+        语音和口型也常被混为一谈：语音只负责「说」，口型负责让画面里的嘴「看起来在说」。</p>
+      <div class="table-scroll"><table class="compare-table">
+        <thead><tr><th>类型</th><th>它负责</th><th>它不负责</th><th>什么时候可以跳过</th></tr></thead>
+        <tbody>
+          <tr><td><b>文本</b> <span class="muted">text</span></td><td>剧本、大纲、对白、提示词</td><td>画面、声音</td><td>剧本已定稿，只做镜头返工时</td></tr>
+          <tr><td><b>图像</b> <span class="muted">image</span></td><td>定妆照、参考图、关键帧</td><td>运动、声音</td><td>用实拍素材，或已有可用锚点时</td></tr>
+          <tr><td><b>视频</b> <span class="muted">video</span></td><td>镜头画面与动态、现场氛围声</td><td>配乐、设计音效、精确口型</td><td>该镜头用实拍素材时</td></tr>
+          <tr><td><b>语音</b> <span class="muted">tts</span></td><td>角色配音、旁白</td><td>嘴型、音乐</td><td>用真人配音，或镜头自带同期对白时</td></tr>
+          <tr><td><b>音乐</b> <span class="muted">music</span></td><td>配乐 Cue、音效、环境床</td><td>对白、画面</td><td>纯对白戏，且不需要氛围时</td></tr>
+          <tr><td><b>口型</b> <span class="muted">lipsync</span></td><td>用配音修嘴型</td><td>画质、表情、身体动作</td><td>全景/背影/侧脸，以及无对白镜头</td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="rec-cards" style="margin-top:12px">
+      <div class="card">
+        <h3 style="margin:0 0 8px">为什么声音要单独做</h3>
+        <p class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin:0">
+          视频模型一镜一生成，每镜的底噪、房间声都不同，直接拼接会在切镜处「跳」。配乐要跨镜头铺情绪，
+          音效要对齐动作帧（误差 ≤1 帧），环境声要无缝循环，交付还要求分轨 stem 与 −23 LUFS 响度。
+          这些都不是单条镜头能提供的，所以成片声音分成对白 / 音乐 / 音效 / 环境四层单独生产。</p>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 8px">六类可以混搭不同厂商</h3>
+        <p class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin:0">
+          每类独立配置、独立生效、独立降级：视频用 Wan 3.0、口型用 Sync.so、配乐用 ACE-Step 完全合法。
+          但上游输出要能被下游接住——口型供应商分「修复型（视频+音轨）」与「生成型（图片+音轨）」，
+          已有镜头只能交给修复型，否则画面会被重新生成，跨镜一致性直接断掉。</p>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 8px">口型不是全片都开</h3>
+        <p class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin:0">
+          口型单价通常是语音的 10–50 倍，只对近景正脸 + 有对白的镜头开启。全景、背影、侧脸交给语音层即可；
+          口型失败时应回退为「不做口型」，而不是重抽整条镜头。</p>
       </div>
     </div>
 
@@ -4196,6 +4248,69 @@ async function attachParams(st) {
   };
 }
 
+/* ── 短剧制作课程 ── */
+var ACADEMY_CUR = "start";
+function academyChapters() {
+  return (window.ACADEMY && window.ACADEMY.chapters) || [];
+}
+function renderAcademyContent() {
+  const list = academyChapters();
+  const idx = Math.max(0, list.findIndex(c => c.id === ACADEMY_CUR));
+  const c = list[idx] || {};
+  const el = $("#academycontent");
+  if (!el) return;
+  const prev = idx > 0 ? list[idx - 1] : null;
+  const next = idx < list.length - 1 ? list[idx + 1] : null;
+  el.innerHTML = `
+    <div class="help-eyebrow">${esc(c.eyebrow || "")}</div>
+    <h2 class="help-title">${esc(c.title || "")}</h2>
+    <p class="help-what">${esc(c.lede || "")}</p>
+    <div class="course-meta"><span>第 ${idx + 1} / ${list.length} 章</span><span class="dot">·</span><span>建议 20–40 分钟</span><span class="dot">·</span><span>标准值可在 PRD 中回溯</span></div>
+    <div class="course-body">${c.html || ""}</div>
+    <div class="course-nav">
+      ${prev ? `<button class="btn ghost sm" onclick="pickAcademy('${esc(prev.id)}')">← ${esc(prev.title)}</button>` : "<span></span>"}
+      ${next ? `<button class="btn sm" onclick="pickAcademy('${esc(next.id)}')">${esc(next.title)} →</button>` : "<span></span>"}
+    </div>`;
+  el.querySelectorAll(".course-sec table").forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains("table-scroll")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "table-scroll";
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+}
+function pickAcademy(id) {
+  ACADEMY_CUR = id;
+  $$(".help-item").forEach(x => x.classList.toggle("on", x.dataset.g === id));
+  renderAcademyContent();
+  const nav = $(".course-page .help-content");
+  if (nav) nav.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function viewAcademy() {
+  const list = academyChapters();
+  if (!list.length) {
+    return setMain({ title: "短剧制作课程", body: `<div class="card empty">课程内容未加载，请刷新页面。</div>` });
+  }
+  if (!list.some(c => c.id === ACADEMY_CUR)) ACADEMY_CUR = list[0].id;
+  setMain({
+    title: "短剧制作课程",
+    top: `<div class="right"><span class="pill">${list.length} 章 · 系统课程</span></div>`,
+    body: `<div class="card help-page course-page" style="padding:0;overflow:hidden">
+      <div class="help-body">
+        <nav class="help-nav">
+          ${list.map(c => {
+            const n = String(c.eyebrow || "").split("·")[0].trim();
+            return `<div class="help-item ${c.id === ACADEMY_CUR ? "on" : ""}" data-g="${esc(c.id)}" onclick="pickAcademy('${esc(c.id)}')"><b>${esc(n)}</b> ${esc(c.title)}</div>`;
+          }).join("")}
+        </nav>
+        <div class="help-content" id="academycontent"></div>
+      </div>
+    </div>`
+  });
+  renderAcademyContent();
+}
+
 /* ── 使用指南 ── */
 let HELP_CUR = "_intro";
 function helpItemHtml(id, label) {
@@ -4230,7 +4345,12 @@ async function viewHelp() {
   const order = ["_intro", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12", "M13", "M14", "M15", "M16", "M17", "M18", "M19"];
   setMain({
     title: "使用指南",
-    body: `<div class="card help-page" style="padding:0;overflow:hidden">
+    body: `<div class="course-banner">
+      <div><b>想系统学习，而不只是查按钮？</b>
+        <p>13 章课程从镜头语言讲到四层声音、母版 QC 与商业平台选型，附练习与术语表。</p></div>
+      <button class="btn sm" onclick="go('academy')">进入短剧制作课程</button>
+    </div>
+    <div class="card help-page" style="padding:0;overflow:hidden">
       <div class="help-body">
         <nav class="help-nav">
           ${order.map(id => helpItemHtml(id, id === "_intro" ? "总览 · 快速开始" : (G[id] ? `${id} ${G[id].title}` : id))).join("")}
