@@ -2234,7 +2234,11 @@ async function exportAssets() {
 const SUB = { projects: [], tracks: [], languages: {}, statuses: [], project_id: "",
   episode: 1, language: "zh", track: null };
 async function viewSubtitles() {
-  try { SUB.projects = (await api("/api/dramas?limit=200&offset=0&sort=title")).items || []; }
+  try {
+    const d = await api("/api/dramas?limit=200&offset=0&sort=title");
+    SUB.projects = d.items || [];
+    SUB.projects_total = d.total || 0;
+  }
   catch (e) { return setMain({ title: "字幕", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
   if (!SUB.projects.length) {
     return setMain({ title: "字幕", body: `<div class="card empty">${ico("doc")}<div>还没有项目</div>
@@ -2262,7 +2266,9 @@ async function selectSubtitleTrack(id) {
   renderSubtitles();
 }
 function subProjectOptions() {
-  return SUB.projects.map(p => `<option value="${p.id}" ${String(SUB.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
+  const extra = (SUB.projects_total || 0) > SUB.projects.length
+    ? `<option disabled>… 另有 ${SUB.projects_total - SUB.projects.length} 个项目，请在项目页搜索</option>` : "";
+  return SUB.projects.map(p => `<option value="${p.id}" ${String(SUB.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("") + extra;
 }
 function subLanguageOptions(selected, includeEmpty) {
   const opts = Object.entries(SUB.languages || {}).map(([k, v]) =>
@@ -3057,7 +3063,11 @@ function deleteMember(id) {
 const MKT = { projects: [], project_id: "", kit: null };
 let _mktRecording = false;
 async function viewMarketing() {
-  try { MKT.projects = (await api("/api/dramas?limit=200&offset=0&sort=title")).items || []; }
+  try {
+    const d = await api("/api/dramas?limit=200&offset=0&sort=title");
+    MKT.projects = d.items || [];
+    MKT.projects_total = d.total || 0;
+  }
   catch (e) { return setMain({ title: "营销", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
   if (!MKT.projects.length) {
     return setMain({ title: "营销", body: `<div class="card empty">${ico("sparkle")}<div>还没有项目</div>
@@ -3072,7 +3082,9 @@ async function loadMarketingKit() {
   renderMarketing();
 }
 function mktProjectOptions() {
-  return MKT.projects.map(p => `<option value="${p.id}" ${String(MKT.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
+  const extra = (MKT.projects_total || 0) > MKT.projects.length
+    ? `<option disabled>… 另有 ${MKT.projects_total - MKT.projects.length} 个项目，请在项目页搜索</option>` : "";
+  return MKT.projects.map(p => `<option value="${p.id}" ${String(MKT.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("") + extra;
 }
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); toast("已复制"); }
