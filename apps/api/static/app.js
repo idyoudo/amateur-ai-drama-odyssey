@@ -654,6 +654,11 @@ async function projectsGoPage(n) {
   PROJS.page = n;
   await reloadProjectsList();
 }
+async function projectsSetSize(v) {
+  PROJS.limit = Number(v) || 12;
+  PROJS.page = 1;
+  await reloadProjectsList();
+}
 function renderProjects() {
   const ae = document.activeElement;
   const focusId = ae && ae.id ? ae.id : null;
@@ -677,7 +682,7 @@ function renderProjects() {
     </div>
     <div class="cards" id="plist">${PROJS.items.length ? PROJS.items.map(projectCard).join("") : ""}</div>
     <div id="pboard" class="hide"></div>
-    <div id="projpager">${pagerHtml(PROJS.page, PROJS.pages, "projectsGoPage")}</div>
+    <div id="projpager">${pagerBar(PROJS, "projectsGoPage", "projectsSetSize", "个", [12, 24, 48])}</div>
     ${PROJS.total ? "" : `<div class="card empty">${ico("film")}<div>${PROJS.q ? "无匹配项目" : "还没有项目"}</div>
       ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
       <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div>`}</div>`}`,
@@ -882,12 +887,18 @@ async function loadEpisodeBoard(id) {
       ${pages > 1 ? `<span class="muted" style="font-size:var(--fs-sm)">第 ${start}–${end} 集</span>` : ""}
     </div>
     <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${cards.join("")}</div>
-    ${pagerHtml(EPBOARD.page, pages, "epBoardPage")}`;
+    ${pagerBar({ total: EPBOARD.episodes, page: EPBOARD.page, pages, limit: EPBOARD.limit },
+      "epBoardPage", "epBoardSetSize", "集", [12, 24, 48, 96])}`;
 }
 async function epBoardPage(n) {
   const pages = Math.max(1, Math.ceil(EPBOARD.episodes / EPBOARD.limit));
   if (n < 1 || n > pages || n === EPBOARD.page) return;
   EPBOARD.page = n;
+  await loadEpisodeBoard(EPBOARD.project_id);
+}
+async function epBoardSetSize(v) {
+  EPBOARD.limit = Number(v) || 24;
+  EPBOARD.page = 1;
   await loadEpisodeBoard(EPBOARD.project_id);
 }
 async function renderModelRouting(projectId) {
@@ -1676,27 +1687,38 @@ async function projGoPage(n) {
   HITS.projPage = n;
   try { await loadProjects(); } catch (e) { toast("项目加载失败：" + e.message); }
 }
-function pagerHtml(cur, pages, fn) {
-  if (pages <= 1) return "";
-  const nums = [], push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
-  push(1);
-  for (let n = cur - 2; n <= cur + 2; n++) push(n);
-  push(pages);
-  nums.sort((a, b) => a - b);
-  let mid = "", prev = 0;
-  nums.forEach(n => {
-    if (n - prev > 1) mid += `<span class="muted">…</span>`;
-    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="${fn}(${n})">${n}</button>`;
-    prev = n;
-  });
-  return `<div class="pager">
-    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="${fn}(${cur - 1})">上一页</button>
-    ${mid}
-    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="${fn}(${cur + 1})">下一页</button>
+const PAGER_SIZES = [10, 20, 50, 100];
+function pagerBar(state, goFn, sizeFn, unit, sizes) {
+  const total = Number(state.total || 0);
+  const limit = Number(state.limit || 20);
+  const pages = Math.max(1, Number(state.pages || Math.ceil(total / limit)));
+  const page = Math.min(Math.max(1, Number(state.page || 1)), pages);
+  const start = total ? (page - 1) * limit + 1 : 0;
+  const end = Math.min(total, page * limit);
+  const opts = (sizes || PAGER_SIZES).map(n =>
+    `<option value="${n}" ${n === limit ? "selected" : ""}>${n} ${unit || "条"}</option>`).join("");
+  return `<div class="pagerbar">
+    <div class="pagerbar-info">
+      <span>当前 ${start}-${end}/${total} ${unit || "条"}</span>
+      <span class="pagerbar-size">每页 <select onchange="${sizeFn}(this.value)">${opts}</select></span>
+    </div>
+    <div class="pagerbar-ctrl">
+      <button class="btn ghost sm" ${page <= 1 ? "disabled" : ""} onclick="${goFn}(${page - 1})">上一页</button>
+      <span class="pagerbar-page">${page}/${pages}</span>
+      <button class="btn ghost sm" ${page >= pages ? "disabled" : ""} onclick="${goFn}(${page + 1})">下一页</button>
+    </div>
   </div>`;
 }
-function hitPager() { return pagerHtml(HITS.page, HITS.pages, "hitPage"); }
-function projPager() { return pagerHtml(HITS.projPage, HITS.projPages, "projGoPage"); }
+function hitPager() {
+  return pagerBar({ total: HITS.total, page: HITS.page, pages: HITS.pages, limit: HITS.limit },
+    "hitPage", "hitSetSize", "条", [12, 24, 48]);
+}
+function projPager() {
+  return pagerBar({ total: HITS.projTotal, page: HITS.projPage, pages: HITS.projPages, limit: HITS.projLimit },
+    "projGoPage", "hitProjSetSize", "个", [12, 24, 48]);
+}
+function hitSetSize(v) { HITS.limit = Number(v); HITS.page = 1; loadHits().catch(e => toast("案例加载失败：" + e.message)); }
+function hitProjSetSize(v) { HITS.projLimit = Number(v); HITS.projPage = 1; loadProjects().catch(e => toast("项目加载失败：" + e.message)); }
 async function runHitCheck(render) {
   try { HITS.check = await api("/api/dramas/" + HITS.project_id + "/hit-check"); }
   catch (e) { HITS.check = null; toast("爆款体检失败：" + e.message); }
@@ -2012,7 +2034,8 @@ async function fetchAssets() {
   ASSET.totals = d.stats || {};
   ASSET.shotTotal = d.shot_total || 0;
   ASSET.characterTotal = d.character_total || 0;
-  ASSET.pages = Math.max(1, Math.ceil(ASSET.shotTotal / ASSET.limit));
+  const total = ASSET.kind === "characters" ? ASSET.characterTotal : ASSET.shotTotal;
+  ASSET.pages = Math.max(1, Math.ceil(total / ASSET.limit));
 }
 async function reloadAssets() {
   ASSET.q = ($("#asset_q") || {}).value || "";
@@ -2075,36 +2098,25 @@ function assetCharacterSection(chars) {
       : `<div class="card empty">${ico("face")}<div>没有匹配的角色资产</div></div>`}`;
 }
 function assetPager() {
-  if (ASSET.pages <= 1) return "";
-  const cur = ASSET.page, pages = ASSET.pages;
-  const nums = [];
-  const push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
-  push(1);
-  for (let n = cur - 2; n <= cur + 2; n++) push(n);
-  push(pages);
-  nums.sort((a, b) => a - b);
-  let mid = "", prev = 0;
-  nums.forEach(n => {
-    if (n - prev > 1) mid += `<span class="muted">…</span>`;
-    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="assetPage(${n})">${n}</button>`;
-    prev = n;
-  });
-  return `<div class="pager">
-    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="assetPage(${cur - 1})">上一页</button>
-    ${mid}
-    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="assetPage(${cur + 1})">下一页</button>
-  </div>`;
+  const total = ASSET.kind === "characters" ? (ASSET.characterTotal || 0) : (ASSET.shotTotal || 0);
+  return pagerBar({ total, page: ASSET.page, pages: ASSET.pages,
+    limit: ASSET.limit }, "assetPage", "assetSetSize", "个", [12, 24, 48, 96]);
+}
+async function assetSetSize(v) {
+  ASSET.limit = Number(v) || 24;
+  ASSET.page = 1;
+  try { await fetchAssets(); renderAssets(); }
+  catch (e) { toast("资产加载失败：" + e.message); }
 }
 function assetShotSection(shots) {
-  return `<h2 id="shotsec">镜头 <span class="hint">第 ${ASSET.page} / ${ASSET.pages} 页 · 共 ${ASSET.shotTotal || 0} 个</span></h2>
+  return `<h2 id="shotsec">镜头 <span class="hint">共 ${ASSET.shotTotal || 0} 个</span></h2>
     ${shots.length ? `<div class="cards">${shots.map(s => `<div class="asset clickable" onclick="openAssetShot(${s.id})">
       <div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
         <span class="tag">${esc(s.project)} · E${s.episode_id || 1} · 镜${s.shot_no}</span></div>
       <div class="body"><div class="meta"><span>${esc(s.size || "—")}</span><span>${esc(s.move || "—")}</span><span>${s.duration || 0}s</span>
         <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}">${esc(s.status)}</span></div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">${esc((s.characters || []).join("、") || s.prompt || "—")}</div>
-      </div></div>`).join("")}</div>` : `<div class="card empty">${ico("frame")}<div>没有匹配的镜头资产</div></div>`}
-    ${assetPager()}`;
+      </div></div>`).join("")}</div>` : `<div class="card empty">${ico("frame")}<div>没有匹配的镜头资产</div></div>`}`;
 }
 function renderAssets() {
   const stats = ASSET.totals || {};
@@ -2135,7 +2147,8 @@ function renderAssets() {
       </div>
     </div>
     ${ASSET.kind !== "shots" ? assetCharacterSection(ASSET.chars) : ""}
-    ${ASSET.kind !== "characters" ? assetShotSection(ASSET.shots) : ""}`,
+    ${ASSET.kind !== "characters" ? assetShotSection(ASSET.shots) : ""}
+    ${assetPager()}`,
   }, true);
 }
 async function viewAssets() {
@@ -2454,6 +2467,11 @@ async function tplGoPage(n) {
   await reloadTemplates();
 }
 function tplChangeFilter() { TPL.page = 1; reloadTemplates(); }
+async function tplSetSize(v) {
+  TPL.limit = Number(v) || 12;
+  TPL.page = 1;
+  await reloadTemplates();
+}
 function tplEditorData() {
   return TPL.selected || TPL.draft || { name: "", category: "分镜", tags: [], content: "" };
 }
@@ -2478,8 +2496,7 @@ function renderTemplates() {
             <div class="sub-item-head"><b>${esc(t.name)}</b><span class="pill">${esc(t.category)}</span></div>
             <div class="sub-item-meta">${esc((t.content || "").slice(0, 60))}${(t.content || "").length > 60 ? "…" : ""}</div>
           </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">还没有模板，点击右上角「新建模板」</div>`}</div>
-        <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${TPL.total} 条 · 第 ${TPL.page}/${TPL.pages} 页</div>
-        ${pagerHtml(TPL.page, TPL.pages, "tplGoPage")}
+        ${pagerBar(TPL, "tplGoPage", "tplSetSize", "条", [12, 24, 48])}
       </aside>
       <section class="card sub-editor"><div class="stack">
         <div class="row2">
@@ -2576,6 +2593,11 @@ async function distGoPage(n) {
   DIST.page = n;
   await loadDistributions();
 }
+async function distSetSize(v) {
+  DIST.limit = Number(v) || 20;
+  DIST.page = 1;
+  await loadDistributions();
+}
 function renderDistribution() {
   const s = DIST.summary || {};
   const maxViews = Math.max(1, ...(s.by_channel || []).map(c => c.views || 0));
@@ -2605,7 +2627,7 @@ function renderDistribution() {
       </div>
       <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">发布状态与播放/营收为本地登记；未接入平台 API 时均为 Mock 数据。</div>
     </div>
-    <div class="card table-scroll"><table>
+    <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>项目</th><th>渠道</th><th>状态</th><th>排期 / 发布</th><th>播放</th><th>点赞</th><th>完播率</th><th>营收</th><th>操作</th></tr></thead>
       <tbody>${DIST.items.map(d => `<tr>
         <td>${esc(d.project)}</td><td>${esc(d.channel_name)}</td>
@@ -2617,10 +2639,9 @@ function renderDistribution() {
           ${d.status !== "已发布" ? `<button class="btn sm" style="margin-left:4px" onclick="publishDistribution(${d.id})">发布</button>` : ""}
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteDistribution(${d.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="9" style="text-align:center;color:var(--dim)">还没有分发记录</td></tr>`}</tbody>
-    </table>
-    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${DIST.total} 条 · 第 ${DIST.page}/${DIST.pages} 页</div>
-    </div>
-    ${pagerHtml(DIST.page, DIST.pages, "distGoPage")}`,
+    </table></div>
+    ${pagerBar(DIST, "distGoPage", "distSetSize", "条")}
+    </div>`,
   }, true);
 }
 async function createDistribution() {
@@ -2729,6 +2750,11 @@ async function reviewsGoPage(n) {
   REVIEW.page = n;
   await loadReviews();
 }
+async function reviewsSetSize(v) {
+  REVIEW.limit = Number(v) || 20;
+  REVIEW.page = 1;
+  await loadReviews();
+}
 function renderReviews() {
   const s = REVIEW.summary || {};
   setMain({
@@ -2751,7 +2777,7 @@ function renderReviews() {
         <button class="btn" onclick="createReview()">提交审核</button>
       </div>
     </div>
-    <div class="card table-scroll"><table>
+    <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>项目</th><th>审核标题</th><th>对象</th><th>状态</th><th>审核人</th><th>意见</th><th>更新时间</th><th>操作</th></tr></thead>
       <tbody>${REVIEW.items.map(r => `<tr>
         <td>${esc(r.project)}</td><td>${esc(r.title)}</td><td>${esc(r.target_label)}${r.target_ref ? " · " + esc(r.target_ref) : ""}</td>
@@ -2762,10 +2788,9 @@ function renderReviews() {
           <button class="btn ghost sm" style="margin-left:4px" onclick="reviewDecision(${r.id},false)">驳回</button>` : ""}
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteReview(${r.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有审核记录</td></tr>`}</tbody>
-    </table>
-    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${REVIEW.total} 条 · 第 ${REVIEW.page}/${REVIEW.pages} 页</div>
-    </div>
-    ${pagerHtml(REVIEW.page, REVIEW.pages, "reviewsGoPage")}`,
+    </table></div>
+    ${pagerBar(REVIEW, "reviewsGoPage", "reviewsSetSize", "条")}
+    </div>`,
   }, true);
 }
 async function createReview() {
@@ -2842,6 +2867,11 @@ async function settleGoPage(n) {
   SETTLE.page = n;
   await loadSettlements();
 }
+async function settleSetSize(v) {
+  SETTLE.limit = Number(v) || 20;
+  SETTLE.page = 1;
+  await loadSettlements();
+}
 function settleTypeAmount(type) {
   const row = (SETTLE.summary.by_type || []).find(x => x.type === type);
   return row ? row.amount : 0;
@@ -2877,7 +2907,7 @@ function renderSettlements() {
       </div>
       <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">本地台账；未接入平台财务 API 时为 Mock 数据。</div>
     </div>
-    <div class="card table-scroll"><table>
+    <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>项目</th><th>渠道</th><th>类型</th><th>账期</th><th>金额</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead>
       <tbody>${SETTLE.items.map(x => `<tr>
         <td>${esc(x.project)}</td><td>${esc(x.channel_name)}</td><td>${esc(x.revenue_type)}</td>
@@ -2886,10 +2916,9 @@ function renderSettlements() {
         <td><button class="btn ghost sm" onclick="editSettlement(${x.id})">编辑</button>
           <button class="btn ghost sm" style="margin-left:4px" onclick="deleteSettlement(${x.id})">删除</button></td></tr>`).join("")
         || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有结算记录</td></tr>`}</tbody>
-    </table>
-    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${SETTLE.total} 条 · 第 ${SETTLE.page}/${SETTLE.pages} 页</div>
-    </div>
-    ${pagerHtml(SETTLE.page, SETTLE.pages, "settleGoPage")}`,
+    </table></div>
+    ${pagerBar(SETTLE, "settleGoPage", "settleSetSize", "条")}
+    </div>`,
   }, true);
 }
 async function createSettlement() {
@@ -2973,6 +3002,11 @@ async function teamGoPage(n) {
   TEAM.page = n;
   await loadTeam();
 }
+async function teamSetSize(v) {
+  TEAM.limit = Number(v) || 20;
+  TEAM.page = 1;
+  await loadTeam();
+}
 function renderTeam() {
   const isAdmin = TEAM.me.role === "admin";
   const roleOpts = Object.entries(TEAM.roles).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("");
@@ -2992,7 +3026,7 @@ function renderTeam() {
       <select id="tm_role">${roleOpts}</select>
       <button class="btn" onclick="createMember()">添加成员</button>
     </div></div>` : ""}
-    <div class="card table-scroll"><table>
+    <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>用户名</th><th>角色</th><th>状态</th><th>创建时间</th>${isAdmin ? "<th>操作</th>" : ""}</tr></thead>
       <tbody>${TEAM.items.map(u => `<tr>
         <td>${esc(u.username)}${u.username === TEAM.me.username ? ' <span class="muted">（我）</span>' : ""}</td>
@@ -3002,10 +3036,9 @@ function renderTeam() {
         ${isAdmin ? `<td><button class="btn ghost sm" onclick="editMember(${u.id})">编辑</button>
           ${u.username === TEAM.me.username ? "" : `<button class="btn ghost sm" style="margin-left:4px" onclick="deleteMember(${u.id})">删除</button>`}</td>` : ""}
       </tr>`).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无成员</td></tr>`}</tbody>
-    </table>
-    <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">共 ${TEAM.total} 人 · 第 ${TEAM.page}/${TEAM.pages} 页</div>
+    </table></div>
+    ${pagerBar(TEAM, "teamGoPage", "teamSetSize", "人")}
     </div>
-    ${pagerHtml(TEAM.page, TEAM.pages, "teamGoPage")}
     <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">角色：管理员可管理团队与模型配置；法务只读；其余角色可执行制作类写入。</div>`,
   }, true);
 }
@@ -3317,7 +3350,12 @@ async function jobsGoPage(n) {
   JOBS.page = n;
   await reloadJobs();
 }
-function jobsPager() { return pagerHtml(JOBS.page, JOBS.pages, "jobsGoPage"); }
+function jobsPager() { return pagerBar(JOBS, "jobsGoPage", "jobsSetSize", "条"); }
+async function jobsSetSize(v) {
+  JOBS.limit = Number(v) || 20;
+  JOBS.page = 1;
+  await reloadJobs();
+}
 async function renderJobs() {
   setMain({
     title: "任务",
@@ -3333,11 +3371,10 @@ async function renderJobs() {
         <select id="job_status" style="max-width:150px" onchange="jobsChangeFilter()">
           <option value="">全部状态</option>
           ${Object.entries(JOB_STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${JOBS.status === k ? "selected" : ""}>${v}</option>`).join("")}</select>
-        <span class="muted" style="font-size:var(--fs-sm)">第 ${JOBS.page}/${JOBS.pages} 页 · 每页 ${JOBS.limit} 条</span>
       </div></div>
-    <div class="card table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
+    <div class="card"><div class="table-scroll"><table><thead><tr><th>#</th><th>项目</th><th>类型</th><th>状态</th><th>进度</th><th>尝试</th><th>失败原因</th><th>操作</th></tr></thead>
       <tbody id="jobstbl">${jobRowsHtml(JOBS.items)}</tbody></table></div>
-    <div id="jobspager">${jobsPager()}</div>`,
+      <div id="jobspager">${jobsPager()}</div></div>`,
   }, true);
 }
 function jobsChangeFilter() { JOBS.page = 1; reloadJobs(); }

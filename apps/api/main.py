@@ -1221,8 +1221,11 @@ def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
         cc = list(base_char)
         if status and status != "__generated":
             cc.append(jobs_db.Character.status == status)
+        char_total = s.scalar(select(func.count()).select_from(jobs_db.Character)
+                              .where(*cc)) or 0
         chars = s.scalars(select(jobs_db.Character).where(*cc)
-                          .order_by(jobs_db.Character.id.desc())).all()
+                          .order_by(jobs_db.Character.id.desc())
+                          .offset(offset).limit(limit)).all()
 
         base = []
         if project_id:
@@ -1247,7 +1250,7 @@ def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
         shots = s.scalars(select(jobs_db.Shot).where(*sc).order_by(jobs_db.Shot.id.desc())
                           .offset(offset).limit(limit)).all()
     return {"characters": [_char_json(c, projs) for c in chars],
-            "character_total": len(chars),
+            "character_total": char_total,
             "shots": [_shot_json(sh, projs) for sh in shots],
             "shot_total": shot_total,
             "stats": {"characters": char_base_count, "shots": shot_base_count,

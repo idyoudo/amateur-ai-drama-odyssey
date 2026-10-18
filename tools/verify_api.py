@@ -262,7 +262,9 @@ check("资产已生成筛选", d["shot_total"] > 0
 check("资产统计不随状态变", d["stats"]["shots"] == _base_stats["shots"])
 r = client.get("/api/assets?limit=2&offset=2", headers=H)
 check("资产 offset 分页", len(r.json()["shots"]) == 2)
-cid, sid = d["characters"][0]["id"], d["shots"][0]["id"]
+_charpage = client.get("/api/assets?limit=2&offset=0", headers=H).json()
+check("角色分页", len(_charpage["characters"]) <= 2 and _charpage["character_total"] >= 1)
+cid, sid = _charpage["characters"][0]["id"], d["shots"][0]["id"]
 _p2chars = client.get("/api/dramas/%d/characters" % p2, headers=H).json()
 if _p2chars:
     cid = _p2chars[0]["id"]
