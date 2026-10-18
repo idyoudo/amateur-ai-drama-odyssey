@@ -651,3 +651,12 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 .compare-table{min-width:980px}
 .compare-table th,.compare-table td{white-space:nowrap;padding:10px 12px}
 .compare-table td:first-child,.compare-table th:first-child{position:sticky;left:0;background:var(--surface);z-index:1}
+.overview-table{min-width:0}
+.overview-table th,.overview-table td{white-space:normal;vertical-align:top}
+.overview-table{table-layout:fixed;width:100%}
+.overview-table th:nth-child(1),.overview-table td:nth-child(1){width:100px;white-space:nowrap}
+.overview-table th:nth-child(2),.overview-table td:nth-child(2){width:21%}
+.overview-table th:nth-child(3),.overview-table td:nth-child(3){width:24%}
+.overview-table th:nth-child(4),.overview-table td:nth-child(4){width:24%}
+.overview-table th:nth-child(5),.overview-table td:nth-child(5){width:70px;white-space:nowrap}
+.overview-table th:nth-child(6),.overview-table td:nth-child(6){width:72px;white-space:nowrap}

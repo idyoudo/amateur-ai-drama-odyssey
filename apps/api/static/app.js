@@ -3779,9 +3779,9 @@ function renderModelAdd() {
   modelAddRenderGrid();
 }
 const MODEL_RECS = [
-  { kind: "text", first: "DeepSeek（deepseek-chat）",
-    alt: "通义千问 qwen3-max / Kimi K2", cost: "低",
-    why: "剧本和大纲调用量最大，DeepSeek 中文强、OpenAI 兼容、价格低；通义在国内生态与稳定性上更稳。" },
+  { kind: "text", first: "GPT-6 Astra / Claude Fable 5.1（质量）",
+    alt: "DeepSeek V4-Pro / Qwen3-Max / Kimi K3（国内/开源）", cost: "低–高",
+    why: "创意写作盲测前五是 GPT-6 Astra、Claude Fable 5.1、Claude Opus 5、GPT-6 Sol、Kimi K3；剧本量产更看中文与成本，国内主力用 DeepSeek V4-Pro 或 Qwen3-Max。" },
   { kind: "image", first: "Seedream 5.0 Pro（国内写实）",
     alt: "Nano Banana 2.1（定妆一致性）/ GPT Image 2.5（编辑与 4K）/ Qwen-Image 3（中文排版）",
     cost: "¥0.2–$0.135/张",
@@ -3790,15 +3790,15 @@ const MODEL_RECS = [
     alt: "Seedance 2.5（一致性）/ 可灵 Kling 3/4（多镜头）/ MiniMax H3（开源）/ Veo 3.1（口播 4K）",
     cost: "高（1080p 约 $0.20/秒）",
     why: "Wan 3.0 盲测榜第一，30 秒 1080p、原生音频、最多 20 个参考素材；Seedance 2.5 最多 50 个参考素材、身份一致性最强；Kling 3/4 强在多镜头与动作；Veo 3.1 / Gemini Omni 强在口播与 4K。Prime 只买速度，不买画质。" },
-  { kind: "tts", first: "CosyVoice（DashScope）",
-    alt: "OpenAI tts-1 / ElevenLabs", cost: "低",
-    why: "台词量随集数线性增长，中文情绪和音色克隆优先；CosyVoice 单价低、国内延迟低，多语言再考虑 OpenAI 或 ElevenLabs。" },
-  { kind: "music", first: "ACE-Step（自托管）",
-    alt: "Suno Pro/Premier / Stable Audio", cost: "低（自托管）–中",
-    why: "版权最干净：Apache-2.0 可自托管；Suno 仅 Pro/Premier 可商用且不保证版权，商用前必须确认授权档位。" },
-  { kind: "lipsync", first: "可灵 Lip Sync",
-    alt: "Sync.so / HeyGen / D-ID", cost: "中–高",
-    why: "口型单价通常是 TTS 的 10–50 倍，只对近景正脸镜开启；与视频同一家供应商，链路和计费更简单。" },
+  { kind: "tts", first: "Qwen-Audio-3.1-TTS-Plus（中文性价比）",
+    alt: "MiniMax Speech 2.8 HD / Eleven v4 / HeyGen Voice", cost: "低–中",
+    why: "Controlled Voice 榜前三：HeyGen Voice、Qwen-Audio-3.1、Eleven v4；中文短剧优先 Qwen（便宜、国内可用），角色克隆用 MiniMax，多语言用 ElevenLabs。" },
+  { kind: "music", first: "ACE-Step 1.5（自托管）",
+    alt: "Mureka V9（官方 API）/ Suno v6（质量）/ Lyria 3.5（低价）", cost: "低–中",
+    why: "ACE-Step 1.5 是 MIT、<4GB 显存、可带人声，授权最干净；Mureka V9 官方 API 带商用授权；Suno v6 质量领先但无官方 API，商用受订阅/下载限制。" },
+  { kind: "lipsync", first: "Sync.so（实拍修复）",
+    alt: "HeyGen Avatar IV（口播）/ Hedra / OmniHuman 2.0（生成式）/ Kling Avatar 2.0", cost: "中–高",
+    why: "实拍素材同步准确度看 Sync.so；单人口播/翻译用 HeyGen；一张图生成表演用 Hedra 或 OmniHuman；与视频同链路用 Kling Avatar。口型只对近景正脸镜开启。" },
 ];
 const IMAGE_MATRIX = [
   { name: "GPT Image 2.5", quality: "强", consistency: "强", text: "强", edit: "强", res: "4K", speed: "中", cost: "中–高", cn: "否" },
@@ -3846,6 +3846,19 @@ const VIDEO_SCENARIOS = [
   ["时效性 / 快速迭代", "Wan 3.0 Prime",
     "与 Wan 3.0 同画质，只买速度；等待成本高于约 40% 溢价时才值得。"],
 ];
+const OVERVIEW_ROWS = [
+  ["文本 / 剧本", "GPT-6 Astra / Claude Fable 5.1", "DeepSeek V4-Pro / Qwen3-Max / Kimi K3", "质量看海外前三；量产看中文与成本", "低–高", "部分"],
+  ["图像", "Seedream 5 Pro（写实）/ Nano Banana 2.1（定妆）", "GPT Image 2.5 / Qwen-Image 3 / Wan 2.5", "定妆看一致性，关键帧看写实，字效看 GPT", "中", "部分"],
+  ["视频", "Wan 3.0", "Seedance 2.5 / Kling 3-4 / Veo 3.1", "30s/1080p/音频/参考素材；一致性看 Seedance", "高", "是"],
+  ["语音 TTS", "Qwen-Audio-3.1-TTS-Plus", "MiniMax Speech 2.8 HD / Eleven v4 / HeyGen Voice", "中文性价比 vs 角色克隆 vs 多语言", "低–中", "是"],
+  ["音乐", "ACE-Step 1.5（授权干净）", "Mureka V9（官方 API）/ Suno v6（质量）/ Lyria 3.5", "自托管最干净；Suno 无官方 API", "低–中", "是"],
+  ["口型", "Sync.so（实拍修复）", "HeyGen Avatar IV / Hedra / OmniHuman 2.0 / Kling Avatar", "实拍同步 vs 口播 vs 生成式表演", "中–高", "部分"],
+];
+const BUNDLES = [
+  ["国内合规 / 成本优先", "DeepSeek V4-Pro + Seedream 5 Flash + Wan 3.0 + Qwen TTS + ACE-Step 1.5 + Kling Avatar 2.0", "全部国内云，成本可控；先用 Flash/标准版跑量。"],
+  ["质量优先（可用海外）", "GPT-6 Astra/Claude Fable + Nano Banana 2.1/GPT Image 2.5 + Wan 3.0/Seedance 2.5 + Eleven v4 + Mureka V9/Suno v6 + Sync.so/HeyGen", "质量上限最高；注意网络、账号与授权。"],
+  ["开源自托管", "Kimi K3 + Qwen-Image 3 + MiniMax H3 + CosyVoice 3/Qwen3-TTS + ACE-Step 1.5", "权重可自持、数据不出境；需要 GPU 与运维。"],
+];
 function viewModelGuide() {
   const cards = MODEL_RECS.map(r => {
     const meta = MODEL_KIND_META[r.kind];
@@ -3888,6 +3901,16 @@ function viewModelGuide() {
     <h3 style="margin:0 0 8px">${esc(t)}</h3>
     <div class="pill" style="display:inline-block;margin-bottom:8px">${esc(pick)}</div>
     <p class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin:0">${esc(why)}</p></div>`).join("");
+  const overviewRows = OVERVIEW_ROWS.map(r => `<tr>
+    <td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td>
+    <td style="white-space:normal;min-width:220px">${esc(r[3])}</td>
+    <td>${esc(r[4])}</td>
+    <td>${r[5].indexOf("是") === 0 ? `<span class="pill ok">${esc(r[5])}</span>` : `<span class="pill gold">${esc(r[5])}</span>`}</td>
+  </tr>`).join("");
+  const bundles = BUNDLES.map(([t, pick, why]) => `<div class="card">
+    <h3 style="margin:0 0 8px">${esc(t)}</h3>
+    <div class="pill" style="display:inline-block;margin-bottom:8px;white-space:normal">${esc(pick)}</div>
+    <p class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin:0">${esc(why)}</p></div>`).join("");
   const criteria = [
     ["中文理解", "剧本、台词、分镜提示词都是中文，优先中文语料强的模型。"],
     ["OpenAI 兼容", "直接填 URL 和 Key 就能接，少改代码、少踩协议坑。"],
@@ -3915,7 +3938,18 @@ function viewModelGuide() {
       </div>
     </div>
 
-    <h2 style="margin-top:24px">推荐组合 <span class="hint">2026-10 时点，按能力、成本、合规综合</span></h2>
+    <h2 style="margin-top:24px">六类模型综合总表 <span class="hint">先看这一张，再往下看分项</span></h2>
+    <div class="card table-scroll"><table class="compare-table overview-table">
+      <thead><tr><th>类型</th><th>首选</th><th>备选</th><th>怎么选</th><th>成本</th><th>国内可用</th></tr></thead>
+      <tbody>${overviewRows}</tbody></table></div>
+    <div class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin-top:10px">
+      综合 2026-10 的公开盲测、官方能力说明与实测文章；「部分」表示国产厂商可选但海外模型需网络/账号。
+      价格与授权会变，下单前以厂商当期条款为准。</div>
+
+    <h2 style="margin-top:24px">三套组合 <span class="hint">按团队条件直接选一套</span></h2>
+    <div class="rec-cards">${bundles}</div>
+
+    <h2 style="margin-top:26px">分项推荐 <span class="hint">每类的首选、备选与理由</span></h2>
     <div class="rec-cards">${cards}</div>
     <div class="card" style="margin-top:12px;background:var(--surface-2)">
       <b>关于图像模型的两点澄清</b>

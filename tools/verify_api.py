@@ -176,6 +176,18 @@ check("视频预设含 Seedance 2.5",
       _vid.get("豆包 Seedance 2.5", {}).get("model") == "doubao-seedance-2-5-260628")
 check("视频预设移除已关停 Sora",
       all("Sora" not in p["vendor"] for p in _presets["presets"]["video"]))
+_txt = {p["model"] for p in _presets["presets"]["text"]}
+check("文本预设含最新模型",
+      {"deepseek-v4-pro", "claude-fable-5-1", "kimi-k3"} <= _txt)
+_tts = {p["model"] for p in _presets["presets"]["tts"]}
+check("语音预设含最新模型",
+      {"qwen-audio-3.1-tts-plus", "speech-2.8-hd"} <= _tts)
+_mus = {p["model"] for p in _presets["presets"]["music"]}
+check("音乐预设含最新模型",
+      {"ace-step-1.5", "mureka-v9", "suno-v6"} <= _mus)
+_lip = {p["model"] for p in _presets["presets"]["lipsync"]}
+check("口型预设含最新模型",
+      {"sync-2.0", "avatar-iv", "kling-avatar-2.0"} <= _lip)
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])
