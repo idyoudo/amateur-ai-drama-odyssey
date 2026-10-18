@@ -646,3 +646,8 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
 /* G4：使用指南页面 */
 .help-page .help-nav{max-height:none}
 .help-page .help-content{max-height:none;overflow:visible;min-height:520px}
+
+/* G5：图像模型对比表 */
+.compare-table{min-width:980px}
+.compare-table th,.compare-table td{white-space:nowrap;padding:10px 12px}
+.compare-table td:first-child,.compare-table th:first-child{position:sticky;left:0;background:var(--surface);z-index:1}

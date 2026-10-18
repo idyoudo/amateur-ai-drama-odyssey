@@ -164,6 +164,8 @@ check("图像预设含 Seedream 5.0 Pro",
       _img.get("豆包 Seedream 5.0 Pro", {}).get("model", "").startswith("doubao-seedream-5-0-pro"))
 check("图像预设含 Wan 2.5",
       _img.get("通义万相 Wan 2.5", {}).get("model") == "wan2.5-t2i-preview")
+check("图像预设含 Qwen-Image 3",
+      _img.get("千问 Qwen-Image 3.0 Pro", {}).get("model") == "qwen-image-3.0-pro")
 check("图像预设不再用 wanx-v1",
       all(p["model"] != "wanx-v1" for p in _presets["presets"]["image"]))
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})

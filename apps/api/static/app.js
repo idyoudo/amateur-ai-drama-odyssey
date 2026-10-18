@@ -3782,9 +3782,10 @@ const MODEL_RECS = [
   { kind: "text", first: "DeepSeek（deepseek-chat）",
     alt: "通义千问 qwen3-max / Kimi K2", cost: "低",
     why: "剧本和大纲调用量最大，DeepSeek 中文强、OpenAI 兼容、价格低；通义在国内生态与稳定性上更稳。" },
-  { kind: "image", first: "豆包 Seedream 5.0 Pro",
-    alt: "Nano Banana 2.1 / GPT Image 2.5 / 通义万相 Wan 2.5", cost: "中–高（Pro）· 低（Wan 2.5）",
-    why: "定妆与关键帧最看重参考图一致性和中文提示词。Seedream 5.0 Pro 国内可用、最多 10 张参考图、2K；Nano Banana 2.1 最多 14 张参考图、可保持 4 个角色一致，一致性最强；GPT Image 2.5 在盲测榜单第一梯队；Wan 2.5 便宜、中文排版好，但画质不是第一梯队。DeepSeek 官方 API 不做图像生成。" },
+  { kind: "image", first: "Seedream 5.0 Pro（国内写实）",
+    alt: "Nano Banana 2.1（定妆一致性）/ GPT Image 2.5（编辑与 4K）/ Qwen-Image 3（中文排版）",
+    cost: "¥0.2–$0.135/张",
+    why: "没有单一最好：定妆看 Nano Banana 2.1，关键帧看 Seedream 5.0 Pro，编辑/4K 看 GPT Image 2.5，中文小字看 Qwen-Image 3；Wan 2.5 只是低成本选项。DeepSeek 官方不做图像生成。" },
   { kind: "video", first: "可灵 Kling v2",
     alt: "豆包 Seedance / MiniMax 海螺 / Vidu", cost: "高（按秒计费）",
     why: "视频是成本大头，先看参考图一致性、动作稳定性和国内可用性；可灵这三点较稳，Seedance 价格与速度更有优势。" },
@@ -3797,6 +3798,29 @@ const MODEL_RECS = [
   { kind: "lipsync", first: "可灵 Lip Sync",
     alt: "Sync.so / HeyGen / D-ID", cost: "中–高",
     why: "口型单价通常是 TTS 的 10–50 倍，只对近景正脸镜开启；与视频同一家供应商，链路和计费更简单。" },
+];
+const IMAGE_MATRIX = [
+  { name: "GPT Image 2.5", quality: "强", consistency: "强", text: "强", edit: "强", res: "4K", speed: "中", cost: "中–高", cn: "否" },
+  { name: "Nano Banana 2.1", quality: "强", consistency: "最强", text: "中", edit: "中", res: "4K", speed: "中", cost: "中", cn: "否" },
+  { name: "Seedream 5.0 Pro", quality: "强", consistency: "强", text: "强", edit: "强", res: "2K", speed: "慢", cost: "中", cn: "是" },
+  { name: "Seedream 5.0 Flash", quality: "中", consistency: "强", text: "强", edit: "中", res: "2K", speed: "快", cost: "低", cn: "是" },
+  { name: "Qwen-Image 3.0 Pro", quality: "中–强", consistency: "弱–中", text: "最强", edit: "弱", res: "2K", speed: "中", cost: "低", cn: "是" },
+  { name: "通义万相 Wan 2.5", quality: "中", consistency: "弱", text: "强", edit: "—", res: "2K", speed: "中", cost: "最低", cn: "是" },
+  { name: "DeepSeek", quality: "—", consistency: "—", text: "—", edit: "—", res: "—", speed: "—", cost: "—", cn: "是（仅文本）" },
+];
+const IMAGE_SCENARIOS = [
+  ["定妆 / 角色设定图", "Nano Banana 2.1 → Seedream 5.0 Pro",
+    "一致性优先：Nano Banana 2.1 最多 14 张参考图、可保持 4 个角色；国内合规用 Seedream 5 Pro（10 张参考图）。"],
+  ["关键帧 / 写实成片", "Seedream 5.0 Pro → GPT Image 2.5",
+    "Seedream 5 Pro 皮肤更自然、印刷级噪点更少；需要 4K 或更快返工用 GPT Image 2.5。"],
+  ["分镜草图 / 批量抽卡", "Seedream 5.0 Flash → Qwen-Image 3 → Wan 2.5",
+    "Flash 约 $0.018/张、23–28 秒；Qwen 1K/2K 同价；Wan 2.5 约 ¥0.2/张。"],
+  ["海报 / 字效 / 信息图", "GPT Image 2.5 → Qwen-Image 3.0 Pro → Seedream 5 Pro",
+    "GPT 文字最准；Qwen 支持 10px 中文小字且便宜；Seedream 支持 14 种语言排版。"],
+  ["局部返工（服装/道具/表情）", "GPT Image 2.5 → Seedream 5.0 Pro → Nano Banana 2.1",
+    "GPT 编辑漂移最小（区外约 1.1%）、43–55 秒；Seedream 支持标注框与图层但慢（130–216 秒）；Nano 适合对话式多轮修改。"],
+  ["国内合规 / 数据不出境", "Seedream 5 Pro/Flash、Qwen-Image 3、Wan 2.5",
+    "都在国内云上：Seedream 质量优先，Qwen 中文文字/性价比，Wan 最低成本。"],
 ];
 function viewModelGuide() {
   const cards = MODEL_RECS.map(r => {
@@ -3812,6 +3836,23 @@ function viewModelGuide() {
       <button class="btn ghost sm" style="margin-top:12px" onclick="go('model-add:${r.kind}')">去添加</button>
     </div>`;
   }).join("");
+  const rate = v => {
+    if (v === "—") return `<span class="muted">—</span>`;
+    if (v === "中") return `<span class="pill gold">${esc(v)}</span>`;
+    if (v.indexOf("弱") === 0) return `<span class="pill bad">${esc(v)}</span>`;
+    return `<span class="pill ok">${esc(v)}</span>`;
+  };
+  const matrixRows = IMAGE_MATRIX.map(r => `<tr>
+    <td><b>${esc(r.name)}</b></td>
+    <td>${rate(r.quality)}</td><td>${rate(r.consistency)}</td><td>${rate(r.text)}</td>
+    <td>${rate(r.edit)}</td><td>${esc(r.res)}</td><td>${esc(r.speed)}</td>
+    <td>${esc(r.cost)}</td>
+    <td>${r.cn.indexOf("是") === 0 ? `<span class="pill ok">${esc(r.cn)}</span>` : `<span class="pill bad">${esc(r.cn)}</span>`}</td>
+  </tr>`).join("");
+  const scenarios = IMAGE_SCENARIOS.map(([t, pick, why]) => `<div class="card">
+    <h3 style="margin:0 0 8px">${esc(t)}</h3>
+    <div class="pill" style="display:inline-block;margin-bottom:8px">${esc(pick)}</div>
+    <p class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin:0">${esc(why)}</p></div>`).join("");
   const criteria = [
     ["中文理解", "剧本、台词、分镜提示词都是中文，优先中文语料强的模型。"],
     ["OpenAI 兼容", "直接填 URL 和 Key 就能接，少改代码、少踩协议坑。"],
@@ -3847,6 +3888,19 @@ function viewModelGuide() {
         1）通义万相 Wan 2.5 是性价比选择，不是画质第一梯队；当前盲测榜单前列是 GPT Image 2.5、Nano Banana 2.1、Seedream 5 系列。<br>
         2）DeepSeek 官方 API 只做文本与视觉理解，不做图像生成；Janus-Pro 是 MIT 开源研究模型，画质和一致性不适合生产定妆/关键帧。建议用 DeepSeek 写剧本和优化提示词，出图交给专业图像模型。</p>
     </div>
+
+    <h2 style="margin-top:28px">图像模型多维对比
+      <span class="hint">画质 / 一致性 / 中文文字 / 编辑 / 分辨率 / 速度 / 成本 / 国内可用</span></h2>
+    <div class="card table-scroll"><table class="compare-table">
+      <thead><tr><th>模型</th><th>画质</th><th>角色一致性</th><th>中文文字</th><th>局部编辑</th>
+        <th>最高分辨率</th><th>速度</th><th>成本</th><th>国内可用</th></tr></thead>
+      <tbody>${matrixRows}</tbody></table></div>
+    <div class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin-top:10px">
+      评级依据：公开盲测榜（Artificial Analysis、Qwen-Image-Bench）、厂商官方能力说明与同提示词实测文章，按短剧场景归纳。
+      成本随分辨率、质量档与渠道变化，上线前以厂商当期价格为准；「—」表示不提供该能力。</div>
+
+    <h2 style="margin-top:28px">按场景选图像模型</h2>
+    <div class="rec-cards">${scenarios}</div>
 
     <h2 style="margin-top:26px">推荐依据</h2>
     <div class="guide-terms">${criteria.map(([k, v]) => `<div class="guide-term"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("")}</div>
