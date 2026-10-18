@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import create_engine, select, func
+from sqlalchemy import create_engine, select, func, or_
 from sqlalchemy.orm import sessionmaker
 
 from apps.api import auth
@@ -51,6 +51,10 @@ try:
         for _name, _typ in _ADD_COLS.items():
             if _name not in _project_cols:
                 _c.execute(_text2("ALTER TABLE projects ADD COLUMN %s %s" % (_name, _typ)))
+    _char_cols = {c["name"] for c in _inspect(engine).get_columns("characters")}
+    if "source_meta" not in _char_cols:
+        with engine.begin() as _c:
+            _c.execute(_text2("ALTER TABLE characters ADD COLUMN source_meta JSON"))
 except Exception:  # noqa: BLE001
     pass
 Session = sessionmaker(bind=engine, expire_on_commit=False)
@@ -952,6 +956,141 @@ def assets_summary(limit: int = 120, offset: int = 0):
                        "size": sh.size, "move": sh.move, "duration": sh.duration,
                        "status": sh.status, "episode_id": sh.episode_id} for sh in shots],
             "total_shots": total_shots, "limit": limit, "offset": offset}
+
+
+@app.get("/api/assets")
+def assets(project_id: Optional[int] = None, q: str = "", status: str = "",
+           limit: int = 60, offset: int = 0):
+    """资产库：跨项目角色 + 镜头，支持项目/关键词/状态筛选与分页。"""
+    return _query_assets(project_id, q, status, limit, offset)
+
+
+@app.get("/api/assets/export")
+def export_assets(project_id: Optional[int] = None, q: str = ""):
+    """导出当前筛选条件下的资产清单（角色 + 镜头）。"""
+    from datetime import datetime
+    d = _query_assets(project_id, q, "", 5000, 0)
+    d["exported_at"] = datetime.utcnow().isoformat() + "Z"
+    return d
+
+
+def _char_json(c, projs):
+    return {"id": c.id, "project_id": c.project_id, "project": projs.get(c.project_id, ""),
+            "name": c.name, "voice": c.voice_key, "anchors": c.anchors or [],
+            "status": c.status, "source_meta": c.source_meta or {}}
+
+
+def _shot_json(sh, projs):
+    return {"id": sh.id, "project_id": sh.project_id, "project": projs.get(sh.project_id, ""),
+            "episode_id": sh.episode_id, "shot_no": sh.shot_no, "scene_no": sh.scene_no,
+            "size": sh.size, "angle": sh.angle, "move": sh.move, "duration": sh.duration,
+            "characters": sh.characters or [], "dialogue": sh.dialogue, "prompt": sh.prompt,
+            "status": sh.status, "image_key": sh.image_key, "continuity": sh.continuity or {}}
+
+
+def _query_assets(project_id=None, q="", status="", limit=60, offset=0):
+    limit = max(1, min(limit, 5000))
+    offset = max(0, offset)
+    q = (q or "").strip()
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        cc = []
+        if project_id:
+            cc.append(jobs_db.Character.project_id == project_id)
+        if q:
+            cc.append(jobs_db.Character.name.ilike("%" + q + "%"))
+        if status:
+            cc.append(jobs_db.Character.status == status)
+        chars = s.scalars(select(jobs_db.Character).where(*cc)
+                          .order_by(jobs_db.Character.id.desc())).all()
+
+        base = []
+        if project_id:
+            base.append(jobs_db.Shot.project_id == project_id)
+        if q:
+            like = "%" + q + "%"
+            base.append(or_(jobs_db.Shot.prompt.ilike(like),
+                            jobs_db.Shot.dialogue.ilike(like),
+                            jobs_db.Shot.size.ilike(like),
+                            jobs_db.Shot.move.ilike(like)))
+        sc = list(base)
+        if status:
+            sc.append(jobs_db.Shot.status == status)
+        total_shots = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(*base)) or 0
+        generated = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(
+            *(base + [jobs_db.Shot.status.in_(("已生成", "已选定"))]))) or 0
+        selected = s.scalar(select(func.count()).select_from(jobs_db.Shot).where(
+            *(base + [jobs_db.Shot.status == "已选定"]))) or 0
+        shots = s.scalars(select(jobs_db.Shot).where(*sc).order_by(jobs_db.Shot.id.desc())
+                          .offset(offset).limit(limit)).all()
+    return {"characters": [_char_json(c, projs) for c in chars],
+            "character_total": len(chars),
+            "shots": [_shot_json(sh, projs) for sh in shots],
+            "shot_total": total_shots,
+            "stats": {"characters": len(chars), "shots": total_shots,
+                      "generated": generated, "selected": selected},
+            "limit": limit, "offset": offset}
+
+
+@app.get("/api/assets/characters/{char_id}")
+def asset_character(char_id: int):
+    with Session() as s:
+        c = s.get(jobs_db.Character, char_id)
+        if c is None:
+            raise HTTPException(status_code=404, detail="角色不存在")
+        p = s.get(jobs_db.Project, c.project_id)
+        projs = {c.project_id: p.title if p else ""}
+        shots = s.scalars(select(jobs_db.Shot).where(
+            jobs_db.Shot.project_id == c.project_id).order_by(jobs_db.Shot.id)).all()
+    linked = [sh for sh in shots if c.name in (sh.characters or [])]
+    return {**_char_json(c, projs), "shot_count": len(linked),
+            "shots": [_shot_json(sh, projs) for sh in linked[:60]]}
+
+
+@app.get("/api/assets/shots/{shot_id}")
+def asset_shot(shot_id: int):
+    with Session() as s:
+        sh = s.get(jobs_db.Shot, shot_id)
+        if sh is None:
+            raise HTTPException(status_code=404, detail="镜头不存在")
+        p = s.get(jobs_db.Project, sh.project_id)
+        projs = {sh.project_id: p.title if p else ""}
+        cands = s.scalars(select(jobs_db.Candidate).where(
+            jobs_db.Candidate.shot_id == shot_id).order_by(jobs_db.Candidate.idx)).all()
+    return {**_shot_json(sh, projs),
+            "candidates": [{"id": c.id, "idx": c.idx, "image_key": c.image_key,
+                            "score": c.score, "selected": bool(c.selected)} for c in cands]}
+
+
+@app.post("/api/assets/characters/{char_id}/copy")
+def copy_character(char_id: int, body: dict):
+    """把角色资产复用到另一个项目（同项目同名幂等）。"""
+    try:
+        target = int(body.get("target_project_id"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="target_project_id 非法")
+    with Session() as s:
+        src = s.get(jobs_db.Character, char_id)
+        if src is None:
+            raise HTTPException(status_code=404, detail="角色不存在")
+        tgt = s.get(jobs_db.Project, target)
+        if tgt is None:
+            raise HTTPException(status_code=404, detail="目标项目不存在")
+        if src.project_id == target:
+            raise HTTPException(status_code=409, detail="源项目与目标项目相同")
+        existing = s.scalars(select(jobs_db.Character).where(
+            jobs_db.Character.project_id == target,
+            jobs_db.Character.name == src.name)).first()
+        if existing:
+            return {"created": False, "id": existing.id, "name": existing.name,
+                    "project": tgt.title}
+        row = jobs_db.Character(project_id=target, name=src.name, voice_key=src.voice_key,
+                                anchors=src.anchors or [], status=src.status or "已定妆",
+                                source_meta={"copied_from": src.id,
+                                             "source_project_id": src.project_id})
+        s.add(row)
+        s.commit()
+        return {"created": True, "id": row.id, "name": row.name, "project": tgt.title}
 
 
 @app.get("/api/jobs/summary")

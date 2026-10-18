@@ -145,6 +145,24 @@ h2:first-child{margin-top:0}
 .asset .body .meta{margin-top:12px;display:flex;gap:5px;flex-wrap:wrap}
 .asset .body .meta span{font-size:var(--fs-meta);color:var(--dim);background:var(--surface-2);padding:2px 7px;
   border-radius:4px;font-weight:500;border:1px solid var(--line);letter-spacing:.01em}
+.asset.clickable{cursor:pointer}
+
+/* 资产库：详情与复用 */
+.anchor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.anchor-box{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-md);
+  padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--dim)}
+.anchor-box svg{width:28px;height:28px}
+.anchor-box b{font-size:var(--fs-table);font-weight:500;color:var(--ink-2)}
+.asset-shot-list{display:flex;flex-direction:column;gap:6px}
+.asset-shot-row{display:grid;grid-template-columns:1.2fr 1fr .5fr auto;gap:10px;align-items:center;
+  padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:var(--fs-table);cursor:pointer}
+.asset-shot-row:hover{background:var(--surface-2)}
+.cand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.cand-box{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-md);
+  padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--dim)}
+.cand-box svg{width:26px;height:26px}
+.cand-box b{font-size:var(--fs-table);color:var(--ink-2)}
+.cand-box span{font-size:var(--fs-sm)}
 
 /* 表格 */
 table{width:100%;border-collapse:collapse}

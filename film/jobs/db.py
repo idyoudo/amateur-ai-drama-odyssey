@@ -147,6 +147,7 @@ class Character(Base):
     voice_key: Mapped[str] = mapped_column(String(64), nullable=True)
     anchors: Mapped[dict] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(16), default="待定妆")
+    source_meta: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
 

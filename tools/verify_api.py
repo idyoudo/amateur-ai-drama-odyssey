@@ -234,6 +234,35 @@ check("全流程含分镜数", d["shots"] > 0)
 check("全流程可交付", d["deliverable"] is True)
 check("全流程含成片时长", d["total_duration"] > 0)
 
+# 资产库（筛选 / 详情 / 复用 / 导出）
+r = client.get("/api/assets?limit=5", headers=H)
+d = r.json()
+check("资产库 200", r.status_code == 200 and d["character_total"] > 0 and d["shot_total"] > 0)
+check("资产库统计", d["stats"]["generated"] > 0)
+check("资产库分页", len(d["shots"]) <= 5)
+cid, sid = d["characters"][0]["id"], d["shots"][0]["id"]
+_p2chars = client.get("/api/dramas/%d/characters" % p2, headers=H).json()
+if _p2chars:
+    cid = _p2chars[0]["id"]
+r = client.get("/api/assets?q=主角", headers=H)
+check("资产搜索", r.status_code == 200 and all("主角" in c["name"] for c in r.json()["characters"]))
+r = client.get("/api/assets/characters/%d" % cid, headers=H)
+check("角色详情", r.status_code == 200 and "shots" in r.json() and "shot_count" in r.json())
+r = client.get("/api/assets/shots/%d" % sid, headers=H)
+check("镜头详情", r.status_code == 200 and "candidates" in r.json())
+_target = client.post("/api/dramas", headers=H,
+                      json={"title": "复用目标", "logline": "资产复用测试项目",
+                            "platform": "p", "rating": "全龄", "genre": "悬疑"}).json()["id"]
+r = client.post("/api/assets/characters/%d/copy" % cid, headers=H,
+                json={"target_project_id": _target})
+check("角色复用", r.status_code == 200 and r.json()["created"] is True)
+r = client.post("/api/assets/characters/%d/copy" % cid, headers=H,
+                json={"target_project_id": _target})
+check("角色复用幂等", r.status_code == 200 and r.json()["created"] is False)
+r = client.get("/api/assets/export?project_id=%d" % p2, headers=H)
+d = r.json()
+check("资产导出", r.status_code == 200 and d["exported_at"] and len(d["characters"]) > 0)
+
 # Playground
 r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
 check("Playground 生成 200", r.status_code == 200)

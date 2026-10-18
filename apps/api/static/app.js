@@ -1452,23 +1452,202 @@ async function runPipeline(id) {
 }
 
 /* ---------- 资产库 ---------- */
-async function viewAssets() {
-  const d = await api("/api/assets/summary?limit=120");
-  const chars = d.characters || [], shots = d.shots || [];
+/* ---------- 资产库（角色 + 镜头：筛选 / 详情 / 复用 / 导出） ---------- */
+const ASSET = { projects: [], chars: [], shots: [], totals: {}, shotTotal: 0,
+  project_id: "", q: "", kind: "all", status: "", limit: 60, offset: 0 };
+let _assetTimer = null;
+
+function scheduleAssetSearch() { clearTimeout(_assetTimer); _assetTimer = setTimeout(reloadAssets, 300); }
+function assetProjectOptions() {
+  return `<option value="">全部项目</option>` + (ASSET.projects || []).map(p =>
+    `<option value="${p.id}" ${String(ASSET.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
+}
+function assetStatusOptions() {
+  const opts = ASSET.kind === "characters" ? ["已定妆", "待定妆"]
+    : ASSET.kind === "shots" ? ["待生成", "已生成", "已选定"]
+      : ["已定妆", "待定妆", "待生成", "已生成", "已选定"];
+  return `<option value="">全部状态</option>` + opts.map(s =>
+    `<option value="${s}" ${ASSET.status === s ? "selected" : ""}>${s}</option>`).join("");
+}
+async function fetchAssets(append) {
+  const params = new URLSearchParams({ limit: String(ASSET.limit),
+    offset: String(append ? ASSET.shots.length : 0) });
+  if (ASSET.q) params.set("q", ASSET.q);
+  if (ASSET.project_id) params.set("project_id", ASSET.project_id);
+  if (ASSET.status) params.set("status", ASSET.status);
+  const d = await api("/api/assets?" + params.toString());
+  ASSET.totals = d.stats || {};
+  ASSET.shotTotal = d.shot_total || 0;
+  ASSET.characterTotal = d.character_total || 0;
+  if (append) ASSET.shots = ASSET.shots.concat(d.shots || []);
+  else { ASSET.chars = d.characters || []; ASSET.shots = d.shots || []; }
+}
+async function reloadAssets() {
+  ASSET.q = ($("#asset_q") || {}).value || "";
+  ASSET.project_id = ($("#asset_project") || {}).value || "";
+  ASSET.status = ($("#asset_status") || {}).value || "";
+  ASSET.offset = 0;
+  try { await fetchAssets(false); } catch (e) { return toast("资产加载失败：" + e.message); }
+  renderAssets();
+  const q = $("#asset_q");
+  if (q && ASSET.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function setAssetKind(kind) {
+  ASSET.kind = kind; ASSET.status = "";
+  const s = $("#asset_status"); if (s) s.value = "";
+  reloadAssets();
+}
+function resetAssetFilters() {
+  ASSET.q = ""; ASSET.project_id = ""; ASSET.status = ""; ASSET.kind = "all";
+  const q = $("#asset_q"), p = $("#asset_project"), s = $("#asset_status"), k = $("#asset_kind");
+  if (q) q.value = "";
+  if (p) p.value = "";
+  if (s) s.value = "";
+  if (k) k.value = "all";
+  reloadAssets();
+}
+async function loadMoreAssets() {
+  try { await fetchAssets(true); renderAssets(); }
+  catch (e) { toast("加载失败：" + e.message); }
+}
+function assetCharacterSection(chars) {
+  return `<h2>角色 <span class="hint">${ASSET.characterTotal || 0} 个 · 点击查看定妆与复用</span></h2>
+    ${chars.length ? `<div class="cards">${chars.map(c => `<div class="asset clickable" onclick="openAssetCharacter(${c.id})">
+      <div class="thumb">${ico("face")}<span class="tag">${esc(c.project)}</span></div>
+      <div class="body"><h4>${esc(c.name)}${(c.source_meta && c.source_meta.copied_from) ? ' <span class="pill">复用</span>' : ""}</h4>
+        <div class="meta"><span>音色 ${esc(c.voice || "—")}</span>${(c.anchors || []).map(a => `<span>${esc(VIEWNAME[a] || a)}</span>`).join("")}</div>
+        <div class="meta" style="margin-top:8px"><span class="pill ${c.status === "已定妆" ? "ok" : ""}">${esc(c.status)}</span></div>
+      </div></div>`).join("")}</div>`
+      : `<div class="card empty">${ico("face")}<div>没有匹配的角色资产</div></div>`}`;
+}
+function assetShotSection(shots) {
+  return `<h2>镜头 <span class="hint">已显示 ${shots.length} / 共 ${ASSET.shotTotal || 0}</span></h2>
+    ${shots.length ? `<div class="cards">${shots.map(s => `<div class="asset clickable" onclick="openAssetShot(${s.id})">
+      <div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
+        <span class="tag">${esc(s.project)} · E${s.episode_id || 1} · 镜${s.shot_no}</span></div>
+      <div class="body"><div class="meta"><span>${esc(s.size || "—")}</span><span>${esc(s.move || "—")}</span><span>${s.duration || 0}s</span>
+        <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}">${esc(s.status)}</span></div>
+        <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">${esc((s.characters || []).join("、") || s.prompt || "—")}</div>
+      </div></div>`).join("")}</div>` : `<div class="card empty">${ico("frame")}<div>没有匹配的镜头资产</div></div>`}
+    ${shots.length < (ASSET.shotTotal || 0) ? `<div style="margin-top:14px"><button class="btn ghost" onclick="loadMoreAssets()">加载更多</button></div>` : ""}`;
+}
+function renderAssets() {
+  const stats = ASSET.totals || {};
   setMain({
     title: "资产库",
-    top: `<div class="right"><span class="pill">${chars.length} 角色</span><span class="pill">${shots.length} 镜头</span></div>`,
-    body: `${chars.length ? `<h2>角色 <span class="hint">定妆锚点 + 音色</span></h2>
-      <div class="cards">${chars.map(c => `<div class="asset"><div class="thumb">${ico("face")}<span class="tag">${esc(c.project)}</span></div>
-        <div class="body"><h4>${esc(c.name)}</h4>
-          <div class="meta"><span>音色 ${esc(c.voice)}</span>${(c.anchors||[]).map(a => `<span>${esc(VIEWNAME[a]||a)}</span>`).join("")}</div></div></div>`).join("")}</div>` : ""}
-      ${shots.length ? `<h2>镜头 <span class="hint">按状态</span></h2>
-      <div class="cards">${shots.slice(0, 60).map(s => `<div class="asset"><div class="thumb">${ico(s.status === "已生成" || s.status === "已选定" ? "frame" : "film")}
-        <span class="tag">${esc(s.project)} · 镜${s.shot_no}</span></div>
-        <div class="body"><div class="meta"><span>${esc(s.size)}</span><span>${esc(s.move)}</span><span>${s.duration}s</span>
-          <span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}" style="font-size:var(--fs-micro)">${esc(s.status)}</span></div></div></div>`).join("")}</div>` : ""}
-      ${(!chars.length && !shots.length) ? `<div class="card empty">${ico("layers")}<div>还没有资产</div><div class="muted" style="font-size:var(--fs-sm);margin-top:4px">先在项目里运行流水线</div></div>` : ""}`,
+    top: `<div class="right"><button class="btn ghost sm" onclick="exportAssets()">导出清单</button></div>`,
+    body: `
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="k">${stats.characters || 0}</div><div class="l">角色资产</div></div>
+      <div class="stat"><div class="k">${stats.shots || 0}</div><div class="l">镜头资产</div></div>
+      <div class="stat"><div class="k">${stats.generated || 0}</div><div class="l">已生成镜头</div></div>
+      <div class="stat"><div class="k">${stats.selected || 0}</div><div class="l">已选定镜头</div></div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <input id="asset_q" placeholder="搜索角色名 / 镜头提示词" value="${esc(ASSET.q)}" oninput="scheduleAssetSearch()">
+        <select id="asset_project" onchange="reloadAssets()">${assetProjectOptions()}</select>
+        <select id="asset_kind" onchange="setAssetKind(this.value)">
+          <option value="all" ${ASSET.kind === "all" ? "selected" : ""}>全部资产</option>
+          <option value="characters" ${ASSET.kind === "characters" ? "selected" : ""}>仅角色</option>
+          <option value="shots" ${ASSET.kind === "shots" ? "selected" : ""}>仅镜头</option></select>
+        <select id="asset_status" onchange="reloadAssets()">${assetStatusOptions()}</select>
+        <button class="btn ghost" onclick="resetAssetFilters()">重置</button>
+      </div>
+    </div>
+    ${ASSET.kind !== "shots" ? assetCharacterSection(ASSET.chars) : ""}
+    ${ASSET.kind !== "characters" ? assetShotSection(ASSET.shots) : ""}`,
   }, true);
+}
+async function viewAssets() {
+  try {
+    const projs = await api("/api/dramas");
+    ASSET.projects = projs;
+    await fetchAssets(false);
+  } catch (e) {
+    return setMain({ title: "资产库", body: `<div class="card empty">资产加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewAssets()">重试</button></div></div>` });
+  }
+  renderAssets();
+}
+async function openAssetCharacter(id) {
+  let d; try { d = await api("/api/assets/characters/" + id); }
+  catch (e) { return toast("角色加载失败：" + e.message); }
+  const anchors = d.anchors || [];
+  const targetOpts = (ASSET.projects || []).filter(p => String(p.id) !== String(d.project_id))
+    .map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join("");
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "assetcharmodal";
+  modal.innerHTML = `<div class="box" style="max-width:860px">
+    <div class="mhead"><h2>${esc(d.name)} <span class="pill">${esc(d.project)}</span></h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">
+      <div class="kv">
+        <div class="k">音色</div><div>${esc(d.voice || "—")}</div>
+        <div class="k">状态</div><div><span class="pill ${d.status === "已定妆" ? "ok" : ""}">${esc(d.status)}</span></div>
+        <div class="k">定妆锚点</div><div>${anchors.length} 张</div>
+        <div class="k">关联镜头</div><div>${d.shot_count || 0} 个</div>
+        ${d.source_meta && d.source_meta.copied_from ? `<div class="k">复用来源</div><div>角色 #${d.source_meta.copied_from}</div>` : ""}
+      </div>
+      <h2 style="margin-top:22px">定妆锚点</h2>
+      <div class="anchor-grid">${anchors.map(a => `<div class="anchor-box">${ico("face")}<b>${esc(VIEWNAME[a] || a)}</b></div>`).join("") || `<div class="muted">暂无锚点</div>`}</div>
+      <h2 style="margin-top:22px">关联镜头 <span class="hint">${d.shot_count || 0} 个</span></h2>
+      <div class="asset-shot-list">${(d.shots || []).map(s => `<div class="asset-shot-row" onclick="closeModal();openAssetShot(${s.id})">
+        <span>E${s.episode_id || 1} · 镜${s.shot_no}</span><span>${esc(s.size || "—")} ${esc(s.move || "")}</span>
+        <span>${s.duration || 0}s</span><span class="pill ${s.status === "已生成" || s.status === "已选定" ? "ok" : ""}">${esc(s.status)}</span></div>`).join("") || `<div class="muted">尚无关联镜头</div>`}</div>
+      <h2 style="margin-top:22px">复用到其他项目</h2>
+      ${targetOpts ? `<div class="toolbar"><select id="copy_target">${targetOpts}</select>
+        <button class="btn" onclick="copyAssetCharacter(${d.id})">复制角色资产</button></div>`
+        : `<div class="muted">没有其他项目可复用</div>`}
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+async function copyAssetCharacter(id) {
+  const target = ($("#copy_target") || {}).value;
+  if (!target) return toast("选择目标项目");
+  try {
+    const d = await api("/api/assets/characters/" + id + "/copy", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target_project_id: Number(target) }) });
+    toast(d.created ? `已复制到《${d.project}》` : `《${d.project}》已有同名角色`);
+    closeModal(); await reloadAssets();
+  } catch (e) { toast("复制失败：" + e.message); }
+}
+async function openAssetShot(id) {
+  let d; try { d = await api("/api/assets/shots/" + id); }
+  catch (e) { return toast("镜头加载失败：" + e.message); }
+  const cands = d.candidates || [];
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "assetshotmodal";
+  modal.innerHTML = `<div class="box" style="max-width:860px">
+    <div class="mhead"><h2>E${d.episode_id || 1} · 镜 ${d.shot_no} <span class="pill">${esc(d.project)}</span></h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody">
+      <div class="kv">
+        <div class="k">景别 / 运镜</div><div>${esc(d.size || "—")} · ${esc(d.angle || "—")} · ${esc(d.move || "—")}</div>
+        <div class="k">时长</div><div>${d.duration || 0} 秒</div>
+        <div class="k">状态</div><div><span class="pill ${d.status === "已生成" || d.status === "已选定" ? "ok" : ""}">${esc(d.status)}</span></div>
+        <div class="k">角色</div><div>${esc((d.characters || []).join("、") || "—")}</div>
+        <div class="k">台词</div><div>${esc(d.dialogue || "—")}</div>
+        <div class="k">提示词</div><div>${esc(d.prompt || "—")}</div>
+      </div>
+      <h2 style="margin-top:22px">候选 <span class="hint">${cands.length} 个</span></h2>
+      <div class="cand-grid">${cands.map(c => `<div class="cand-box">${ico("frame")}
+        <b>#${c.idx + 1}${c.selected ? " · 已选" : ""}</b>
+        <span>${c.score != null ? "评分 " + c.score : "未评分"}</span></div>`).join("") || `<div class="muted">尚无候选图</div>`}</div>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+async function exportAssets() {
+  const params = new URLSearchParams();
+  if (ASSET.q) params.set("q", ASSET.q);
+  if (ASSET.project_id) params.set("project_id", ASSET.project_id);
+  try {
+    const d = await api("/api/assets/export?" + params.toString());
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = "aado-assets.json"; a.click(); URL.revokeObjectURL(url);
+    toast("资产清单已导出");
+  } catch (e) { toast("导出失败：" + e.message); }
 }
 
 /* ---------- 任务队列（PG SKIP LOCKED 队列的运维视图） ---------- */

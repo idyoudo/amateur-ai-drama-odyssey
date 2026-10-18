@@ -63,6 +63,7 @@
 | `docs/plans/` | `模型配置安全轮-候选.md` | 安全轮候选 G1–G4 |
 | `docs/plans/` | `模型配置安全轮-选举记录.md` | 安全轮选举结果与实现落地 |
 | `docs/plans/` | `短剧格式与小说改编-调研.md` | 红果/抖音/快手/YouTube 分集格式与小说改编推荐规则 |
+| `docs/plans/` | `资产库-方案.md` | 角色/镜头资产库：筛选、详情、跨项目复用、分页与导出 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
