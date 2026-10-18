@@ -173,6 +173,24 @@ class ModuleParams(Base):
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 
+class SubtitleTrack(Base):
+    """字幕轨：项目/分集/语言 + 状态 + 时间轴文本（SRT 可导入导出）。"""
+    __tablename__ = "subtitle_tracks"
+    __table_args__ = (UniqueConstraint("project_id", "episode_id", "language",
+                                       name="uq_subtitle_track"),
+                      Index("ix_subtitles_project", "project_id"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    episode_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    language: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_language: Mapped[str] = mapped_column(String(16), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="待翻译")
+    cues: Mapped[dict] = mapped_column(JSON, default=list)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class Distribution(Base):
     """分发记录：项目 → 渠道，排期/发布状态与运营数据（未接平台 API 时为 Mock）。"""
     __tablename__ = "distributions"

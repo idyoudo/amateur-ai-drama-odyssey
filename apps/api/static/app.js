@@ -173,7 +173,7 @@ function ico(name, cls) {
 /* ---------- 外壳（带文字标签的侧边栏） ---------- */
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
-  ["资产", [["assets","资产库","layers"],["playground","生成台","lab"]]],
+  ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["playground","生成台","lab"]]],
   ["运行", [["distribution","分发","route"],["reviews","审核","check"],["jobs","任务","list"]]],
   ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
 ];
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "playground", "distribution", "reviews", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "playground", "distribution", "reviews", "jobs", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -298,6 +298,7 @@ async function routeView(name, param) {
   if (name === "project") return viewProject(param);
   if (name === "new-project") return viewProjectCreate();
   if (name === "assets") return viewAssets();
+  if (name === "subtitles") return viewSubtitles();
   if (name === "playground") return viewPlayground();
   if (name === "distribution") return viewDistribution();
   if (name === "reviews") return viewReviews();
@@ -1701,6 +1702,186 @@ async function exportAssets() {
     a.href = url; a.download = "aado-assets.json"; a.click(); URL.revokeObjectURL(url);
     toast("资产清单已导出");
   } catch (e) { toast("导出失败：" + e.message); }
+}
+
+/* ---------- 字幕与本地化 ---------- */
+const SUB = { projects: [], tracks: [], languages: {}, statuses: [], project_id: "",
+  episode: 1, language: "zh", track: null };
+async function viewSubtitles() {
+  try { SUB.projects = await api("/api/dramas"); }
+  catch (e) { return setMain({ title: "字幕", body: `<div class="card empty">项目加载失败：${esc(e.message)}</div>` }); }
+  if (!SUB.projects.length) {
+    return setMain({ title: "字幕", body: `<div class="card empty">${ico("doc")}<div>还没有项目</div>
+      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button></div></div>` });
+  }
+  if (!SUB.project_id) SUB.project_id = String(SUB.projects[0].id);
+  await loadSubtitleTracks();
+}
+async function loadSubtitleTracks() {
+  try {
+    const d = await api("/api/subtitles?project_id=" + SUB.project_id + "&episode_id=" + SUB.episode);
+    SUB.tracks = d.items || [];
+    SUB.languages = d.languages || {};
+    SUB.statuses = d.statuses || [];
+  } catch (e) { return toast("字幕加载失败：" + e.message); }
+  const keep = SUB.track && SUB.tracks.find(t => t.id === SUB.track.id);
+  if (keep) await selectSubtitleTrack(keep.id);
+  else { SUB.track = null; renderSubtitles(); }
+}
+async function selectSubtitleTrack(id) {
+  try { SUB.track = await api("/api/subtitles/" + id); }
+  catch (e) { return toast("字幕轨加载失败：" + e.message); }
+  SUB.language = SUB.track.language;
+  SUB.episode = SUB.track.episode_id;
+  renderSubtitles();
+}
+function subProjectOptions() {
+  return SUB.projects.map(p => `<option value="${p.id}" ${String(SUB.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
+}
+function subLanguageOptions(selected, includeEmpty) {
+  const opts = Object.entries(SUB.languages || {}).map(([k, v]) =>
+    `<option value="${k}" ${k === selected ? "selected" : ""}>${esc(v)}</option>`).join("");
+  return includeEmpty ? `<option value="">目标语言…</option>` + opts : opts;
+}
+function subCueRow(c, i) {
+  return `<tr>
+    <td class="cue-num">${i + 1}</td>
+    <td><input class="cue-start" type="number" min="0" step="0.1" value="${c.start}"></td>
+    <td><input class="cue-end" type="number" min="0" step="0.1" value="${c.end}"></td>
+    <td><input class="cue-text" value="${esc(c.text)}"></td>
+    <td><button class="btn ghost sm" onclick="this.closest('tr').remove()">移除</button></td></tr>`;
+}
+function renderSubtitles() {
+  const t = SUB.track;
+  setMain({
+    title: "字幕",
+    top: `<div class="right"><span class="pill">${SUB.languages[SUB.language] || SUB.language}</span></div>`,
+    body: `<div class="sub-layout">
+      <aside class="sub-side">
+        <div class="card"><div class="stack">
+          <select id="sub_project" onchange="switchSubtitleContext()">${subProjectOptions()}</select>
+          <div class="row2">
+            <input id="sub_episode" type="number" min="1" value="${SUB.episode}" onchange="switchSubtitleContext()">
+            <select id="sub_language" onchange="switchSubtitleContext()">${subLanguageOptions(SUB.language)}</select>
+          </div>
+          <div class="sub-actions">
+            <button class="btn sm" onclick="createSubtitleTrack()">新建轨道</button>
+            <button class="btn ghost sm" onclick="$('#sub_file').click()">导入 SRT</button>
+            <input type="file" id="sub_file" accept=".srt,text/plain" class="hide">
+          </div>
+        </div></div>
+        <div class="sub-list">${SUB.tracks.length ? SUB.tracks.map(x => `
+          <div class="sub-item ${t && t.id === x.id ? "on" : ""}" onclick="selectSubtitleTrack(${x.id})">
+            <div class="sub-item-head"><b>${esc(x.language_name)}</b>
+              <span class="pill ${x.status === "已完成" ? "ok" : x.status === "待校对" ? "gold" : ""}">${esc(x.status)}</span></div>
+            <div class="sub-item-meta">${x.cue_count} 条 · ${x.duration}s · ${esc((x.updated_at || "").slice(0, 16).replace("T", " "))}</div>
+          </div>`).join("") : `<div class="muted" style="font-size:var(--fs-sm)">本集还没有字幕轨</div>`}</div>
+      </aside>
+      <section class="card sub-editor">${t ? `
+        <div class="sub-editor-head">
+          <h2>第 ${t.episode_id} 集 · ${esc(t.language_name)}</h2>
+          <div class="sub-actions">
+            <select id="sub_status">${(SUB.statuses || []).map(s => `<option ${s === t.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+            <button class="btn ghost sm" onclick="exportSubtitleTrack()">导出 SRT</button>
+            <button class="btn ghost sm" onclick="deleteSubtitleTrack()">删除</button>
+          </div>
+        </div>
+        <div class="muted" style="margin:8px 0 14px">${t.cue_count} 条 · 时长 ${t.duration}s${t.source_language ? " · 来源 " + esc(SUB.languages[t.source_language] || t.source_language) : ""}</div>
+        <div class="table-scroll"><table class="cue-table">
+          <thead><tr><th>#</th><th>开始（秒）</th><th>结束（秒）</th><th>字幕文本</th><th></th></tr></thead>
+          <tbody id="cuesbody">${(t.cues || []).map(subCueRow).join("")}</tbody>
+        </table></div>
+        <div class="sub-actions" style="margin-top:12px">
+          <button class="btn ghost sm" onclick="addCueRow()">添加一条</button>
+          <button class="btn" onclick="saveSubtitleTrack()">保存字幕</button>
+          <select id="sub_dup_lang">${subLanguageOptions("", true)}</select>
+          <button class="btn ghost" onclick="duplicateSubtitleTrack()">生成翻译稿</button>
+        </div>` : `<div class="empty">${ico("doc")}<div>选择或新建一条字幕轨</div>
+          <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">支持 SRT 导入导出、逐条校对与多语言翻译稿</div></div>`}</section>
+    </div>`,
+  }, true);
+  const f = $("#sub_file");
+  if (f) f.onchange = e => { const file = e.target.files[0]; if (file) importSubtitleSrt(file); e.target.value = ""; };
+}
+async function switchSubtitleContext() {
+  SUB.project_id = ($("#sub_project") || {}).value || SUB.project_id;
+  SUB.episode = Number(($("#sub_episode") || {}).value || 1);
+  SUB.language = ($("#sub_language") || {}).value || "zh";
+  SUB.track = null;
+  await loadSubtitleTracks();
+}
+async function createSubtitleTrack() {
+  try {
+    const d = await api("/api/subtitles", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: Number(SUB.project_id), episode_id: SUB.episode,
+        language: SUB.language, cues: [] }) });
+    toast("已新建字幕轨"); await loadSubtitleTracks(); await selectSubtitleTrack(d.id);
+  } catch (e) { toast("新建失败：" + e.message); }
+}
+async function importSubtitleSrt(file) {
+  if (!/\.srt$/i.test(file.name)) return toast("请选择 .srt 文件");
+  if (file.size > 5 * 1024 * 1024) return toast("SRT 文件超过 5 MB");
+  try {
+    const b64 = bufToB64(await file.arrayBuffer());
+    const d = await api("/api/subtitles/import", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: Number(SUB.project_id), episode_id: SUB.episode,
+        language: SUB.language, content_b64: b64 }) });
+    toast(`已导入 ${d.imported} 条字幕`);
+    await loadSubtitleTracks();
+    await selectSubtitleTrack(d.id);
+  } catch (e) { toast("导入失败：" + e.message); }
+}
+function addCueRow() {
+  const body = $("#cuesbody"); if (!body) return;
+  const rows = [...body.querySelectorAll("tr")];
+  const last = rows.length ? Number(rows[rows.length - 1].querySelector(".cue-end").value || 0) : 0;
+  const tr = document.createElement("tr");
+  tr.innerHTML = subCueRow({ start: last, end: last + 2, text: "" }, rows.length);
+  body.appendChild(tr);
+  const inp = tr.querySelector(".cue-text"); if (inp) inp.focus();
+}
+async function saveSubtitleTrack() {
+  if (!SUB.track) return;
+  const cues = [...document.querySelectorAll("#cuesbody tr")].map(tr => ({
+    start: Number(tr.querySelector(".cue-start").value || 0),
+    end: Number(tr.querySelector(".cue-end").value || 0),
+    text: tr.querySelector(".cue-text").value || "",
+  }));
+  try {
+    await api("/api/subtitles/" + SUB.track.id, { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cues, status: ($("#sub_status") || {}).value || SUB.track.status }) });
+    toast("字幕已保存"); await loadSubtitleTracks();
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+async function exportSubtitleTrack() {
+  if (!SUB.track) return;
+  try {
+    const r = await fetch("/api/subtitles/" + SUB.track.id + "/srt",
+      { headers: hasToken() ? { Authorization: "Bearer " + localStorage.getItem(TK) } : {} });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const blob = new Blob([await r.text()], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = `ep${SUB.track.episode_id}-${SUB.track.language}.srt`; a.click();
+    URL.revokeObjectURL(url); toast("SRT 已导出");
+  } catch (e) { toast("导出失败：" + e.message); }
+}
+async function duplicateSubtitleTrack() {
+  if (!SUB.track) return;
+  const lang = ($("#sub_dup_lang") || {}).value;
+  if (!lang) return toast("选择目标语言");
+  try {
+    const d = await api("/api/subtitles/" + SUB.track.id + "/duplicate", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: lang }) });
+    toast("已生成翻译稿"); await loadSubtitleTracks(); await selectSubtitleTrack(d.id);
+  } catch (e) { toast("生成失败：" + e.message); }
+}
+function deleteSubtitleTrack() {
+  if (!SUB.track) return;
+  confirmDialog("删除字幕轨？", "删除后不可恢复。", async () => {
+    try { await api("/api/subtitles/" + SUB.track.id, { method: "DELETE" });
+      toast("已删除"); SUB.track = null; await loadSubtitleTracks(); }
+    catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
 }
 
 /* ---------- 分发中心（渠道 / 排期 / 发布 / 运营数据） ---------- */

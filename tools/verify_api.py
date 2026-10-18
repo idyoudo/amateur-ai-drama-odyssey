@@ -310,6 +310,33 @@ check("审核汇总", r.json()["summary"]["approved"] >= 1)
 r = client.delete("/api/reviews/%d" % rid, headers=H)
 check("删除审核", r.status_code == 200 and r.json()["deleted"] is True)
 
+# 字幕与本地化
+r = client.post("/api/subtitles", headers=H,
+                json={"project_id": p2, "episode_id": 1, "language": "zh",
+                      "cues": [{"start": 1.0, "end": 3.5, "text": "第一句"},
+                               {"start": 4.0, "end": 6.0, "text": "第二句"}]})
+d = r.json()
+tid = d["id"]
+check("创建字幕轨", r.status_code == 200 and d["cue_count"] == 2)
+r = client.patch("/api/subtitles/%d" % tid, headers=H,
+                 json={"status": "已完成",
+                       "cues": [{"start": 1.0, "end": 3.4, "text": "第一句（修订）"}]})
+check("更新字幕轨", r.status_code == 200 and r.json()["cue_count"] == 1)
+r = client.post("/api/subtitles/%d/duplicate" % tid, headers=H, json={"language": "en"})
+check("生成翻译稿", r.status_code == 200 and r.json()["status"] == "待翻译")
+r = client.get("/api/subtitles/%d/srt" % tid, headers=H)
+check("导出 SRT", r.status_code == 200 and "-->" in r.text)
+_srt = ("1\n00:00:01,000 --> 00:00:03,000\n第一句\n\n"
+        "2\n00:00:04,000 --> 00:00:06,000\n第二句\n")
+r = client.post("/api/subtitles/import", headers=H,
+                json={"project_id": p2, "episode_id": 2, "language": "ja",
+                      "content_b64": base64.b64encode(_srt.encode("utf-8")).decode()})
+check("导入 SRT", r.status_code == 200 and r.json()["imported"] == 2)
+r = client.get("/api/subtitles?project_id=%d&episode_id=1" % p2, headers=H)
+check("字幕列表", r.status_code == 200 and len(r.json()["items"]) >= 2)
+r = client.delete("/api/subtitles/%d" % tid, headers=H)
+check("删除字幕轨", r.status_code == 200 and r.json()["deleted"] is True)
+
 # Playground
 r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
 check("Playground 生成 200", r.status_code == 200)

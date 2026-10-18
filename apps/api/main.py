@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select, func, or_
@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from apps.api import auth
 from film import formats as fmt
 from film import novels as novel_parser
+from film import subtitles as subtitle_mod
 from film.jobs import db as jobs_db
 from film.projects import project as proj_mod
 from film.suppliers import config as sup_config
@@ -1323,6 +1324,190 @@ def delete_review(review_id: int):
         s.delete(r)
         s.commit()
     return {"deleted": True, "id": review_id}
+
+
+SUBTITLE_STATUSES = ("待翻译", "翻译中", "待校对", "已完成")
+SUBTITLE_LANGUAGES = {"zh": "中文", "en": "English", "ja": "日本語",
+                      "ko": "한국어", "es": "Español", "pt": "Português"}
+
+
+def _sub_json(t, projs):
+    cues = t.cues or []
+    duration = max([float(c.get("end") or 0) for c in cues] or [0])
+    return {"id": t.id, "project_id": t.project_id, "project": projs.get(t.project_id, ""),
+            "episode_id": t.episode_id, "language": t.language,
+            "language_name": SUBTITLE_LANGUAGES.get(t.language, t.language),
+            "source_language": t.source_language or "", "status": t.status,
+            "cue_count": len(cues), "duration": round(duration, 2),
+            "updated_at": t.updated_at.isoformat() if t.updated_at else ""}
+
+
+def _get_track(s, track_id):
+    t = s.get(jobs_db.SubtitleTrack, track_id)
+    if t is None:
+        raise HTTPException(status_code=404, detail="字幕轨不存在")
+    return t
+
+
+@app.get("/api/subtitles")
+def list_subtitles(project_id: Optional[int] = None, episode_id: Optional[int] = None):
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        q = select(jobs_db.SubtitleTrack)
+        if project_id:
+            q = q.where(jobs_db.SubtitleTrack.project_id == project_id)
+        if episode_id:
+            q = q.where(jobs_db.SubtitleTrack.episode_id == episode_id)
+        rows = s.scalars(q.order_by(jobs_db.SubtitleTrack.updated_at.desc())).all()
+        items = [_sub_json(t, projs) for t in rows]
+    return {"items": items, "languages": SUBTITLE_LANGUAGES, "statuses": list(SUBTITLE_STATUSES)}
+
+
+@app.get("/api/subtitles/{track_id}")
+def get_subtitle(track_id: int):
+    with Session() as s:
+        t = _get_track(s, track_id)
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return {**_sub_json(t, projs), "cues": t.cues or []}
+
+
+@app.post("/api/subtitles")
+def create_subtitle(body: dict):
+    try:
+        project_id = int(body.get("project_id"))
+        episode_id = int(body.get("episode_id") or 1)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="project_id / episode_id 非法")
+    language = str(body.get("language") or "zh")
+    if language not in SUBTITLE_LANGUAGES:
+        raise HTTPException(status_code=422, detail="语言不支持")
+    try:
+        cues = subtitle_mod.validate_cues(body.get("cues") or [])
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        existing = s.scalars(select(jobs_db.SubtitleTrack).where(
+            jobs_db.SubtitleTrack.project_id == project_id,
+            jobs_db.SubtitleTrack.episode_id == episode_id,
+            jobs_db.SubtitleTrack.language == language)).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="该集该语言字幕轨已存在")
+        t = jobs_db.SubtitleTrack(project_id=project_id, episode_id=episode_id,
+                                  language=language, source_language=language,
+                                  status="已完成" if cues else "待翻译", cues=cues)
+        s.add(t)
+        s.commit()
+        return _sub_json(t, {p.id: p.title})
+
+
+@app.post("/api/subtitles/import")
+def import_subtitle(body: dict):
+    import base64
+    try:
+        project_id = int(body.get("project_id"))
+        episode_id = int(body.get("episode_id") or 1)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="project_id / episode_id 非法")
+    language = str(body.get("language") or "zh")
+    if language not in SUBTITLE_LANGUAGES:
+        raise HTTPException(status_code=422, detail="语言不支持")
+    try:
+        data = base64.b64decode(str(body.get("content_b64") or ""), validate=False)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail="文件内容不是有效的 base64")
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="SRT 文件过大（上限 5 MB）")
+    text, _enc = novel_parser.decode_bytes(data)
+    cues = subtitle_mod.parse_srt(text)
+    if not cues:
+        raise HTTPException(status_code=422, detail="未识别到有效字幕")
+    try:
+        cues = subtitle_mod.validate_cues(cues)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        t = s.scalars(select(jobs_db.SubtitleTrack).where(
+            jobs_db.SubtitleTrack.project_id == project_id,
+            jobs_db.SubtitleTrack.episode_id == episode_id,
+            jobs_db.SubtitleTrack.language == language)).first()
+        if t is None:
+            t = jobs_db.SubtitleTrack(project_id=project_id, episode_id=episode_id,
+                                      language=language, source_language=language)
+            s.add(t)
+        t.cues = cues
+        t.status = "待校对"
+        s.commit()
+        return {**_sub_json(t, {p.id: p.title}), "imported": len(cues)}
+
+
+@app.patch("/api/subtitles/{track_id}")
+def update_subtitle(track_id: int, body: dict):
+    with Session() as s:
+        t = _get_track(s, track_id)
+        if "status" in body:
+            st = str(body.get("status") or "")
+            if st not in SUBTITLE_STATUSES:
+                raise HTTPException(status_code=422, detail="字幕状态非法")
+            t.status = st
+        if "source_language" in body:
+            t.source_language = str(body.get("source_language") or "")[:16]
+        if "cues" in body:
+            try:
+                t.cues = subtitle_mod.validate_cues(body.get("cues") or [])
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=str(e))
+        s.commit()
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return {**_sub_json(t, projs), "cues": t.cues or []}
+
+
+@app.post("/api/subtitles/{track_id}/duplicate")
+def duplicate_subtitle(track_id: int, body: dict):
+    language = str(body.get("language") or "")
+    if language not in SUBTITLE_LANGUAGES:
+        raise HTTPException(status_code=422, detail="语言不支持")
+    with Session() as s:
+        src = _get_track(s, track_id)
+        if src.language == language:
+            raise HTTPException(status_code=409, detail="目标语言与源语言相同")
+        existing = s.scalars(select(jobs_db.SubtitleTrack).where(
+            jobs_db.SubtitleTrack.project_id == src.project_id,
+            jobs_db.SubtitleTrack.episode_id == src.episode_id,
+            jobs_db.SubtitleTrack.language == language)).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="该语言字幕轨已存在")
+        t = jobs_db.SubtitleTrack(project_id=src.project_id, episode_id=src.episode_id,
+                                  language=language, source_language=src.language,
+                                  status="待翻译", cues=src.cues or [])
+        s.add(t)
+        s.commit()
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return _sub_json(t, projs)
+
+
+@app.get("/api/subtitles/{track_id}/srt")
+def export_subtitle(track_id: int):
+    with Session() as s:
+        t = _get_track(s, track_id)
+        text = subtitle_mod.to_srt(t.cues or [])
+    filename = "ep%d-%s.srt" % (t.episode_id, t.language)
+    return PlainTextResponse(text, media_type="text/plain; charset=utf-8",
+                             headers={"Content-Disposition": 'attachment; filename="%s"' % filename})
+
+
+@app.delete("/api/subtitles/{track_id}")
+def delete_subtitle(track_id: int):
+    with Session() as s:
+        t = _get_track(s, track_id)
+        s.delete(t)
+        s.commit()
+    return {"deleted": True, "id": track_id}
 
 
 @app.get("/api/jobs/summary")
