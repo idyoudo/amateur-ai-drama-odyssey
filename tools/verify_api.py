@@ -43,6 +43,11 @@ H = {"Authorization": "Bearer " + r.json()["token"]}
 # ---------------- 公开端点 ----------------
 check("health 200", client.get("/health").status_code == 200 and client.get("/health").json()["status"] == "ok")
 check("首页 200", client.get("/").status_code == 200 and "AADO" in client.get("/").text)
+check("首页含 favicon", 'rel="icon"' in client.get("/").text
+      and "/static/favicon.svg" in client.get("/").text)
+check("favicon 200", client.get("/favicon.ico").status_code == 200
+      and client.get("/favicon.ico").headers["content-type"].startswith("image/"))
+check("触屏图标 200", client.get("/apple-touch-icon.png").status_code == 200)
 
 # ---------------- 立项 ----------------
 r = client.post("/api/dramas", headers=H, json={"title": "回声", "logline": "一句话故事",
