@@ -80,7 +80,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .side-foot .dotline{display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--dim);font-weight:500}
 
 /* ── 主区 ── */
-.main{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
+.main{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);min-width:0}
 .topbar{position:sticky;top:0;z-index:15;background:var(--topbar-bg);backdrop-filter:saturate(160%) blur(16px);
   border-bottom:1px solid var(--line);padding:9px 52px;display:flex;align-items:center;justify-content:space-between;
   gap:16px;flex-wrap:wrap}
@@ -88,7 +88,7 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .topbar-title{font-size:var(--fs-h2);font-weight:600;letter-spacing:-.01em;color:var(--ink);line-height:1.2;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
 
-.view{padding:16px 52px 72px;max-width:1180px;width:100%}
+.view{padding:16px 52px 72px;max-width:1180px;width:100%;min-width:0}
 .view.wide{max-width:none}
 
 h2{font-size:var(--fs-h3);font-weight:600;margin:28px 0 12px;letter-spacing:-.005em;text-transform:none;color:var(--ink-2);
@@ -183,8 +183,8 @@ h2:first-child{margin-top:0}
 #mroutebody .mr-model,#mroutebody .mr-url{min-width:160px}
 
 /* 字幕与本地化 */
-.sub-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
-.sub-side{display:flex;flex-direction:column;gap:14px}
+.sub-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start;min-width:0}
+.sub-side{display:flex;flex-direction:column;gap:14px;min-width:0}
 .sub-list{display:flex;flex-direction:column;gap:8px}
 .sub-item{border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 12px;
   cursor:pointer;background:var(--surface);transition:.15s var(--ease)}
@@ -200,7 +200,7 @@ h2:first-child{margin-top:0}
 .cue-table td{vertical-align:middle}
 .cue-table .cue-text{width:100%;min-width:220px}
 .cue-num{color:var(--dim);font-family:var(--mono);font-size:var(--fs-sm)}
-@media (max-width:980px){.sub-layout{grid-template-columns:1fr}}
+@media (max-width:1100px){.sub-layout{grid-template-columns:1fr}}
 
 /* 营销素材 */
 .mkt-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
@@ -211,7 +211,7 @@ h2:first-child{margin-top:0}
 .mkt-copy-row p{margin:4px 0 0;font-size:var(--fs-sm);line-height:1.5;white-space:pre-wrap}
 .mkt-poster{width:100%;border-radius:var(--radius-md);border:1px solid var(--line);display:block;background:#111}
 .mkt-canvas{width:100%;max-width:260px;border-radius:12px;display:block;margin:0 auto;background:#111}
-@media (max-width:980px){.mkt-layout{grid-template-columns:1fr}}
+@media (max-width:1100px){.mkt-layout{grid-template-columns:1fr}}
 
 /* 表格 */
 table{width:100%;border-collapse:collapse}
@@ -233,7 +233,7 @@ input,select,textarea{width:100%;padding:9px 12px;background:var(--surface);bord
 input:hover,select:hover{border-color:var(--dim-2)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 input::placeholder{color:var(--dim-2)}
-form.stack{display:flex;flex-direction:column;gap:12px;max-width:100%}
+.stack{display:flex;flex-direction:column;gap:12px;max-width:100%}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -338,7 +338,7 @@ form.stack{display:flex;flex-direction:column;gap:12px;max-width:100%}
   background-size:200% 100%;animation:sk 1.5s infinite;border-radius:8px;height:16px;margin:10px 0}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .skeleton.card{height:132px}
-.empty{color:var(--dim);text-align:center;padding:64px 24px;font-size:var(--fs-table);line-height:1.8}
+.empty{color:var(--dim);text-align:center;padding:64px 24px;font-size:var(--fs-table);line-height:1.8;overflow-wrap:anywhere}
 .empty svg{width:26px;height:26px;color:var(--dim-2);margin-bottom:14px}
 .hide{display:none!important}
 .muted{color:var(--dim)}
