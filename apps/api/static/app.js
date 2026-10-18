@@ -3826,7 +3826,7 @@ function renderModelAdd() {
         <label class="fld"><small>API URL</small><input id="pa_url" placeholder="https://…"></label>
         <label class="fld"><small>API Key</small><input id="pa_key" type="password" autocomplete="new-password" placeholder="可留空，先走 Mock"></label>
       </div>
-      <button class="btn prov-save" onclick="modelAddSave()">保存提供商</button>
+      <div class="prov-actions"><button class="btn prov-save" onclick="modelAddSave()">保存提供商</button></div>
       <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">
         第一个提供商会自动生效；已有生效项时，保存后回模型页点「设为生效」切换。</div>
     </div>`,
@@ -3918,7 +3918,7 @@ function renderModels() {
     const rows = list.map(p => modelProviderRow(p, canEdit)).join("")
       || `<div class="model-prov-empty">还没有提供商；添加后同类只能有一个生效。</div>`;
     const add = canEdit ? `<button class="btn ghost model-add-btn" onclick="go('model-add:${kind}')">
-      ${ico("plus")} 添加提供商（同类可配多个，只有一个生效）</button>` : "";
+      ${ico("plus")} 添加提供商</button>` : "";
     return `<div class="card model-kind" id="mk-${kind}">
       <div class="model-kind-head">
         <div class="mk-title">${ico(meta[2])}<div><b>${esc(meta[0])}</b><span>${esc(kind)} · ${esc(meta[1])}</span></div></div>
