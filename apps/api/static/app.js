@@ -1863,9 +1863,10 @@ function pagerBar(state, goFn) {
   const page = Math.min(Math.max(1, Number(state.page || 1)), pages);
   const start = total ? (page - 1) * limit + 1 : 0;
   const end = Math.min(total, page * limit);
+  const shown = total ? end - start + 1 : 0;
   return `<div class="pagerbar">
     <div class="pagerbar-info">
-      <span class="pagerbar-total">总共 ${total} 条 · ${total ? "当前 " + start + "-" + end + " 条" : "当前 0 条"}</span>
+      <span class="pagerbar-total">总共 ${total} 条 · 当前 ${shown} 条</span>
       <span>第 ${page} 页，共 ${pages} 页</span>
     </div>
     <div class="pagerbar-ctrl">
