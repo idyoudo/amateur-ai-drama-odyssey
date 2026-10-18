@@ -371,6 +371,22 @@ check("模板搜索", r.status_code == 200 and len(r.json()["items"]) >= 1)
 r = client.delete("/api/templates/%d" % tpl_id, headers=H)
 check("删除模板", r.status_code == 200 and r.json()["deleted"] is True)
 
+# 商业化结算台账
+r = client.post("/api/settlements", headers=H,
+                json={"project_id": p2, "channel_key": "douyin",
+                      "revenue_type": "IAP", "amount": 100,
+                      "period": "2026-10", "note": "测试"})
+d = r.json()
+st_id = d["id"]
+check("创建结算", r.status_code == 200 and d["amount"] == 100)
+r = client.patch("/api/settlements/%d" % st_id, headers=H, json={"amount": 120})
+check("更新结算", r.status_code == 200 and r.json()["amount"] == 120)
+r = client.get("/api/settlements", headers=H)
+d = r.json()
+check("结算汇总", d["summary"]["total"] >= 120)
+r = client.delete("/api/settlements/%d" % st_id, headers=H)
+check("删除结算", r.status_code == 200 and r.json()["deleted"] is True)
+
 # Playground
 r = client.post("/api/playground/generate", headers=H, json={"kind": "图像生成", "prompt": "一只猫"})
 check("Playground 生成 200", r.status_code == 200)

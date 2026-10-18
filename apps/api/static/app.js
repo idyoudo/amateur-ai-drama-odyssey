@@ -174,7 +174,7 @@ function ico(name, cls) {
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
-  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["jobs","任务","list"]]],
+  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["jobs","任务","list"]]],
   ["系统", [["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
@@ -233,8 +233,8 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "jobs", "models", "settings"]);
-const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "jobs", "models"]);
+const ROUTE_NAMES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "models", "settings"]);
+const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "jobs", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
@@ -303,6 +303,7 @@ async function routeView(name, param) {
   if (name === "playground") return viewPlayground();
   if (name === "distribution") return viewDistribution();
   if (name === "reviews") return viewReviews();
+  if (name === "settlements") return viewSettlements();
   if (name === "jobs") return viewJobs();
   if (name === "models") return viewModels();
   if (name === "settings") return viewSettings();
@@ -2257,6 +2258,119 @@ async function submitReviewDecision(id, approve) {
 function deleteReview(id) {
   confirmDialog("删除审核记录？", "删除后不可恢复。", async () => {
     try { await api("/api/reviews/" + id, { method: "DELETE" }); toast("已删除"); viewReviews(); }
+    catch (e) { toast("删除失败：" + e.message); }
+  }, "确认删除");
+}
+
+/* ---------- 商业化结算台账 ---------- */
+const SETTLE = { items: [], summary: {}, channels: [], projects: [] };
+async function viewSettlements() {
+  try {
+    const [d, projs] = await Promise.all([api("/api/settlements"), api("/api/dramas")]);
+    SETTLE.items = d.items || [];
+    SETTLE.summary = d.summary || {};
+    SETTLE.channels = d.channels || [];
+    SETTLE.projects = projs;
+  } catch (e) {
+    return setMain({ title: "商业化", body: `<div class="card empty">结算数据加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewSettlements()">重试</button></div></div>` });
+  }
+  renderSettlements();
+}
+function settleTypeAmount(type) {
+  const row = (SETTLE.summary.by_type || []).find(x => x.type === type);
+  return row ? row.amount : 0;
+}
+function renderSettlements() {
+  const s = SETTLE.summary || {};
+  const maxCh = Math.max(1, ...(s.by_channel || []).map(x => x.amount || 0));
+  setMain({
+    title: "商业化",
+    top: `<div class="right"><span class="pill">Mock 数据</span></div>`,
+    body: `
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="k">¥${fmtNum(s.total || 0)}</div><div class="l">总收入</div></div>
+      <div class="stat"><div class="k">¥${fmtNum(settleTypeAmount("IAP"))}</div><div class="l">IAP 解锁</div></div>
+      <div class="stat"><div class="k">¥${fmtNum(settleTypeAmount("IAA"))}</div><div class="l">IAA 广告</div></div>
+      <div class="stat"><div class="k">¥${fmtNum(settleTypeAmount("订阅"))}</div><div class="l">订阅</div></div>
+    </div>
+    <div class="dist-channels">${(s.by_channel || []).map(c => `
+      <div class="dist-channel">
+        <div class="dc-head"><b>${esc(c.name)}</b><span class="pill">¥${fmtNum(c.amount)}</span></div>
+        <div class="dc-metrics"><span>${SETTLE.items.filter(i => i.channel_key === c.key).length} 笔</span><span>本月台账</span></div>
+        <div class="bar-track"><i style="width:${Math.round((c.amount || 0) / maxCh * 100)}%"></i></div>
+      </div>`).join("")}</div>
+    <div class="card">
+      <div class="toolbar">
+        <select id="st_project">${SETTLE.projects.map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join("")}</select>
+        <select id="st_channel">${SETTLE.channels.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("")}</select>
+        <select id="st_type">${(SETTLE.summary.by_type || []).map(t => `<option value="${esc(t.type)}">${esc(t.type)}</option>`).join("")}</select>
+        <input id="st_period" type="month">
+        <input id="st_amount" type="number" min="0" step="0.01" placeholder="金额">
+        <input id="st_note" placeholder="备注（可选）">
+        <button class="btn" onclick="createSettlement()">添加结算</button>
+      </div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">本地台账；未接入平台财务 API 时为 Mock 数据。</div>
+    </div>
+    <div class="card table-scroll"><table>
+      <thead><tr><th>项目</th><th>渠道</th><th>类型</th><th>账期</th><th>金额</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead>
+      <tbody>${SETTLE.items.map(x => `<tr>
+        <td>${esc(x.project)}</td><td>${esc(x.channel_name)}</td><td>${esc(x.revenue_type)}</td>
+        <td>${esc(x.period || "—")}</td><td>¥${fmtNum(x.amount)}</td><td>${esc(x.note || "—")}</td>
+        <td>${esc(fmtDateTime(x.updated_at))}</td>
+        <td><button class="btn ghost sm" onclick="editSettlement(${x.id})">编辑</button>
+          <button class="btn ghost sm" style="margin-left:4px" onclick="deleteSettlement(${x.id})">删除</button></td></tr>`).join("")
+        || `<tr><td colspan="8" style="text-align:center;color:var(--dim)">还没有结算记录</td></tr>`}</tbody>
+    </table></div>`,
+  }, true);
+}
+async function createSettlement() {
+  const project_id = Number(($("#st_project") || {}).value || 0);
+  const amount = Number(($("#st_amount") || {}).value || 0);
+  if (!project_id) return toast("选择项目");
+  if (!amount || amount < 0) return toast("填写金额");
+  try {
+    await api("/api/settlements", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id, channel_key: ($("#st_channel") || {}).value,
+        revenue_type: ($("#st_type") || {}).value, amount,
+        period: ($("#st_period") || {}).value || "",
+        note: ($("#st_note") || {}).value || "" }) });
+    toast("已添加结算"); viewSettlements();
+  } catch (e) { toast("添加失败：" + e.message); }
+}
+function editSettlement(id) {
+  const x = SETTLE.items.find(v => v.id === id); if (!x) return;
+  const modal = document.createElement("div");
+  modal.className = "modal"; modal.id = "settlemodal";
+  modal.innerHTML = `<div class="box" style="max-width:620px">
+    <div class="mhead"><h2>编辑结算 · ${esc(x.project)} · ${esc(x.channel_name)}</h2>
+      <button class="btn ghost sm" onclick="closeModal()">关闭</button></div>
+    <div class="mbody"><div class="stack">
+      <div class="row2">
+        <label class="fld"><small>收入类型</small><select id="se_type">
+          ${(SETTLE.summary.by_type || []).map(t => `<option ${t.type === x.revenue_type ? "selected" : ""}>${esc(t.type)}</option>`).join("")}</select></label>
+        <label class="fld"><small>账期</small><input id="se_period" type="month" value="${esc(x.period || "")}"></label>
+      </div>
+      <label class="fld"><small>金额</small><input id="se_amount" type="number" min="0" step="0.01" value="${x.amount}"></label>
+      <label class="fld"><small>备注</small><input id="se_note" value="${esc(x.note || "")}"></label>
+      <div class="form-actions"><button class="btn" onclick="saveSettlement(${x.id})">保存</button>
+        <button class="btn ghost" onclick="closeModal()">取消</button></div>
+    </div></div></div>`;
+  document.body.appendChild(modal);
+}
+async function saveSettlement(id) {
+  try {
+    await api("/api/settlements/" + id, { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revenue_type: ($("#se_type") || {}).value,
+        period: ($("#se_period") || {}).value || "",
+        amount: Number(($("#se_amount") || {}).value || 0),
+        note: ($("#se_note") || {}).value || "" }) });
+    toast("已保存"); closeModal(); viewSettlements();
+  } catch (e) { toast("保存失败：" + e.message); }
+}
+function deleteSettlement(id) {
+  confirmDialog("删除结算记录？", "删除后不可恢复。", async () => {
+    try { await api("/api/settlements/" + id, { method: "DELETE" }); toast("已删除"); viewSettlements(); }
     catch (e) { toast("删除失败：" + e.message); }
   }, "确认删除");
 }

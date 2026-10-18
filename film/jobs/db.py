@@ -5,7 +5,7 @@
 """
 import datetime as _dt
 
-from sqlalchemy import DateTime, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from . import state_machine
@@ -221,6 +221,25 @@ class Distribution(Base):
     published_at: Mapped[_dt.datetime] = mapped_column(DateTime, nullable=True)
     external_url: Mapped[str] = mapped_column(String(512), nullable=True)
     metrics: Mapped[dict] = mapped_column(JSON, default=dict)
+    note: Mapped[str] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
+class Settlement(Base):
+    """商业化结算台账：IAP/IAA/订阅/分成（本地登记，未接平台财务 API）。"""
+    __tablename__ = "settlements"
+    __table_args__ = (Index("ix_settlements_project", "project_id"),
+                      Index("ix_settlements_channel", "channel_key"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    channel_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    revenue_type: Mapped[str] = mapped_column(String(16), default="IAP")
+    amount: Mapped[float] = mapped_column(Float, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="CNY")
+    period: Mapped[str] = mapped_column(String(7), nullable=True)
     note: Mapped[str] = mapped_column(String(512), nullable=True)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)

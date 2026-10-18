@@ -1670,6 +1670,122 @@ def delete_template(template_id: int):
     return {"deleted": True, "id": template_id}
 
 
+SETTLEMENT_TYPES = ("IAP", "IAA", "订阅", "分成", "其他")
+
+
+def _settlement_json(s, projs):
+    return {"id": s.id, "project_id": s.project_id, "project": projs.get(s.project_id, ""),
+            "channel_key": s.channel_key, "channel_name": s.channel_name,
+            "revenue_type": s.revenue_type, "amount": round(float(s.amount or 0), 2),
+            "currency": s.currency or "CNY", "period": s.period or "",
+            "note": s.note or "",
+            "updated_at": s.updated_at.isoformat() if s.updated_at else ""}
+
+
+@app.get("/api/settlements")
+def list_settlements(project_id: Optional[int] = None, channel_key: str = "",
+                     period: str = ""):
+    with Session() as s:
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        q = select(jobs_db.Settlement)
+        if project_id:
+            q = q.where(jobs_db.Settlement.project_id == project_id)
+        if channel_key:
+            q = q.where(jobs_db.Settlement.channel_key == channel_key)
+        if period:
+            q = q.where(jobs_db.Settlement.period == period)
+        rows = s.scalars(q.order_by(jobs_db.Settlement.updated_at.desc())).all()
+        items = [_settlement_json(x, projs) for x in rows]
+    total = round(sum(i["amount"] for i in items), 2)
+    by_type = [{"type": t, "amount": round(sum(i["amount"] for i in items
+                                             if i["revenue_type"] == t), 2)}
+               for t in SETTLEMENT_TYPES]
+    by_channel = []
+    for ch in fmt.DISTRIBUTION_CHANNELS:
+        sub = [i for i in items if i["channel_key"] == ch]
+        by_channel.append({"key": ch, "name": fmt.PLATFORMS[ch]["name"],
+                           "amount": round(sum(i["amount"] for i in sub), 2)})
+    return {"items": items, "types": list(SETTLEMENT_TYPES),
+            "channels": fmt.public_channels()["channels"],
+            "summary": {"total": total, "by_type": by_type, "by_channel": by_channel}}
+
+
+@app.post("/api/settlements")
+def create_settlement(body: dict):
+    try:
+        project_id = int(body.get("project_id"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="project_id 非法")
+    channel = str(body.get("channel_key") or "")
+    if channel not in fmt.DISTRIBUTION_CHANNELS:
+        raise HTTPException(status_code=422, detail="渠道非法")
+    rtype = str(body.get("revenue_type") or "IAP")
+    if rtype not in SETTLEMENT_TYPES:
+        raise HTTPException(status_code=422, detail="收入类型非法")
+    try:
+        amount = float(body.get("amount") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="金额非法")
+    if amount < 0:
+        raise HTTPException(status_code=422, detail="金额需为非负数")
+    period = str(body.get("period") or "")[:7]
+    if period and not (len(period) == 7 and period[4] == "-"):
+        raise HTTPException(status_code=422, detail="账期格式应为 YYYY-MM")
+    with Session() as s:
+        p = s.get(jobs_db.Project, project_id)
+        if p is None:
+            raise HTTPException(status_code=404, detail="项目不存在")
+        row = jobs_db.Settlement(project_id=project_id, channel_key=channel,
+                                 channel_name=fmt.PLATFORMS[channel]["name"],
+                                 revenue_type=rtype, amount=amount, period=period,
+                                 note=str(body.get("note") or "")[:512])
+        s.add(row)
+        s.commit()
+        return _settlement_json(row, {p.id: p.title})
+
+
+@app.patch("/api/settlements/{settlement_id}")
+def update_settlement(settlement_id: int, body: dict):
+    with Session() as s:
+        r = s.get(jobs_db.Settlement, settlement_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="结算记录不存在")
+        if "revenue_type" in body:
+            rtype = str(body.get("revenue_type") or "")
+            if rtype not in SETTLEMENT_TYPES:
+                raise HTTPException(status_code=422, detail="收入类型非法")
+            r.revenue_type = rtype
+        if "amount" in body:
+            try:
+                amount = float(body.get("amount") or 0)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=422, detail="金额非法")
+            if amount < 0:
+                raise HTTPException(status_code=422, detail="金额需为非负数")
+            r.amount = amount
+        if "period" in body:
+            period = str(body.get("period") or "")[:7]
+            if period and not (len(period) == 7 and period[4] == "-"):
+                raise HTTPException(status_code=422, detail="账期格式应为 YYYY-MM")
+            r.period = period
+        if "note" in body:
+            r.note = str(body.get("note") or "")[:512]
+        s.commit()
+        projs = {p.id: p.title for p in s.scalars(select(jobs_db.Project)).all()}
+        return _settlement_json(r, projs)
+
+
+@app.delete("/api/settlements/{settlement_id}")
+def delete_settlement(settlement_id: int):
+    with Session() as s:
+        r = s.get(jobs_db.Settlement, settlement_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="结算记录不存在")
+        s.delete(r)
+        s.commit()
+    return {"deleted": True, "id": settlement_id}
+
+
 @app.get("/api/jobs/summary")
 def jobs_summary(limit: int = 100, offset: int = 0):
     """跨项目任务聚合：状态 + 真实进度 / 失败原因 / 尝试次数 / 租约 epoch。"""
