@@ -1173,7 +1173,7 @@ def playground_generate(body: dict):
     key = "mock/pg_%s.png" % hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:10]
     with Session() as s:
         t = jobs_db.PlaygroundTask(kind=kind, prompt=prompt,
-                                   model=body.get("model") or "Mock",
+                                   model=body.get("model") or "演示数据",
                                    status="已完成", result_key=key)
         s.add(t); s.commit()
         tid = t.id
@@ -2606,7 +2606,7 @@ def provider_tasks(project_id: int):
     cfg = _project_model_config(project_id)
     return {"kinds": [{"kind": k, "stages": v,
                        "configured": sup_config.is_configured(cfg.get(k, {}))} for k, v in by_kind.items()],
-            "note": "无凭据走 Mock；有凭据切换真实供应商，三段式流程不变"}
+            "note": "未配置时使用演示数据；配置后切换真实供应商，三段式流程不变"}
 
 
 @app.get("/api/dramas/{project_id}/cost-dashboard")

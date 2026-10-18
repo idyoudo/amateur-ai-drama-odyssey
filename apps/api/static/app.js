@@ -342,7 +342,7 @@ async function viewOverview() {
   setMain({
     title: "概览",
     top: `<div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
-      <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "Mock 模式"}</span></div>`,
+      <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "未配置模型"}</span></div>`,
     body: `
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
@@ -376,7 +376,7 @@ function viewGuide() {
     { t: "写故事（剧本）", p: "用一句话说清主角是谁、遇到什么麻烦、要干什么，这叫 logline。再把故事拆成每集 3–5 场。每集至少两次冲突升级，结尾留一个「然后呢」。", a: "剧本工作台可以逐集写场次；结构体检会用事实数据告诉你钩子、冲突、断章够不够。" },
     { t: "定角色（选角定妆）", p: "给每个角色定一张脸：年龄、长相、发型、服装、声音。后面几十集都要靠这张脸保持连贯，不能一集一个样。", a: "角色资产库保存定妆信息，可跨项目复用；改一次，后续镜头统一引用。" },
     { t: "画分镜", p: "把「他走进房间」拆成镜头：先拍门、再拍脸、再拍手。每个镜头要标清景别（特写/中景/全景）和运镜（推、拉、摇、移）。", a: "分镜工作台能从剧本自动派生镜头，并检查安全框与镜头契约。" },
-    { t: "生成画面", p: "每个镜头让 AI 出 4 个版本，挑最好的一个；不满意就改提示词再抽。新手容易犯的错是只抽一次就用。", a: "候选抽卡 + 批量生成；没有 GPU 或付费凭据时用 Mock 模式先跑通流程。" },
+    { t: "生成画面", p: "每个镜头让 AI 出 4 个版本，挑最好的一个；不满意就改提示词再抽。新手容易犯的错是只抽一次就用。", a: "候选抽卡 + 批量生成；没有 GPU 或付费凭据时用演示数据先跑通流程。" },
     { t: "保一致", p: "同一张脸、同一件衣服、同一个道具，不能上一集长这样、下一集变样。观众一眼就能看出来。", a: "连续性表 + 一致性 QC 会列出人脸、服装、道具、光线的偏差。" },
     { t: "配音与口型", p: "给角色配音，让口型和台词对齐；不同角色用不同音色，别让所有人一个声音。", a: "配音与口型模块按角色音色生成，可回到镜头逐条检查。" },
     { t: "做声音", p: "对白、环境音、音效、配乐都要有。平台对响度有要求，太吵或太轻都会被压。", a: "声音设计与配乐；母版按 −23 LUFS、峰值 ≤ −1 dBTP 校验。" },
@@ -397,7 +397,7 @@ function viewGuide() {
     ["交付规格", "画幅、帧率、色彩、响度等技术要求，不达标平台会拒收或压画质。"],
     ["IAP / IAA", "用户付费解锁 / 看广告免费，短剧最常见的两种赚钱方式。"],
     ["完播率", "看完这一集的人占打开人数的比例，是短剧最关键的指标之一。"],
-    ["Mock", "没有真实模型时用模拟数据跑通流程，用来学流程和验收，不产出真实画面。"],
+    ["演示模式", "没有真实模型时用模拟数据跑通流程，用来学流程和验收，不产出真实画面。"],
   ];
   const hits = [
     ["前 3 秒", "第一秒就给冲突、结果或身份反差，不要先讲背景。"],
@@ -1308,7 +1308,7 @@ async function renderProviders() {
     ${d.kinds.map(k => `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <b>${ico(ICON[k.kind] || "route")} ${esc(k.kind)}</b>
-        <span class="pill ${k.configured ? "ok" : ""}">${k.configured ? "真实" : "Mock"}</span></div>
+        <span class="pill ${k.configured ? "ok" : ""}">${k.configured ? "已接入" : "未接入"}</span></div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
         ${k.stages.map((st, i) => `<span class="pill ok" style="font-size:var(--fs-meta)">${esc(st.stage)} ✓</span>${i < k.stages.length - 1 ? '<span class="muted">→</span>' : ""}`).join("")}
       </div></div>`).join("")}</div>`;
@@ -2783,7 +2783,7 @@ function renderDistribution() {
   const maxViews = Math.max(1, ...(s.by_channel || []).map(c => c.views || 0));
   setMain({
     title: "分发",
-    top: `<div class="right"><span class="pill">Mock 数据</span></div>`,
+    top: `<div class="right"><span class="pill">本地登记</span></div>`,
     body: `
     <div class="stats" style="margin-bottom:14px">
       <div class="stat"><div class="k">${s.published || 0}</div><div class="l">已发布</div></div>
@@ -2805,7 +2805,7 @@ function renderDistribution() {
         <input id="dist_note" placeholder="备注（可选）">
         <button class="btn" onclick="createDistribution()">添加分发</button>
       </div>
-      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">发布状态与播放/营收为本地登记；未接入平台 API 时均为 Mock 数据。</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">发布状态与播放/营收为本地登记；未接入平台 API 时为示例数据。</div>
     </div>
     <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>项目</th><th>渠道</th><th>状态</th><th>排期 / 发布</th><th>播放</th><th>点赞</th><th>完播率</th><th>营收</th><th>操作</th></tr></thead>
@@ -3061,7 +3061,7 @@ function renderSettlements() {
   const maxCh = Math.max(1, ...(s.by_channel || []).map(x => x.amount || 0));
   setMain({
     title: "商业化",
-    top: `<div class="right"><span class="pill">Mock 数据</span></div>`,
+    top: `<div class="right"><span class="pill">本地登记</span></div>`,
     body: `
     <div class="stats" style="margin-bottom:14px">
       <div class="stat"><div class="k">¥${fmtNum(s.total || 0)}</div><div class="l">总收入</div></div>
@@ -3085,7 +3085,7 @@ function renderSettlements() {
         <input id="st_note" placeholder="备注（可选）">
         <button class="btn" onclick="createSettlement()">添加结算</button>
       </div>
-      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">本地台账；未接入平台财务 API 时为 Mock 数据。</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:8px">本地台账；未接入平台财务 API 时为示例数据。</div>
     </div>
     <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>项目</th><th>渠道</th><th>类型</th><th>账期</th><th>金额</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead>
@@ -3647,7 +3647,7 @@ async function viewPlayground() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
         ${d.kinds.map(k => `<span class="pill ${k === PG_KIND ? "gold" : ""}" style="cursor:pointer" onclick="PG_KIND='${k}';viewPlayground()">${k}</span>`).join("")}</div>
       <div class="stack">
-        <textarea id="pg_prompt" rows="3" placeholder="输入提示词（无凭据时走 Mock，仍会记录任务）"></textarea>
+        <textarea id="pg_prompt" rows="3" placeholder="输入提示词（无凭据时使用演示数据，仍会记录任务）"></textarea>
         <div><button class="btn" onclick="pgGenerate()">生成「${PG_KIND}」</button></div>
       </div>
     </div>
@@ -3824,7 +3824,7 @@ function renderModelAdd() {
         <label class="fld"><small>提供商名称</small><input id="pa_name" placeholder="例如 DeepSeek 官方 / 公司中转"></label>
         <label class="fld"><small>模型名</small><input id="pa_model" placeholder="例如 deepseek-chat"></label>
         <label class="fld"><small>API URL</small><input id="pa_url" placeholder="https://…"></label>
-        <label class="fld"><small>API Key</small><input id="pa_key" type="password" autocomplete="new-password" placeholder="可留空，先走 Mock"></label>
+        <label class="fld"><small>API Key</small><input id="pa_key" type="password" autocomplete="new-password" placeholder="可留空"></label>
       </div>
       <div class="prov-actions"><button class="btn prov-save" onclick="modelAddSave()">保存提供商</button></div>
       <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">
@@ -3866,7 +3866,7 @@ function modelEdit(id) {
       </div>
       <label class="fld"><small>API Key</small>
         <input id="mp_key" type="password" autocomplete="new-password" value=""
-          placeholder="${p.api_key_set ? "已设置 " + esc(p.api_key_hint) + "（留空不修改）" : "未设置（可先留空走 Mock）"}"></label>
+          placeholder="${p.api_key_set ? "已设置 " + esc(p.api_key_hint) + "（留空不修改）" : "未设置（可留空）"}"></label>
       ${p.api_key_set ? `<label class="muted" style="display:flex;gap:8px;align-items:center;font-size:var(--fs-sm)">
         <input type="checkbox" id="mp_clear" style="width:auto"> 清除已保存 Key</label>` : ""}
       <div class="form-actions"><button class="btn" onclick="modelSaveEdit(${p.id})">保存</button>
@@ -3893,7 +3893,7 @@ function modelProviderRow(p, canEdit) {
       <div class="mp-name"><b>${esc(p.name)}</b>${p.active ? '<span class="pill ok">当前生效</span>' : ""}</div>
       <div class="mp-meta"><span>${esc(p.model || "未填模型")}</span>
         <span>${esc(p.api_url || "默认端点")}</span>
-        <span>${p.api_key_set ? "Key " + esc(p.api_key_hint) : "未设 Key（Mock）"}</span></div>
+        <span>${p.api_key_set ? "Key " + esc(p.api_key_hint) : "未设 Key"}</span></div>
     </div>
     ${canEdit ? `<div class="mp-actions">
       ${p.active ? "" : `<button class="btn ghost sm" onclick="modelActivate(${p.id})">设为生效</button>`}
@@ -3912,8 +3912,8 @@ function renderModels() {
     const list = providers[kind] || [];
     const active = list.find(p => p.active);
     const status = active
-      ? (active.api_key_set ? "生效中" : "生效中 · 缺 Key（Mock）")
-      : (c.source === "env" ? "环境变量默认" : "未配置（Mock）");
+      ? (active.api_key_set ? "生效中" : "生效中 · 缺 Key")
+      : (c.source === "env" ? "环境变量默认" : "未配置");
     const pillClass = active && active.api_key_set ? "ok" : active ? "gold" : "";
     const rows = list.map(p => modelProviderRow(p, canEdit)).join("")
       || `<div class="model-prov-empty">还没有提供商；添加后同类只能有一个生效。</div>`;
@@ -4141,7 +4141,7 @@ async function previewSheet() {
   const modal = document.createElement("div"); modal.className = "modal"; modal.id = "sheetmodal";
   modal.innerHTML = `<div class="box" style="max-width:640px">
     <div class="mhead"><h2>交付单 · ${esc((d.project || {}).title || "")}</h2>
-      <div><span class="pill">Mock 数据</span><button class="btn ghost sm" style="margin-left:8px" onclick="closeModal()">关闭</button></div></div>
+      <div><span class="pill">本地登记</span><button class="btn ghost sm" style="margin-left:8px" onclick="closeModal()">关闭</button></div></div>
     <div class="mbody">
       <div class="dv-sec">规格</div>
       ${row("主母版", spec.master)}${row("平台版", spec.platform)}${row("衍生版", spec.derived)}
@@ -4152,7 +4152,7 @@ async function previewSheet() {
       ${row("权利状态", d.rights_status)}${row("AI 标识", d.ai_label)}${row("分级", d.rating)}${row("语言", d.language)}${row("色彩标签", d.color_tag)}
       <div class="dv-sec">可选交付标注</div>
       ${Object.entries(d.optional_delivery || {}).map(([k, v]) => row(k, v)).join("")}
-      <div class="muted" style="font-size:var(--fs-meta);margin-top:14px">生成时间：${esc(d.generated_at)} · 未接入真实供应商时为 Mock/模拟数据</div>
+      <div class="muted" style="font-size:var(--fs-meta);margin-top:14px">生成时间：${esc(d.generated_at)} · 未接入真实供应商时为示例数据</div>
     </div></div>`;
   document.body.appendChild(modal);
 }

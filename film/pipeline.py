@@ -118,7 +118,7 @@ def run_pipeline(title, logline, platform, rating, genre, model_config=None,
                          {"rbac": "showrunner 可 generate"}))
 
     # M17 供应商（能力矩阵/路由/许可）
-    stages.append(_stage("M17 供应商", [], {"provider": "Mock（无凭据自证）",
+    stages.append(_stage("M17 供应商", [], {"provider": "演示数据（无凭据）",
                          "kinds": "text/video/image/tts/music/lipsync",
                          "route": "关键镜优先，氛围镜经济档"}))
 
