@@ -56,6 +56,16 @@ check("立项缺 logline 422", client.post("/api/dramas", headers=H,
 r = client.get("/api/dramas", headers=H)
 check("项目列表含回声", r.status_code == 200 and any(p["title"] == "回声" for p in r.json()))
 pid = r.json()[0]["id"]
+r = client.get("/api/dramas?limit=1&offset=0", headers=H)
+d = r.json()
+check("项目搜索分页", r.status_code == 200 and isinstance(d, dict) and d["total"] >= 1
+      and len(d["items"]) == 1 and "genre" in d["items"][0])
+r = client.get("/api/dramas?limit=10&offset=0&q=回声", headers=H)
+d = r.json()
+check("项目搜索过滤", d["total"] == 1 and d["items"][0]["title"] == "回声")
+r = client.get("/api/dramas?limit=10&offset=0&q=不存在的项目xyz", headers=H)
+d = r.json()
+check("项目搜索空结果", d["total"] == 0 and d["items"] == [])
 
 # ---------------- 分集格式与小说改编 ----------------
 r = client.get("/api/formats", headers=H)

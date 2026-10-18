@@ -230,6 +230,19 @@ h2:first-child{margin-top:0}
 .hit-case .meta{display:flex;gap:6px;flex-wrap:wrap}
 .hit-case .meta span{font-size:var(--fs-meta);color:var(--dim);background:var(--surface-2);
   padding:2px 7px;border-radius:4px;border:1px solid var(--line)}
+.hits-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.hits-tabs .btn{height:42px;padding:0 18px;font-size:var(--fs-table)}
+.hits-tabs .btn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
+.hits-tabs .pill{margin-left:6px}
+.hits-lead{color:var(--dim);font-size:var(--fs-sm);line-height:1.7;margin:0 0 18px}
+.hit-proj-table table{min-width:680px}
+.hit-proj-table tbody tr{cursor:pointer}
+.hit-proj-table tbody tr:hover{background:var(--surface-2)}
+.hit-proj-table tbody tr.on{background:var(--accent-soft)}
+.hit-proj-table td .muted,.hit-proj-table td b{white-space:normal;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.hit-proj-table td .muted{font-size:var(--fs-meta)}
+.hit-check-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
+.hit-check-title{font-size:var(--fs-h2);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
 /* 表格 */
 table{width:100%;border-collapse:collapse}

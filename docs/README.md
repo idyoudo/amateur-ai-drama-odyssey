@@ -71,6 +71,8 @@
 | `docs/plans/` | `爆款分析与配方-方案.md` | 三部红果漫剧结构拆解、爆款配方/钩子/断章库与项目体检 |
 | `docs/plans/` | `爆款体检优化-候选.md` | 体检优化候选 H1–H4 |
 | `docs/plans/` | `爆款体检优化-选举记录.md` | H2 全票通过与事实层/分档实现 |
+| `docs/plans/` | `爆款分析页布局-候选.md` | 爆款分析页布局候选 L1–L4 |
+| `docs/plans/` | `爆款分析页布局-选举记录.md` | L4 顶部 Tab 4:1 胜出与落地约束 |
 | `docs/spec/` | `P1-A-验证记录.md` | 切片 A 独立复测（脚本生成） |
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |

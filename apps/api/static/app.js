@@ -1510,29 +1510,44 @@ async function runPipeline(id) {
 
 /* ---------- 资产库 ---------- */
 /* ---------- 爆款分析 ---------- */
-const HITS = { cases: [], playbook: {}, projects: [], project_id: "", check: null,
-  total: 0, page: 1, pages: 1, limit: 12, q: "", genre: "", formula: "",
-  filters: { genres: [], formulas: [] } };
+const HITS = {
+  tab: "projects",
+  projList: [], projTotal: 0, projPage: 1, projPages: 1, projLimit: 12, projQ: "",
+  project_id: "", check: null,
+  cases: [], playbook: {}, total: 0, page: 1, pages: 1, limit: 12,
+  q: "", genre: "", formula: "", filters: { genres: [], formulas: [] },
+};
 let _hitTimer = null;
 function scheduleHitSearch() { clearTimeout(_hitTimer); _hitTimer = setTimeout(reloadHits, 300); }
+let _projTimer = null;
+function scheduleProjSearch() { clearTimeout(_projTimer); _projTimer = setTimeout(reloadProjects, 300); }
 async function viewHits() {
   try {
-    const [d, projs] = await Promise.all([api("/api/hits?limit=12&offset=0"), api("/api/dramas")]);
+    const [d, p] = await Promise.all([
+      api("/api/hits?limit=12&offset=0"),
+      api("/api/dramas?limit=12&offset=0"),
+    ]);
     HITS.cases = d.items || [];
     HITS.total = d.total || 0;
     HITS.filters = d.filters || { genres: [], formulas: [] };
     HITS.playbook = d.playbook || {};
     HITS.pages = Math.max(1, Math.ceil(HITS.total / HITS.limit));
     HITS.page = 1;
-    HITS.projects = projs;
+    HITS.projList = p.items || [];
+    HITS.projTotal = p.total || 0;
+    HITS.projPages = Math.max(1, Math.ceil(HITS.projTotal / HITS.projLimit));
+    HITS.projPage = 1;
+    HITS.projQ = "";
   } catch (e) {
     return setMain({ title: "爆款分析", body: `<div class="card empty">爆款数据加载失败：${esc(e.message)}</div>` });
   }
-  if (!HITS.projects.length) {
-    return setMain({ title: "爆款分析", body: `<div class="card empty">${ico("pulse")}<div>还没有项目</div>
-      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button></div></div>` });
+  if (!HITS.projTotal) {
+    HITS.tab = "cases";
+    HITS.check = null;
+    HITS.project_id = "";
+    return renderHits();
   }
-  if (!HITS.project_id) HITS.project_id = String(window._HIT_PROJECT || HITS.projects[0].id);
+  HITS.project_id = String(window._HIT_PROJECT || HITS.project_id || HITS.projList[0].id);
   await runHitCheck(false);
   renderHits();
 }
@@ -1574,10 +1589,35 @@ async function hitPage(n) {
     const el = $("#hitcases"); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
   } catch (e) { toast("案例加载失败：" + e.message); }
 }
-function hitPager() {
-  if (HITS.pages <= 1) return "";
-  const cur = HITS.page, pages = HITS.pages, nums = [];
-  const push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
+async function loadProjects() {
+  const params = new URLSearchParams({ limit: String(HITS.projLimit),
+    offset: String((HITS.projPage - 1) * HITS.projLimit) });
+  if (HITS.projQ) params.set("q", HITS.projQ);
+  const d = await api("/api/dramas?" + params.toString());
+  HITS.projList = d.items || [];
+  HITS.projTotal = d.total || 0;
+  HITS.projPages = Math.max(1, Math.ceil(HITS.projTotal / HITS.projLimit));
+  if (HITS.projPage > HITS.projPages) HITS.projPage = HITS.projPages;
+  renderHits();
+}
+async function reloadProjects() {
+  HITS.projQ = ($("#proj_q") || {}).value || "";
+  HITS.projPage = 1;
+  try { await loadProjects(); } catch (e) { toast("项目加载失败：" + e.message); }
+}
+function resetProjFilters() {
+  HITS.projQ = ""; HITS.projPage = 1;
+  const q = $("#proj_q"); if (q) q.value = "";
+  loadProjects().catch(e => toast("项目加载失败：" + e.message));
+}
+async function projGoPage(n) {
+  if (n < 1 || n > HITS.projPages || n === HITS.projPage) return;
+  HITS.projPage = n;
+  try { await loadProjects(); } catch (e) { toast("项目加载失败：" + e.message); }
+}
+function pagerHtml(cur, pages, fn) {
+  if (pages <= 1) return "";
+  const nums = [], push = n => { if (n >= 1 && n <= pages && !nums.includes(n)) nums.push(n); };
   push(1);
   for (let n = cur - 2; n <= cur + 2; n++) push(n);
   push(pages);
@@ -1585,54 +1625,110 @@ function hitPager() {
   let mid = "", prev = 0;
   nums.forEach(n => {
     if (n - prev > 1) mid += `<span class="muted">…</span>`;
-    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="hitPage(${n})">${n}</button>`;
+    mid += `<button class="btn ghost sm ${n === cur ? "on" : ""}" onclick="${fn}(${n})">${n}</button>`;
     prev = n;
   });
   return `<div class="pager">
-    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="hitPage(${cur - 1})">上一页</button>
+    <button class="btn ghost sm" ${cur <= 1 ? "disabled" : ""} onclick="${fn}(${cur - 1})">上一页</button>
     ${mid}
-    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="hitPage(${cur + 1})">下一页</button>
+    <button class="btn ghost sm" ${cur >= pages ? "disabled" : ""} onclick="${fn}(${cur + 1})">下一页</button>
   </div>`;
 }
+function hitPager() { return pagerHtml(HITS.page, HITS.pages, "hitPage"); }
+function projPager() { return pagerHtml(HITS.projPage, HITS.projPages, "projGoPage"); }
 async function runHitCheck(render) {
   try { HITS.check = await api("/api/dramas/" + HITS.project_id + "/hit-check"); }
   catch (e) { HITS.check = null; toast("爆款体检失败：" + e.message); }
   if (render) renderHits();
 }
-function hitsProjectOptions() {
-  return HITS.projects.map(p => `<option value="${p.id}" ${String(HITS.project_id) === String(p.id) ? "selected" : ""}>${esc(p.title)}</option>`).join("");
-}
 function hitBandClass(band) {
   return band === "强" ? "ok" : band === "中" ? "gold" : band === "弱" ? "bad" : "";
 }
 function renderHits() {
-  const c = HITS.check;
-  const pb = HITS.playbook || {};
+  const ae = document.activeElement;
+  const focusId = ae && ae.id ? ae.id : null;
+  const selStart = ae && typeof ae.selectionStart === "number" ? ae.selectionStart : null;
+  const isProj = HITS.tab === "projects";
   setMain({
     title: "爆款分析",
-    top: `<div class="right"><button class="btn sm" onclick="go('hit-analyze')">录入并分析</button>
-      <span class="pill">案例 ${HITS.total}</span></div>`,
+    top: `<div class="right"><button class="btn sm" onclick="go('hit-analyze')">录入并分析</button></div>`,
     body: `
-    <div class="stats" style="margin-bottom:14px">
-      <div class="stat"><div class="k">${HITS.total}</div><div class="l">爆款案例</div></div>
-      <div class="stat"><div class="k">${(pb.formulas || []).length}</div><div class="l">爆款配方</div></div>
-      <div class="stat"><div class="k">${(pb.hooks || []).length}</div><div class="l">前 3 秒钩子</div></div>
-      <div class="stat"><div class="k">${(pb.cliffhangers || []).length}</div><div class="l">断章类型</div></div>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="muted" style="font-size:var(--fs-sm);line-height:1.8">
-        <b style="color:var(--ink-2)">这是什么：</b>给当前项目做结构体检。上半部分是项目真实数据（集数/场景/镜头/标题），
-        下半部分是 6 项影响追更的结构判断（强/中/弱），每项都附证据。<br>
-        <b style="color:var(--ink-2)">怎么用：</b>先补「数据不足」的剧本/分镜，再优先改「弱」项；这不是播放量预测。
+      <div class="hits-tabs">
+        <button class="btn ghost ${isProj ? "on" : ""}" onclick="setHitTab('projects')">我们的项目体检
+          <span class="pill">${HITS.projTotal}</span></button>
+        <button class="btn ghost ${isProj ? "" : "on"}" onclick="setHitTab('cases')">爆款案例库（他人作品）
+          <span class="pill">${HITS.total}</span></button>
       </div>
+      <p class="hits-lead">${isProj
+        ? "体检对象是我们自己产出的项目：先看事实数据齐不齐，再看 6 项结构判断（强 / 中 / 弱）。"
+        : "案例库拆解的是平台上别人已经跑出来的作品：学配方、钩子与断章，不复制剧情。"}</p>
+      ${isProj ? renderHitProjects() : renderHitCases()}`,
+  }, true);
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) {
+      el.focus();
+      if (selStart !== null) { try { el.setSelectionRange(selStart, selStart); } catch (e) {} }
+    }
+  }
+}
+function setHitTab(tab) { HITS.tab = tab; renderHits(); }
+async function selectHitProject(id) {
+  HITS.project_id = String(id);
+  window._HIT_PROJECT = HITS.project_id;
+  await runHitCheck(false);
+  renderHits();
+  const el = $("#hitcheck");
+  if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+function renderHitProjects() {
+  if (!HITS.projTotal && !HITS.projQ) {
+    return `<div class="card empty">${ico("pulse")}<div>还没有项目</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">先立项，才能对自己的项目做结构体检；他人的爆款案例在另一个 Tab。</div>
+      <div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button></div></div>`;
+  }
+  const c = HITS.check;
+  const dims = (c && c.dimensions) || [];
+  const okCount = dims.filter(d => d.status === "ok").length;
+  const weakCount = dims.filter(d => d.band === "弱").length;
+  const missingCount = dims.filter(d => d.status === "missing").length;
+  const head = c ? (c.project || {}) : {};
+  return `
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><div class="k">${HITS.projTotal}</div><div class="l">我们的项目</div></div>
+      <div class="stat"><div class="k">${okCount}/6</div><div class="l">当前项目可评估</div></div>
+      <div class="stat"><div class="k">${weakCount}</div><div class="l">优先改进（弱）</div></div>
+      <div class="stat"><div class="k">${missingCount}</div><div class="l">数据不足</div></div>
     </div>
-    <div class="card">
+    <h2 style="margin-top:0">选择项目 <span class="hint">搜索或翻页，点击行即可体检</span></h2>
+    <div class="card" style="margin-bottom:16px">
       <div class="toolbar">
-        <select id="hit_project">${hitsProjectOptions()}</select>
-        <button class="btn" onclick="switchHitProject()">重新体检</button>
-        <span class="muted" style="font-size:var(--fs-sm)">结构启发式判断，不代表真实播放量；上线后用平台数据复核。</span>
+        <input id="proj_q" placeholder="搜索项目名称 / 题材 / 平台" value="${esc(HITS.projQ)}" oninput="scheduleProjSearch()">
+        <button class="btn ghost" onclick="resetProjFilters()">重置</button>
+        <span class="muted" style="font-size:var(--fs-sm)">共 ${HITS.projTotal} 个项目 · 第 ${HITS.projPage}/${HITS.projPages} 页</span>
       </div>
-      ${c ? `<h2 style="margin-top:18px">项目事实 <span class="hint">来自剧本 / 分镜 / 项目信息</span></h2>
+      <div class="table-scroll hit-proj-table">
+        <table><thead><tr><th>项目</th><th>题材</th><th>规格</th><th>镜头</th><th>状态</th><th></th></tr></thead>
+        <tbody>${HITS.projList.map(p => `<tr class="${String(p.id) === String(HITS.project_id) ? "on" : ""}" onclick="selectHitProject(${p.id})">
+          <td><b>${esc(p.title)}</b><div class="muted">${esc(p.logline || "")}</div></td>
+          <td>${esc(p.genre || "—")}</td>
+          <td>${p.episodes ? esc(p.episodes + " 集") : "—"}${p.minutes ? esc(" · " + p.minutes + " 分钟") : ""}</td>
+          <td>${p.shots != null ? p.shots : "—"}</td>
+          <td><span class="pill">${esc(p.lifecycle || "立项")}</span></td>
+          <td><button class="btn ghost sm" onclick="event.stopPropagation();selectHitProject(${p.id})">${String(p.id) === String(HITS.project_id) ? "当前" : "体检"}</button></td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">没有匹配的项目，试试重置搜索。</td></tr>`}</tbody></table>
+      </div>
+      ${projPager()}
+    </div>
+    ${c && HITS.projList.length ? `<div class="card" id="hitcheck">
+      <div class="hit-check-head">
+        <div>
+          <div class="hit-check-title">${esc(head.title || "")} <span class="pill">${esc(head.genre || "未设题材")}</span></div>
+          <div class="muted" style="font-size:var(--fs-sm);margin-top:4px">结构体检 · 规则判断，非播放预测</div>
+        </div>
+        <span class="pill ${okCount ? "ok" : ""}">${okCount}/6 项可评估</span>
+      </div>
+      <h2 style="margin-top:4px">项目事实 <span class="hint">来自剧本 / 分镜 / 项目信息</span></h2>
       <div class="hit-facts">${(c.facts || []).map(f => `<div class="hit-fact">
         <span>${esc(f.label)}</span><b>${f.value ? esc(f.value) : "数据不足"}</b></div>`).join("")}</div>
       <h2 style="margin-top:20px">结构判断 <span class="hint">规则判断，非播放预测 · ${c.assessable || 0}/6 项可评估${(c.missing && c.missing.length) ? " · 数据不足：" + esc(c.missing.join("、")) : ""}</span></h2>
@@ -1648,10 +1744,21 @@ function renderHits() {
           <span class="pill ${hitBandClass(d.band)}">${esc(d.band)}</span></div>
         ${d.desc ? `<div class="hit-desc">${esc(d.desc)}</div>` : ""}
         <ul class="hit-evidence">${(d.evidence || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul>
-        ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>` : ""}
+        ${(d.band === "弱" || d.status === "missing") ? `<p>${esc(d.suggestion)}</p>` : ""}</div>`).join("")}</div>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(c.note || "")}</div>
+    </div>` : (HITS.projList.length ? `<div class="card empty">选择一个项目后加载体检结果。</div>` : "")}
+  `;
+}
+function renderHitCases() {
+  const pb = HITS.playbook || {};
+  return `
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><div class="k">${HITS.total}</div><div class="l">爆款案例（他人作品）</div></div>
+      <div class="stat"><div class="k">${(pb.formulas || []).length}</div><div class="l">爆款配方</div></div>
+      <div class="stat"><div class="k">${(pb.hooks || []).length}</div><div class="l">前 3 秒钩子</div></div>
+      <div class="stat"><div class="k">${(pb.cliffhangers || []).length}</div><div class="l">断章类型</div></div>
     </div>
-
-    <h2>爆款案例 <span class="hint">共 ${HITS.total} 条 · 第 ${HITS.page}/${HITS.pages} 页</span></h2>
+    <h2 style="margin-top:0">爆款案例 <span class="hint">共 ${HITS.total} 条 · 第 ${HITS.page}/${HITS.pages} 页</span></h2>
     <div class="card" style="margin-bottom:14px"><div class="toolbar">
       <input id="hit_q" placeholder="搜索标题 / 题材 / 分析" value="${esc(HITS.q)}" oninput="scheduleHitSearch()">
       <select id="hit_genre" onchange="reloadHits()"><option value="">全部题材</option>
@@ -1683,13 +1790,7 @@ function renderHits() {
         ${(pb.cliffhangers || []).map(h => `<div class="mkt-copy-row"><div><b>${esc(h.type)}</b>
           <p class="muted">${esc(h.desc)}</p></div></div>`).join("")}</div>
     </div>
-    <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(pb.note || "")}</div>`,
-  }, true);
-}
-async function switchHitProject() {
-  HITS.project_id = ($("#hit_project") || {}).value || HITS.project_id;
-  window._HIT_PROJECT = HITS.project_id;
-  await runHitCheck(true);
+    <div class="muted" style="font-size:var(--fs-sm);margin-top:14px">${esc(pb.note || "")}</div>`;
 }
 async function openHitCase(id) {
   let c; try { c = await api("/api/hits/" + id); }

@@ -611,7 +611,7 @@ def set_lifecycle(project_id: int, body: dict):
 
 
 @app.get("/api/dramas")
-def list_projects():
+def list_projects(q: Optional[str] = None, limit: Optional[int] = None, offset: int = 0):
     out = []
     with Session() as s:
         rows = s.scalars(select(jobs_db.Project).order_by(jobs_db.Project.id.desc())).all()
@@ -622,7 +622,7 @@ def list_projects():
             deliverable = bool(run and run.result.get("summary", {}).get("deliverable"))
             lifecycle = _lifecycle_of(r.status, run is not None, deliverable)
             out.append({"id": r.id, "title": r.title, "logline": r.logline, "status": r.status,
-                        "lifecycle": lifecycle,
+                        "lifecycle": lifecycle, "genre": r.genre, "platform": r.platform,
                         "episodes": r.episodes, "minutes": r.minutes,
                         "episode_seconds": r.episode_seconds,
                         "source_meta": r.source_meta or {},
@@ -630,7 +630,16 @@ def list_projects():
                         "deliverable": deliverable,
                         "stages_passed": (run.result.get("summary", {}).get("passed") if run else 0) or 0,
                         "shots": n_shots})
-    return out
+    if limit is None:
+        return out
+    needle = str(q or "").strip().lower()
+    if needle:
+        out = [p for p in out if needle in " ".join(
+            str(p.get(k) or "") for k in ("title", "logline", "genre", "platform", "status")).lower()]
+    off = max(0, offset)
+    lim = max(1, min(100, limit))
+    return {"items": out[off:off + lim], "total": len(out), "q": q or "",
+            "limit": lim, "offset": off}
 
 
 @app.post("/api/drama-jobs")
