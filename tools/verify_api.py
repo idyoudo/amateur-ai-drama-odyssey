@@ -168,6 +168,14 @@ check("图像预设含 Qwen-Image 3",
       _img.get("千问 Qwen-Image 3.0 Pro", {}).get("model") == "qwen-image-3.0-pro")
 check("图像预设不再用 wanx-v1",
       all(p["model"] != "wanx-v1" for p in _presets["presets"]["image"]))
+_vid = {p["vendor"]: p for p in _presets["presets"]["video"]}
+check("视频预设含 Wan 3.0 / Prime",
+      _vid.get("通义万相 Wan 3.0", {}).get("model") == "wan3.0-video"
+      and _vid.get("通义万相 Wan 3.0 Prime", {}).get("model") == "wan3.0-video-prime")
+check("视频预设含 Seedance 2.5",
+      _vid.get("豆包 Seedance 2.5", {}).get("model") == "doubao-seedance-2-5-260628")
+check("视频预设移除已关停 Sora",
+      all("Sora" not in p["vendor"] for p in _presets["presets"]["video"]))
 r = client.put("/api/models/config", headers=H, json={"config": {"video": {"model": "v1", "api_key": "sk-test-video-0001", "api_url": ""}}})
 check("PUT 配置 video", r.status_code == 200 and r.json()["config"]["video"]["model"] == "v1")
 check("PUT 后 available 含 video", "video" in r.json()["available"])

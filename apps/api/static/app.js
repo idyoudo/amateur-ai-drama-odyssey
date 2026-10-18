@@ -3786,9 +3786,10 @@ const MODEL_RECS = [
     alt: "Nano Banana 2.1（定妆一致性）/ GPT Image 2.5（编辑与 4K）/ Qwen-Image 3（中文排版）",
     cost: "¥0.2–$0.135/张",
     why: "没有单一最好：定妆看 Nano Banana 2.1，关键帧看 Seedream 5.0 Pro，编辑/4K 看 GPT Image 2.5，中文小字看 Qwen-Image 3；Wan 2.5 只是低成本选项。DeepSeek 官方不做图像生成。" },
-  { kind: "video", first: "可灵 Kling v2",
-    alt: "豆包 Seedance / MiniMax 海螺 / Vidu", cost: "高（按秒计费）",
-    why: "视频是成本大头，先看参考图一致性、动作稳定性和国内可用性；可灵这三点较稳，Seedance 价格与速度更有优势。" },
+  { kind: "video", first: "通义万相 Wan 3.0（综合第一）",
+    alt: "Seedance 2.5（一致性）/ 可灵 Kling 3/4（多镜头）/ MiniMax H3（开源）/ Veo 3.1（口播 4K）",
+    cost: "高（1080p 约 $0.20/秒）",
+    why: "Wan 3.0 盲测榜第一，30 秒 1080p、原生音频、最多 20 个参考素材；Seedance 2.5 最多 50 个参考素材、身份一致性最强；Kling 3/4 强在多镜头与动作；Veo 3.1 / Gemini Omni 强在口播与 4K。Prime 只买速度，不买画质。" },
   { kind: "tts", first: "CosyVoice（DashScope）",
     alt: "OpenAI tts-1 / ElevenLabs", cost: "低",
     why: "台词量随集数线性增长，中文情绪和音色克隆优先；CosyVoice 单价低、国内延迟低，多语言再考虑 OpenAI 或 ElevenLabs。" },
@@ -3822,6 +3823,29 @@ const IMAGE_SCENARIOS = [
   ["国内合规 / 数据不出境", "Seedream 5 Pro/Flash、Qwen-Image 3、Wan 2.5",
     "都在国内云上：Seedream 质量优先，Qwen 中文文字/性价比，Wan 最低成本。"],
 ];
+const VIDEO_MATRIX = [
+  { name: "Wan 3.0", quality: "强", motion: "强", consistency: "强", audio: "强", dur: "30s", res: "1080p", edit: "强", speed: "中", cost: "高（$0.20/秒 1080p）", cn: "是" },
+  { name: "Wan 3.0 Prime", quality: "强", motion: "强", consistency: "强", audio: "强", dur: "30s", res: "1080p", edit: "强", speed: "快", cost: "高（$0.28/秒 1080p）", cn: "是" },
+  { name: "Seedance 2.5", quality: "强", motion: "强", consistency: "最强", audio: "强", dur: "4–30s", res: "1080p", edit: "强", speed: "中", cost: "最高（约 $34/分钟）", cn: "是" },
+  { name: "Kling 3 / 4", quality: "强", motion: "最强", consistency: "中–强", audio: "中", dur: "30s（4.0）", res: "4K（4.0）", edit: "中", speed: "中", cost: "中–高", cn: "是（4.0 API 待开放）" },
+  { name: "MiniMax H3", quality: "强", motion: "强", consistency: "中", audio: "强", dur: "—", res: "2K", edit: "中", speed: "中", cost: "低（$4.80/分钟）", cn: "是（开放权重）" },
+  { name: "Veo 3.1", quality: "强", motion: "中", consistency: "中", audio: "最强", dur: "4–8s", res: "4K", edit: "中", speed: "中", cost: "中–高", cn: "否" },
+  { name: "Gemini Omni 1.1", quality: "强", motion: "强", consistency: "中", audio: "强", dur: "40s", res: "4K", edit: "强", speed: "中", cost: "中（约 $9.12/分钟）", cn: "否" },
+];
+const VIDEO_SCENARIOS = [
+  ["综合 / 写实 / 30 秒", "Wan 3.0 → Seedance 2.5",
+    "Wan 3.0 盲测榜第一：30 秒、1080p、原生音频、20 个参考素材；Seedance 2.5 身份一致性更强但更贵。"],
+  ["角色 / 商品一致性", "Seedance 2.5 → Wan 3.0 → Kling 3/4",
+    "Seedance 2.5 最多 30 图 + 10 视频 + 10 音频参考，运动中人脸/服装保持最好；Wan 3.0 支持 20 个多模态参考。"],
+  ["多镜头 / 动作 / 转场", "Kling 3/4 → Gemini Omni 1.1 → Wan 3.0",
+    "Kling 4.0 支持 30 秒一镜到底、10 关键帧、15 参考；Gemini Omni 1.1 支持 40 秒场景与帧控制。"],
+  ["口播 / 对白 / 4K", "Veo 3.1 → Gemini Omni 1.1 → Wan 3.0",
+    "Veo 3.1 原生音频默认开启、4K，适合口型与台词对齐；Gemini Omni 1.1 也支持 4K 与 40 秒。"],
+  ["开源 / 自托管 / 低成本", "MiniMax H3 → Wan 3.0",
+    "MiniMax H3 开放权重、2K、原生音频、约 $4.80/分钟；数据不出境可自托管。"],
+  ["时效性 / 快速迭代", "Wan 3.0 Prime",
+    "与 Wan 3.0 同画质，只买速度；等待成本高于约 40% 溢价时才值得。"],
+];
 function viewModelGuide() {
   const cards = MODEL_RECS.map(r => {
     const meta = MODEL_KIND_META[r.kind];
@@ -3850,6 +3874,17 @@ function viewModelGuide() {
     <td>${r.cn.indexOf("是") === 0 ? `<span class="pill ok">${esc(r.cn)}</span>` : `<span class="pill bad">${esc(r.cn)}</span>`}</td>
   </tr>`).join("");
   const scenarios = IMAGE_SCENARIOS.map(([t, pick, why]) => `<div class="card">
+    <h3 style="margin:0 0 8px">${esc(t)}</h3>
+    <div class="pill" style="display:inline-block;margin-bottom:8px">${esc(pick)}</div>
+    <p class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin:0">${esc(why)}</p></div>`).join("");
+  const videoRows = VIDEO_MATRIX.map(r => `<tr>
+    <td><b>${esc(r.name)}</b></td>
+    <td>${rate(r.quality)}</td><td>${rate(r.motion)}</td><td>${rate(r.consistency)}</td>
+    <td>${rate(r.audio)}</td><td>${esc(r.dur)}</td><td>${esc(r.res)}</td>
+    <td>${rate(r.edit)}</td><td>${esc(r.speed)}</td><td>${esc(r.cost)}</td>
+    <td>${r.cn.indexOf("是") === 0 ? `<span class="pill ok">${esc(r.cn)}</span>` : `<span class="pill bad">${esc(r.cn)}</span>`}</td>
+  </tr>`).join("");
+  const videoScenarios = VIDEO_SCENARIOS.map(([t, pick, why]) => `<div class="card">
     <h3 style="margin:0 0 8px">${esc(t)}</h3>
     <div class="pill" style="display:inline-block;margin-bottom:8px">${esc(pick)}</div>
     <p class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin:0">${esc(why)}</p></div>`).join("");
@@ -3901,6 +3936,19 @@ function viewModelGuide() {
 
     <h2 style="margin-top:28px">按场景选图像模型</h2>
     <div class="rec-cards">${scenarios}</div>
+
+    <h2 style="margin-top:30px">视频模型多维对比
+      <span class="hint">画质 / 运动 / 一致性 / 音频 / 时长 / 分辨率 / 编辑 / 速度 / 成本 / 国内可用</span></h2>
+    <div class="card table-scroll"><table class="compare-table">
+      <thead><tr><th>模型</th><th>画质</th><th>运动/动作</th><th>身份一致性</th><th>音频</th>
+        <th>时长</th><th>最高分辨率</th><th>编辑</th><th>速度</th><th>成本</th><th>国内可用</th></tr></thead>
+      <tbody>${videoRows}</tbody></table></div>
+    <div class="muted" style="font-size:var(--fs-sm);line-height:1.7;margin-top:10px">
+      评级依据：Artificial Analysis 视频盲测榜、厂商官方能力说明与公开实测。Wan 3.0 当前 T2V 榜第一；
+      Prime 与标准版同画质，只提升速度；Sora 2 已于 2026-09-24 关停，不再列入可选。</div>
+
+    <h2 style="margin-top:28px">按场景选视频模型</h2>
+    <div class="rec-cards">${videoScenarios}</div>
 
     <h2 style="margin-top:26px">推荐依据</h2>
     <div class="guide-terms">${criteria.map(([k, v]) => `<div class="guide-term"><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join("")}</div>
