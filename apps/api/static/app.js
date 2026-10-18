@@ -196,6 +196,7 @@ function setMain(html, wide) {
   if (!m) return;
   let top = String(html.top || "");
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
+    `<button class="help-btn" title="设置指南" onclick="go('model-guide')">${ico("sliders")}</button>` +
     `<button class="help-btn" title="新手指南" onclick="go('guide')">${ico("doc")}</button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
   if (top.includes("</div>")) {
@@ -343,8 +344,6 @@ async function viewOverview() {
   const configured = cfg.available.length;
   setMain({
     title: "概览",
-    top: `<div class="right"><span class="pill ok"><i class="dot ok"></i>服务运行中</span>
-      <span class="pill ${configured ? "gold" : ""}">${configured ? configured + " 个模型已配置" : "未配置模型"}</span></div>`,
     body: `
     <div class="stats">
       <div class="stat"><div class="k">19</div><div class="l">流程模块</div></div>
