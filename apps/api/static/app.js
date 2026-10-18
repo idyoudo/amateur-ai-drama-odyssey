@@ -234,11 +234,12 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
   if (name === "project") return "#/project/" + encodeURIComponent(param) + (stage ? "/" + encodeURIComponent(stage) : "");
+  if (name === "model-add") return "#/model-add/" + encodeURIComponent(param || "");
   return "#/" + encodeURIComponent(name);
 }
 function decodePart(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
@@ -249,6 +250,10 @@ function parseHash() {
   if (parts[0] === "project") {
     if (!parts[1]) return { name: "__notfound" };
     return { name: "project", param: parts[1], stage: parts[2] || null };
+  }
+  if (parts[0] === "model-add") {
+    if (!parts[1]) return { name: "__notfound" };
+    return { name: "model-add", param: parts[1] };
   }
   if (ROUTE_NAMES.has(parts[0])) return { name: parts[0] };
   return { name: "__notfound" };
@@ -290,7 +295,8 @@ async function navigate(name, param) {
     return;
   }
   shell(name === "project" || name === "new-project" ? "projects"
-    : name === "hit-analyze" ? "hits" : name);
+    : name === "hit-analyze" ? "hits"
+      : name === "model-add" ? "models" : name);
   if (SKELETON_ROUTES.has(name)) skeleton();
   return routeView(name, param);
 }
@@ -313,6 +319,7 @@ async function routeView(name, param) {
   if (name === "jobs") return viewJobs();
   if (name === "team") return viewTeam();
   if (name === "models") return viewModels();
+  if (name === "model-add") return viewModelAdd(param);
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
 }
@@ -321,7 +328,7 @@ window.addEventListener("hashchange", () => {
   if (!hasToken()) return renderLogin();
   const r = parseHash();
   if (r.name === "project") CUR.stage = r.stage || null;
-  const retry = () => navigate(r.name, r.name === "project" ? r.param : undefined);
+  const retry = () => navigate(r.name, (r.name === "project" || r.name === "model-add") ? r.param : undefined);
   retry().catch(viewError);
 });
 
@@ -3698,32 +3705,133 @@ function modelProviderById(id) {
   }
   return null;
 }
-function modelApplyPreset(kind, idx) {
-  if (idx === "") return;
-  const p = ((MODELS.data || {}).presets || {})[kind] || [];
-  const item = p[Number(idx)];
-  if (!item) return;
-  const name = $("#np_" + kind + "_name"), model = $("#np_" + kind + "_model"), url = $("#np_" + kind + "_url");
-  if (name && !name.value.trim()) name.value = item.vendor;
-  if (model) model.value = item.model || "";
-  if (url) url.value = item.api_url || "";
+const MODEL_ADD = { kind: "", q: "", group: "全部", selected: null, list: [] };
+async function viewModelAdd(kind) {
+  if (!MODEL_KIND_META[kind]) {
+    return setMain({ title: "添加提供商", body: `<div class="card empty">未知模型类型
+      <div style="margin-top:12px"><button class="btn" onclick="go('models')">返回模型配置</button></div></div>` });
+  }
+  try {
+    const [d, me] = await Promise.all([
+      api("/api/models/config"),
+      api("/api/auth/me").catch(() => ({})),
+    ]);
+    MODELS.data = d;
+    MODELS.me = me || {};
+  } catch (e) {
+    return setMain({ title: "添加提供商", body: `<div class="card empty">模型配置加载失败：${esc(e.message)}
+      <div style="margin-top:12px"><button class="btn" onclick="viewModelAdd('${esc(kind)}')">重试</button></div></div>` });
+  }
+  MODEL_ADD.kind = kind; MODEL_ADD.q = ""; MODEL_ADD.group = "全部"; MODEL_ADD.selected = null;
+  renderModelAdd();
 }
-async function modelAddProvider(kind) {
+function modelAddFiltered() {
+  const presets = ((MODELS.data || {}).presets || {})[MODEL_ADD.kind] || [];
+  const q = MODEL_ADD.q.trim().toLowerCase();
+  return presets.filter(p => {
+    if (MODEL_ADD.group !== "全部" && (p.group || "") !== MODEL_ADD.group) return false;
+    if (!q) return true;
+    return [p.vendor, p.model, p.site, p.note, p.api_url].some(
+      x => String(x || "").toLowerCase().includes(q));
+  });
+}
+function modelAddCards(list) {
+  const custom = `<div class="prov-card ${MODEL_ADD.selected === null ? "on" : ""}" onclick="modelAddPick('custom')">
+    <div class="prov-logo">＋</div>
+    <div class="prov-main"><b>自定义配置</b><span>不在目录中的厂商：手动填写地址与模型</span></div>
+    <span class="prov-tag">自定义</span></div>`;
+  const cards = list.map((p, i) => `<div class="prov-card ${MODEL_ADD.selected && MODEL_ADD.selected.vendor === p.vendor ? "on" : ""}" onclick="modelAddPick(${i})">
+    <div class="prov-logo">${esc(String(p.vendor || "自").replace(/[（）()]/g, "").slice(0, 2))}</div>
+    <div class="prov-main"><b>${esc(p.vendor)}</b><span>${esc(p.site || "")}</span>
+      ${p.note ? `<em>${esc(p.note)}</em>` : ""}</div>
+    <span class="prov-tag">${esc(p.model || "")}</span></div>`).join("");
+  return custom + cards;
+}
+function modelAddRenderGrid() {
+  MODEL_ADD.list = modelAddFiltered();
+  const box = $("#provgrid"); if (box) box.innerHTML = modelAddCards(MODEL_ADD.list);
+  const cnt = $("#provcount");
+  if (cnt) cnt.textContent = `${MODEL_ADD.list.length} 家预设 · 不在列表中的用「自定义配置」`;
+}
+function modelAddSearch() {
+  MODEL_ADD.q = ($("#pa_q") || {}).value || "";
+  modelAddRenderGrid();
+}
+function modelAddGroup(g) {
+  MODEL_ADD.group = g;
+  document.querySelectorAll(".prov-group").forEach(b =>
+    b.classList.toggle("on", b.dataset.group === g));
+  modelAddRenderGrid();
+}
+function modelAddPick(i) {
+  const p = i === "custom" ? null : MODEL_ADD.list[i];
+  MODEL_ADD.selected = p;
+  modelAddRenderGrid();
+  const set = (id, v) => { const el = $("#" + id); if (el) el.value = v || ""; };
+  set("pa_name", p ? p.vendor : "");
+  set("pa_model", p ? p.model : "");
+  set("pa_url", p ? p.api_url : "");
+  set("pa_key", "");
+  const t = $("#pa_form_title");
+  if (t) t.textContent = p ? "配置 · " + p.vendor : "自定义配置";
+  const form = $("#pa_form");
+  if (form) form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+async function modelAddSave() {
   const val = id => ($("#" + id) || {}).value || "";
   const body = {
-    kind,
-    name: val("np_" + kind + "_name").trim(),
-    model: val("np_" + kind + "_model").trim(),
-    api_url: val("np_" + kind + "_url").trim(),
-    api_key: val("np_" + kind + "_key").trim(),
+    kind: MODEL_ADD.kind,
+    name: val("pa_name").trim(),
+    model: val("pa_model").trim(),
+    api_url: val("pa_url").trim(),
+    api_key: val("pa_key").trim(),
   };
   if (!body.name) return toast("先填提供商名称");
   try {
     await api("/api/models/providers", { method: "POST",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     toast("已添加提供商");
-    await reloadModels();
+    go("models");
   } catch (e) { toast("添加失败：" + e.message); }
+}
+function renderModelAdd() {
+  const meta = MODEL_KIND_META[MODEL_ADD.kind];
+  const groups = (MODELS.data || {}).provider_groups || ["国内厂商", "海外厂商", "第三方平台"];
+  setMain({
+    title: "添加提供商",
+    top: `<div class="right"><button class="btn ghost sm" onclick="go('models')">返回模型配置</button></div>`,
+    body: `
+    <div class="prov-picker">
+      <div class="prov-title">为「${esc(meta[0])}」添加提供商 <span class="pill">${esc(MODEL_ADD.kind)}</span></div>
+      <p class="muted" style="font-size:var(--fs-sm);line-height:1.8;margin:8px 0 0;max-width:900px">
+        从目录选择会自动填好端点与推荐模型；目录里没有的厂商，用「自定义配置」照样能接。</p>
+      <input id="pa_q" class="prov-search" placeholder="搜索厂商名称或网址，例如 DeepSeek、Kimi、OpenRouter"
+        value="${esc(MODEL_ADD.q)}" oninput="modelAddSearch()">
+      <div class="prov-groups">
+        ${["全部"].concat(groups).map(g => `<button class="btn ghost sm prov-group ${MODEL_ADD.group === g ? "on" : ""}"
+          data-group="${esc(g)}" onclick="modelAddGroup('${esc(g)}')">${esc(g)}</button>`).join("")}
+        <span class="muted" id="provcount"></span>
+      </div>
+      <div class="prov-grid" id="provgrid"></div>
+    </div>
+    <div class="card prov-form" id="pa_form">
+      <div class="model-kind-head">
+        <div class="mk-title">${ico("route")}<div><b id="pa_form_title">自定义配置</b>
+          <span>名称、模型、URL 都可以自己填；不在目录里的厂商也能接入</span></div></div>
+        <span class="pill">${esc(meta[0])}</span>
+      </div>
+      <div class="prov-form-grid">
+        <label class="fld"><small>提供商名称</small><input id="pa_name" placeholder="例如 DeepSeek 官方 / 公司中转"></label>
+        <label class="fld"><small>模型名</small><input id="pa_model" placeholder="例如 deepseek-chat"></label>
+        <label class="fld"><small>API URL</small><input id="pa_url" placeholder="https://…"></label>
+        <label class="fld"><small>API Key</small><input id="pa_key" type="password" autocomplete="new-password" placeholder="可留空，先走 Mock"></label>
+      </div>
+      <button class="btn prov-save" onclick="modelAddSave()">保存提供商</button>
+      <div class="muted" style="font-size:var(--fs-sm);margin-top:10px">
+        第一个提供商会自动生效；已有生效项时，保存后回模型页点「设为生效」切换。</div>
+    </div>`,
+  }, true);
+  modelAddRenderGrid();
 }
 async function modelActivate(id) {
   try {
@@ -3795,7 +3903,7 @@ function modelProviderRow(p, canEdit) {
 }
 function renderModels() {
   const d = MODELS.data || {};
-  const config = d.config || {}, providers = d.providers || {}, presets = d.presets || {};
+  const config = d.config || {}, providers = d.providers || {};
   const canEdit = MODELS.me.role === "admin";
   const available = d.available || [];
   const kindCards = Object.keys(MODEL_KIND_META).map(kind => {
@@ -3809,19 +3917,8 @@ function renderModels() {
     const pillClass = active && active.api_key_set ? "ok" : active ? "gold" : "";
     const rows = list.map(p => modelProviderRow(p, canEdit)).join("")
       || `<div class="model-prov-empty">还没有提供商；添加后同类只能有一个生效。</div>`;
-    const add = canEdit ? `<div class="model-add">
-      <div class="model-add-head">添加提供商</div>
-      <div class="model-add-grid">
-        <input id="np_${kind}_name" placeholder="名称，如 OpenAI 官方">
-        <select id="np_${kind}_preset" onchange="modelApplyPreset('${kind}',this.value)">
-          <option value="">从厂商预设填入…</option>
-          ${(presets[kind] || []).map((p, i) => `<option value="${i}">${esc(p.vendor)}</option>`).join("")}
-        </select>
-        <input id="np_${kind}_model" placeholder="模型名">
-        <input id="np_${kind}_url" placeholder="API URL（https://…）">
-        <input id="np_${kind}_key" type="password" autocomplete="new-password" placeholder="API Key（可留空，先走 Mock）">
-        <button class="btn" onclick="modelAddProvider('${kind}')">添加</button>
-      </div></div>` : "";
+    const add = canEdit ? `<button class="btn ghost model-add-btn" onclick="go('model-add:${kind}')">
+      ${ico("plus")} 添加提供商（同类可配多个，只有一个生效）</button>` : "";
     return `<div class="card model-kind" id="mk-${kind}">
       <div class="model-kind-head">
         <div class="mk-title">${ico(meta[2])}<div><b>${esc(meta[0])}</b><span>${esc(kind)} · ${esc(meta[1])}</span></div></div>
@@ -3882,7 +3979,7 @@ function boot() {
   if (!hasToken()) return renderLogin();
   const r = parseHash();
   if (r.name === "project") CUR.stage = r.stage || null;
-  navigate(r.name, r.name === "project" ? r.param : undefined).catch(viewError);
+  navigate(r.name, (r.name === "project" || r.name === "model-add") ? r.param : undefined).catch(viewError);
 }
 boot();
 

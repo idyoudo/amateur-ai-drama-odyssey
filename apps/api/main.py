@@ -506,6 +506,7 @@ def get_model_config():
                 persistence=_persistence_info(),
                 capabilities=list(sup_config.CAPABILITY_FIELDS),
                 presets=sup_config.PRESETS,
+                provider_groups=list(sup_config.PROVIDER_GROUPS),
                 routing={"hero": "高质量档（hero/对白正脸镜）", "ambient": "经济档（氛围/过场镜）"},
                 licenses={"bundle_forbidden": ["ComfyUI", "HunyuanVideo"],
                           "non_commercial": ["InsightFace", "ArcFace"]})
