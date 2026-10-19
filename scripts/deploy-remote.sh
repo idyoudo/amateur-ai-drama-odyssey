@@ -36,6 +36,10 @@ ssh "$REMOTE_HOST" "REMOTE_RUNTIME_DIR='$REMOTE_RUNTIME_DIR' sh -s" <<'REMOTE_DE
 set -eu
 cd "$REMOTE_RUNTIME_DIR"
 
+# 对外端口固定 6868（shell 环境变量优先于 .env，避免远端旧值覆盖）
+API_PORT="${API_PORT:-6868}"
+export API_PORT
+
 # 合并本地 .env 的缺失键（不覆盖远端已有）
 if [ -f .env.from-local ]; then
   while IFS= read -r line; do

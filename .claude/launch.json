@@ -1,1 +1,1 @@
-{"version":"0.0.1","configurations":[{"name":"aado","runtimeExecutable":"/bin/zsh","runtimeArgs":["-lc","set -a; . ./.env; set +a; exec .venv/bin/python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 4000"],"port":4000,"autoPort":false,"url":"http://localhost:4000"}]}
+{"version": "0.0.1", "configurations": [{"name": "aado", "runtimeExecutable": "/bin/zsh", "runtimeArgs": ["-lc", "set -a; . ./.env; set +a; exec .venv/bin/python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 6868"], "port": 6868, "autoPort": false, "url": "http://localhost:6868"}]}

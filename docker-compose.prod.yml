@@ -28,7 +28,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
     ports:
-      - "${API_PORT:-4000}:4000"
+      - "${API_PORT:-6868}:4000"
     depends_on:
       postgres:
         condition: service_healthy
