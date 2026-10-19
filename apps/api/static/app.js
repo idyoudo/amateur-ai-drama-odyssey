@@ -199,6 +199,7 @@ function setMain(html, wide) {
   const helpBtn = `<button class="help-btn bell-btn" title="待办与通知" id="bell" onclick="openNotifications()">${ico("pulse")}<span class="bell-count hide" id="bellcount"></span></button>` +
     `<button class="help-btn" title="设置指南" onclick="go('model-guide')">${ico("sliders")}</button>` +
     `<button class="help-btn" title="短剧制作课程" onclick="go('academy')">${ico("cap")}</button>` +
+    `<button class="help-btn" title="视频课" onclick="go('videos')">${ico("play")}</button>` +
     `<button class="help-btn" title="新手指南" onclick="go('guide')">${ico("doc")}</button>` +
     `<button class="help-btn" title="使用指南" onclick="openHelp()">?</button>`;
   if (top.includes("</div>")) {
@@ -238,7 +239,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "academy", "help", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "academy", "videos", "help", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -326,6 +327,7 @@ async function routeView(name, param) {
   if (name === "model-add") return viewModelAdd(param);
   if (name === "model-guide") return viewModelGuide();
   if (name === "academy") return viewAcademy();
+  if (name === "videos") return viewVideos();
   if (name === "help") return viewHelp();
   if (name === "settings") return viewSettings();
   return navigate("__notfound");
@@ -4246,6 +4248,93 @@ async function attachParams(st) {
       toast("参数已保存");
     } catch (e) { toast("保存失败：" + e.message); }
   };
+}
+
+/* ── 视频课 ── */
+var VIDEO_STAGE = "全部";
+function videoCourses() { return window.VIDEO_COURSES || []; }
+function videoCardHtml(c, i) {
+  const hue = (i * 47 + 218) % 360;
+  const embed = c.bvid
+    ? `<button class="btn ghost sm" onclick="openBiliPlayer('${esc(c.bvid)}','${esc(c.title)}')">站内播放</button>` : "";
+  return `<article class="video-card">
+    <div class="video-thumb" style="--vh:${hue}">
+      <span class="video-platform">${esc(c.platform)}</span>
+      <span class="video-play-ic">${ico("play")}</span>
+      <span class="video-thumb-meta">${esc(c.meta)}</span>
+    </div>
+    <div class="video-body">
+      <div class="video-kicker">${esc(c.stage)} · ${esc(c.level)}</div>
+      <h3>${esc(c.title)}</h3>
+      <div class="video-creator">${esc(c.creator)}</div>
+      <ul class="video-why">${(c.why || []).map(w => `<li>${esc(w)}</li>`).join("")}</ul>
+      <div class="video-foot">
+        <span class="pill">${esc(c.price)}</span>
+        <div class="video-actions">${embed}
+          <a class="btn sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">去学习 ↗</a></div>
+      </div>
+    </div>
+  </article>`;
+}
+function renderVideos() {
+  const grid = $("#videogrid");
+  if (!grid) return;
+  const stage = VIDEO_STAGE || "全部";
+  const list = videoCourses().filter(c => stage === "全部" || c.stage === stage);
+  grid.innerHTML = list.map(videoCardHtml).join("")
+    || `<div class="card empty">这个分类还没有课程</div>`;
+  $$(".video-filter").forEach(b => b.classList.toggle("on", b.dataset.stage === stage));
+}
+function pickVideoStage(stage) { VIDEO_STAGE = stage; renderVideos(); }
+function openBiliPlayer(bvid, title) {
+  if (!/^BV[0-9A-Za-z]+$/.test(bvid)) return;
+  const m = document.createElement("div");
+  m.className = "video-modal";
+  m.innerHTML = `<div class="video-modal-box" role="dialog" aria-modal="true">
+    <div class="video-modal-head"><b>${esc(title)}</b>
+      <button class="video-modal-x" aria-label="关闭" onclick="this.closest('.video-modal').remove()">×</button></div>
+    <div class="video-frame"><iframe src="https://player.bilibili.com/player.html?isOutside=true&bvid=${bvid}&page=1&high_quality=1&danmaku=0&autoplay=0" scrolling="no" frameborder="0" allowfullscreen></iframe></div>
+    <div class="video-modal-foot">站内播放使用 B 站官方播放器；若加载失败，请点卡片上的「去学习」跳转。</div>
+  </div>`;
+  m.onclick = e => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+}
+function viewVideos() {
+  const list = videoCourses();
+  const dy = window.VIDEO_DOUYIN || { creators: [] };
+  const stages = ["全部"].concat(list.map(c => c.stage).filter((s, i, a) => s && a.indexOf(s) === i));
+  if (!VIDEO_STAGE || stages.indexOf(VIDEO_STAGE) < 0) VIDEO_STAGE = "全部";
+  setMain({
+    title: "视频课",
+    top: `<div class="right"><span class="pill">${list.length} 门 · 逐页核验</span></div>`,
+    body: `
+      <div class="card video-hero">
+        <div class="guide-hero-t">跟着视频学，最快建立手感</div>
+        <p class="muted">先看基础建立判断，再跟做一条完整流程，最后拆解案例。课程页讲「为什么」，视频课演示「怎么做」，两边对照着学。</p>
+        <div class="video-path">
+          <span><b>1</b> 基础：镜头与剪辑</span><i>→</i>
+          <span><b>2</b> 全流程：做出一条</span><i>→</i>
+          <span><b>3</b> 案例：拆解爆款</span><i>→</i>
+          <span><b>4</b> 后期：调色与母版</span>
+        </div>
+      </div>
+      <div class="video-filters">
+        ${stages.map(s => `<button class="video-filter ${s === VIDEO_STAGE ? "on" : ""}" data-stage="${esc(s)}" onclick="pickVideoStage('${esc(s)}')">${esc(s)}</button>`).join("")}
+      </div>
+      <div class="video-grid" id="videogrid"></div>
+
+      <h2 style="margin-top:30px">抖音精选 <span class="hint">给账号方向，不做易失效的链接</span></h2>
+      <div class="card" style="padding:20px 24px">
+        <p class="muted" style="margin:0 0 14px;line-height:1.8">${esc(dy.note || "")}</p>
+        <div class="video-grid">${(dy.creators || []).map(c => `<div class="card video-dy"><b>${esc(c.name)}</b><p>${esc(c.why)}</p></div>`).join("")}</div>
+      </div>
+      <p class="muted" style="font-size:var(--fs-meta);margin-top:16px;line-height:1.8">
+        课程链接、分 P 与播放量在 2026-10-19 逐页核验；平台可能删除或改价，以页面当期信息为准。
+        B 站站内播放使用官方播放器，付费课程请通过「去学习」跳转购买。
+      </p>
+    `
+  });
+  renderVideos();
 }
 
 /* ── 短剧制作课程 ── */
