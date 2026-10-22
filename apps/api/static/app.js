@@ -4155,7 +4155,7 @@ function renderModels() {
       每类模型可配置多个提供商，<b style="color:var(--ink-2)">同一时间只有一个生效</b>；切换后新任务使用新提供商。
       Key 只显示末四位、永不回传明文；${esc((d.persistence || {}).note || "配置写入数据库")}。
       ${canEdit ? "" : "当前角色只读，只有管理员可以修改。"}</div>
-    ${kindCards}
+    <div class="model-kind-grid">${kindCards}</div>
     <h2>电影参数能力矩阵 <span class="hint">M17.1-F04：参数缺失不得默认「支持」</span></h2>
     <div class="card" style="padding:0"><table>
       <thead><tr><th>能力维度</th><th>说明</th></tr></thead><tbody>
@@ -4254,11 +4254,10 @@ async function attachParams(st) {
 var VIDEO_STAGE = "全部";
 function videoCourses() { return window.VIDEO_COURSES || []; }
 function videoCardHtml(c, i) {
-  const hue = (i * 47 + 218) % 360;
   const embed = c.bvid
     ? `<button class="btn ghost sm" onclick="openBiliPlayer('${esc(c.bvid)}','${esc(c.title)}')">站内播放</button>` : "";
   return `<article class="video-card">
-    <div class="video-thumb" style="--vh:${hue}">
+    <div class="video-thumb">
       <span class="video-platform">${esc(c.platform)}</span>
       <span class="video-play-ic">${ico("play")}</span>
       <span class="video-thumb-meta">${esc(c.meta)}</span>
