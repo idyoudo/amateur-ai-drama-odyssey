@@ -35,8 +35,8 @@
   --overlay:rgba(23,23,28,.36);
   --scrollbar:#DADAE0; --scrollbar-hover:#C4C4CC;
   --selection:#E8EAF3;
-  --btn-hover:#D2D7E8; --btn-acc-hover:#D2D7E8;
-  --btn-bg:#DCE0EE; --btn-fg:#33375C; --btn-line:#C9CDE6; --on-ink:#FFFFFF;
+  --btn-hover:#F5F6FA; --btn-acc-hover:#F5F6FA;
+  --btn-bg:#FFFFFF; --btn-fg:#23263F; --btn-line:#C3C7D6; --on-ink:#FFFFFF;
   --tag-bg:rgba(255,255,255,.95);
   --thumb-grad:linear-gradient(135deg,#F7F7FA 0%,#EFEFF4 100%);
   --login-glow:#F1F1FA;
@@ -117,8 +117,11 @@ h2:first-child{margin-top:0}
   align-items:center;gap:7px;line-height:1.35;letter-spacing:-.005em}
 .btn:hover{background:var(--btn-hover)}
 .btn:active{transform:translateY(1px)}
-.btn.ghost{background:var(--surface);color:var(--ink-2);border-color:var(--line-strong)}
+.btn.ghost{background:var(--surface);color:var(--ink-2);border-color:var(--line-strong);font-weight:500}
 .btn.ghost:hover{background:var(--surface-2);color:var(--ink);border-color:var(--dim-2)}
+.linkbtn{background:none;border:0;padding:0;color:var(--dim);font-size:var(--fs-table);cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;transition:color .14s}
+.linkbtn:hover{color:var(--ink)}
 .btn.acc{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
 .btn.acc:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .btn.sm{padding:6px 11px;font-size:var(--fs-sm);border-radius:5px}
@@ -416,7 +419,7 @@ body.dark{color-scheme:dark;
   --bad:#F87171;--bad-soft:#2A1414;--bad-line:#5C1A1A;
   --topbar-bg:rgba(8,8,11,.88);--overlay:rgba(0,0,0,.62);
   --scrollbar:#2A2A32;--scrollbar-hover:#3A3A44;--selection:#2A2A4A;
-  --btn-hover:#343855;--btn-acc-hover:#343855;--btn-bg:#2A2D44;--btn-fg:#D6D9F0;--btn-line:#3A3D60;--on-ink:#101014;--tag-bg:rgba(16,16,20,.92);
+  --btn-hover:#232633;--btn-acc-hover:#232633;--btn-bg:#1A1C24;--btn-fg:#E4E5EF;--btn-line:#2F3242;--on-ink:#101014;--tag-bg:rgba(16,16,20,.92);
   --thumb-grad:linear-gradient(135deg,#15151C 0%,#101015 100%);
   --login-glow:#14142A;
   --shadow-xs:0 0 0 1px rgba(255,255,255,.02);--shadow-sm:0 1px 2px rgba(0,0,0,.35);

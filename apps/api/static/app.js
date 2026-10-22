@@ -369,7 +369,7 @@ async function viewOverview() {
       : `<div class="card empty">${ico("film")}<div>还没有项目</div>
         <div class="muted" style="font-size:var(--fs-sm);margin-top:6px">30 秒体验：一键创建示例项目并跑完 19 阶段</div>
         <div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
-        <button class="btn ghost" style="margin-left:8px" onclick="go('projects')">手动立项</button></div></div>`}`,
+        <button class="linkbtn" style="margin-left:14px" onclick="go('projects')">手动立项</button></div></div>`}`,
   });
 }
 /* ---------- 新手指南 ---------- */
@@ -866,7 +866,7 @@ function renderProjects() {
     <div id="projpager">${PROJS.total ? pagerBar(PROJS, "projectsGoPage") : ""}</div>
     ${PROJS.total ? "" : `<div class="card empty">${ico("film")}<div>${PROJS.q ? "无匹配项目" : "还没有项目"}</div>
       ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
-      <button class="btn ghost" style="margin-left:8px" onclick="go('new-project')">手动立项</button></div>`}</div>`}`,
+      <button class="linkbtn" style="margin-left:14px" onclick="go('new-project')">手动立项</button></div>`}</div>`}`,
   });
   setProjView(PROJ_VIEW);
   if (focusId) {

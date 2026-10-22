@@ -25,10 +25,10 @@ colors:
   bad: "#D92D20"
   bad-soft: "#FEF3F2"
   bad-line: "#FBCDCA"
-  btn-bg: "#DCE0EE"
-  btn-fg: "#33375C"
-  btn-hover: "#D2D7E8"
-  btn-line: "#C9CDE6"
+  btn-bg: "#FFFFFF"
+  btn-fg: "#23263F"
+  btn-hover: "#F5F6FA"
+  btn-line: "#C3C7D6"
   on-ink: "#FFFFFF"
 dark_colors:
   bg: "#08080B"
@@ -53,10 +53,10 @@ dark_colors:
   bad: "#F87171"
   bad-soft: "#2A1414"
   bad-line: "#5C1A1A"
-  btn-bg: "#2A2D44"
-  btn-fg: "#D6D9F0"
-  btn-hover: "#343855"
-  btn-line: "#3A3D60"
+  btn-bg: "#1A1C24"
+  btn-fg: "#E4E5EF"
+  btn-hover: "#232633"
+  btn-line: "#2F3242"
   on-ink: "#101014"
 typography:
   families:
@@ -159,8 +159,8 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 | `--accent` | #6B6F9E | 链接、焦点环、选中、进度 |
 | `--accent-soft` | #F4F5F9 | 焦点环底色、强调区块底 |
 | `--accent-line` | #E4E6EF | 强调区块边框 |
-| `--btn-bg` / `--btn-fg` / `--btn-line` | #DCE0EE / #33375C / #C9CDE6 | 浅色柔和主按钮 |
-| `--btn-hover` | #D2D7E8 | 主按钮悬停 |
+| `--btn-bg` / `--btn-fg` / `--btn-line` | #FFFFFF / #23263F / #C3C7D6 | 白底主按钮 |
+| `--btn-hover` | #F5F6FA | 主按钮悬停 |
 | `--ok` / `--ok-soft` / `--ok-line` | #0E9F6E / #EDFDF6 / #C7F3DF | 通过、健康、已完成 |
 | `--warn` / `--warn-soft` / `--warn-line` | #B45309 / #FFF8EB / #FBE3B6 | 警告、待标定、灰区 |
 | `--bad` / `--bad-soft` / `--bad-line` | #D92D20 / #FEF3F2 / #FBCDCA | 失败、阻断、删除 |
@@ -187,8 +187,8 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 | `--ok` / `--ok-soft` / `--ok-line` | #34D399 / #0C2A1F / #14532D |
 | `--warn` / `--warn-soft` / `--warn-line` | #FBBF24 / #2A2210 / #5C4310 |
 | `--bad` / `--bad-soft` / `--bad-line` | #F87171 / #2A1414 / #5C1A1A |
-| `--btn-bg` / `--btn-fg` / `--btn-line` | #2A2D44 / #D6D9F0 / #3A3D60 |
-| `--btn-hover` | #343855 |
+| `--btn-bg` / `--btn-fg` / `--btn-line` | #1A1C24 / #E4E5EF / #2F3242 |
+| `--btn-hover` | #232633 |
 | `--on-ink` | #101014 |
 
 ### 2.4 禁止
@@ -279,13 +279,13 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 
 | 变体 | 规格 |
 |---|---|
-| 主按钮 `.btn` | `--btn-bg` 浅灰蓝底、`--btn-fg` 墨青紫字、`--btn-line` 细边框、6px 圆角、`9px 16px`、13px/600 |
+| 主按钮 `.btn` | 白底、`--btn-fg` 深墨字、`--btn-line` 细边框、6px 圆角、`9px 16px`、13px/600 |
 | 次按钮 `.btn.ghost` | 白底、`--line-strong` 边框、`--ink-2` 文字 |
 | 小号 `.btn.sm` | `6px 11px`、12px、5px 圆角 |
 | 选中态 `.btn.acc` / 筛选 chip / 页码 | `--accent-soft` 底、`--accent-line` 边框、`--accent` 文字；不使用填充墨色 |
 | 禁用 | 40% 透明度、不可点 |
 
-主按钮采用浅色柔和按钮，不使用深色或高饱和填充；靠 `--btn-fg` 文字色、`--btn-line` 边框与 600 字重建立主次，而不是靠色块面积。一屏通常只出现一个主按钮。悬停加深底色；按下位移 1px；焦点用 4px `--accent-soft` 环。按钮内图标 15px。深色模式下 `--btn-bg/--btn-fg` 自动反转，禁止把「墨色底 + 白字」写死。
+主按钮是白底描边按钮，不使用任何填充色；靠深墨文字、边框与 600 字重建立主次。次要操作优先用 `.btn.ghost`（灰描边）或 `.linkbtn`（文字链接），不要再加第二个填充按钮。一屏通常只出现一个主按钮。悬停加深底色；按下位移 1px；焦点用 4px `--accent-soft` 环。按钮内图标 15px。深色模式下 `--btn-bg/--btn-fg` 自动反转，禁止把「墨色底 + 白字」写死。
 
 ### 6.2 卡片
 
@@ -405,5 +405,5 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 | 2026-10-22 | Agent | 视觉精修：页面标题改衬线 28px、统计数字放大、侧栏选中强调条、表格头去灰底、空态圆形图标、工具卡化、模型页双列、视频缩略图改中性渐变；补齐深色模式 `--btn-bg/--btn-fg/--on-ink` 反转 |
 | 2026-10-22 | Agent | 按钮体系二次精修：主按钮由近黑改为强调色，列表/看板、筛选 chip、页码统一为浅色选中态，避免页面出现沉重黑块 |
 | 2026-10-22 | Agent | 色系第三次精修：强调色从高饱和靛蓝 `#4F46E5` 降到低饱和墨青紫，链接/选中态/深色模式同步换色 |
-| 2026-10-22 | Agent | 按钮去填充：主按钮改为浅灰蓝底 + 墨青紫字 + 细边框 + 600 字重，彻底移除深色块；深色模式同步为暗色柔和按钮 |
+| 2026-10-22 | Agent | 按钮去填充：主按钮改为白底 + 深墨字 + 细边框 + 600 字重，彻底移除深色与彩色块；空态次操作改为文字链接；深色模式同步为暗色描边按钮 |
 | 2026-10-22 | Agent | 空态与列表布局精修：侧栏选中项去底色只留竖条；工具条改浅灰条；0 条时隐藏顶栏主按钮与分页；空态只保留一个主按钮 + 一个次按钮，减少重复 CTA |
