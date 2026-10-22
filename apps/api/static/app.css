@@ -75,8 +75,9 @@ code,.mono,pre{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-
 .nav-item svg{width:16px;height:16px;flex-shrink:0;color:var(--dim);transition:color .14s;stroke-width:1.5}
 .nav-item:hover{background:var(--surface-2);color:var(--ink)}
 .nav-item:hover svg{color:var(--ink-2)}
-.nav-item.on{background:var(--surface-2);color:var(--ink);font-weight:550}
-.nav-item.on::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);
+.nav-item.on{background:transparent;color:var(--ink);font-weight:600}
+.nav-item.on:hover{background:var(--surface-2)}
+.nav-item.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:2px;height:16px;border-radius:2px;background:var(--accent)}
 .nav-item.on svg{color:var(--ink)}
 .side-foot{padding:16px 18px;border-top:1px solid var(--line);font-size:var(--fs-meta);color:var(--dim-2);line-height:1.7}
@@ -384,7 +385,7 @@ input::placeholder{color:var(--dim-2)}
   background-size:200% 100%;animation:sk 1.5s infinite;border-radius:8px;height:16px;margin:10px 0}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .skeleton.card{height:132px}
-.empty{color:var(--dim);text-align:center;padding:72px 24px;font-size:var(--fs-table);line-height:1.8;overflow-wrap:anywhere}
+.empty{color:var(--dim);text-align:center;padding:56px 24px;font-size:var(--fs-table);line-height:1.8;overflow-wrap:anywhere}
 .empty svg{width:28px;height:28px;padding:14px;box-sizing:content-box;border-radius:50%;
   background:var(--surface-2);border:1px solid var(--line);color:var(--dim);margin-bottom:16px}
 .hide{display:none!important}
@@ -464,8 +465,9 @@ body.dark{color-scheme:dark;
 .toolbar > input,.toolbar > select{height:40px;padding:0 12px}
 .view > .toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
   padding:12px;margin-bottom:14px}
-.list-toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
-  padding:12px;margin-bottom:14px}
+.list-toolbar{background:var(--surface-2);border:1px solid transparent;border-radius:var(--radius-lg);
+  padding:10px 12px;margin-bottom:14px}
+.list-toolbar > input,.list-toolbar > select{background:var(--surface)}
 
 /* 紧凑参数表单 */
 .form-actions{display:flex;gap:10px;align-items:center;margin-top:2px}

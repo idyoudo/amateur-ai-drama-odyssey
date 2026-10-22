@@ -847,8 +847,7 @@ function renderProjects() {
   const selStart = ae && typeof ae.selectionStart === "number" ? ae.selectionStart : null;
   setMain({
     title: "项目",
-    top: `<div class="right"><button class="btn sm" onclick="go('new-project')">新建项目</button>
-      <span class="pill">${PROJS.total} 个项目</span></div>`,
+    top: `<div class="right">${PROJS.total ? `<button class="btn sm" onclick="go('new-project')">新建项目</button>` : ""}</div>`,
     body: `
     <div class="toolbar list-toolbar">
       <input id="psearch" placeholder="搜索片名 / logline / 题材" style="max-width:260px" value="${esc(PROJS.q)}" oninput="scheduleProjectSearch()">
@@ -864,10 +863,10 @@ function renderProjects() {
     </div>
     <div class="cards" id="plist">${PROJS.items.length ? PROJS.items.map(projectCard).join("") : ""}</div>
     <div id="pboard" class="hide"></div>
-    <div id="projpager">${pagerBar(PROJS, "projectsGoPage")}</div>
+    <div id="projpager">${PROJS.total ? pagerBar(PROJS, "projectsGoPage") : ""}</div>
     ${PROJS.total ? "" : `<div class="card empty">${ico("film")}<div>${PROJS.q ? "无匹配项目" : "还没有项目"}</div>
-      ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="go('new-project')">新建项目</button>
-      <button class="btn ghost" style="margin-left:8px" onclick="seedDemo()">创建示例项目</button></div>`}</div>`}`,
+      ${PROJS.q ? "" : `<div style="margin-top:14px"><button class="btn" onclick="seedDemo()">创建示例项目</button>
+      <button class="btn ghost" style="margin-left:8px" onclick="go('new-project')">手动立项</button></div>`}</div>`}`,
   });
   setProjView(PROJ_VIEW);
   if (focusId) {
