@@ -1,7 +1,7 @@
 ---
 version: 1.0
 name: AADO-design-system
-description: "AADO 的视觉系统：Editorial Cinematic。近单色冷灰画布、Instrument Serif 衬线展示体、单一靛蓝强调色、细边框、轻阴影与大留白。格式参考 awesome-design-md 的 DESIGN.md 方法（Google Stitch 提出），Token 与 apps/api/static/app.css 的 :root 保持同步。"
+description: "AADO 的视觉系统：Editorial Cinematic。近单色冷灰画布、Instrument Serif 衬线展示体、低饱和墨青紫强调色、细边框、轻阴影与大留白。格式参考 awesome-design-md 的 DESIGN.md 方法（Google Stitch 提出），Token 与 apps/api/static/app.css 的 :root 保持同步。"
 colors:
   bg: "#FBFBFD"
   surface: "#FFFFFF"
@@ -13,9 +13,9 @@ colors:
   ink-2: "#3F3F4A"
   dim: "#6E6E7A"
   dim-2: "#A0A0AC"
-  accent: "#4F46E5"
-  accent-soft: "#F2F2FE"
-  accent-line: "#E0E0FA"
+  accent: "#6468A0"
+  accent-soft: "#F3F4F9"
+  accent-line: "#E1E3EF"
   ok: "#0E9F6E"
   ok-soft: "#EDFDF6"
   ok-line: "#C7F3DF"
@@ -25,9 +25,9 @@ colors:
   bad: "#D92D20"
   bad-soft: "#FEF3F2"
   bad-line: "#FBCDCA"
-  btn-bg: "#4F46E5"
+  btn-bg: "#6468A0"
   btn-fg: "#FFFFFF"
-  btn-hover: "#4338CA"
+  btn-hover: "#55598F"
   on-ink: "#FFFFFF"
 dark_colors:
   bg: "#08080B"
@@ -40,9 +40,9 @@ dark_colors:
   ink-2: "#C7C7CF"
   dim: "#8A8A93"
   dim-2: "#5C5C66"
-  accent: "#8B8BF0"
-  accent-soft: "#191934"
-  accent-line: "#2B2B52"
+  accent: "#A3A6D6"
+  accent-soft: "#1C1D2B"
+  accent-line: "#30324F"
   ok: "#34D399"
   ok-soft: "#0C2A1F"
   ok-line: "#14532D"
@@ -52,9 +52,9 @@ dark_colors:
   bad: "#F87171"
   bad-soft: "#2A1414"
   bad-line: "#5C1A1A"
-  btn-bg: "#8B8BF0"
+  btn-bg: "#A3A6D6"
   btn-fg: "#101014"
-  btn-hover: "#A5A5F5"
+  btn-hover: "#B4B7E2"
   on-ink: "#101014"
 typography:
   families:
@@ -124,7 +124,7 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 
 - **近单色冷灰画布**：`#FBFBFD` 背景、白色卡片、发丝级边框。信息密度高，但不拥挤。
 - **衬线展示体**：大标题、统计数字、项目名、弹窗标题用 Instrument Serif，带编辑感与电影感。
-- **单一靛蓝强调**：`#4F46E5` 只用于链接、焦点、选中与进度；不做大面积渐变或彩色装饰。
+- **单一低饱和墨青紫强调**：`#6468A0` 只用于链接、焦点、选中与进度；不做大面积渐变或高饱和色块。
 - **大留白**：整页布局、有序分区、充分间距。宁可多一屏，不把内容塞进弹窗或手风琴。
 
 三条不可协商的原则：
@@ -154,7 +154,7 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 
 | Token | 值 | 用途 |
 |---|---|---|
-| `--accent` | #4F46E5 | 链接、焦点环、选中、进度 |
+| `--accent` | #6468A0 | 链接、焦点环、选中、进度 |
 | `--accent-soft` | #F2F2FE | 焦点环底色、强调区块底 |
 | `--accent-line` | #E0E0FA | 强调区块边框 |
 | `--ok` / `--ok-soft` / `--ok-line` | #0E9F6E / #EDFDF6 / #C7F3DF | 通过、健康、已完成 |
@@ -177,7 +177,7 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 | `--ink-2` | #C7C7CF |
 | `--dim` | #8A8A93 |
 | `--dim-2` | #5C5C66 |
-| `--accent` | #8B8BF0 |
+| `--accent` | #A3A6D6 |
 | `--accent-soft` | #191934 |
 | `--accent-line` | #2B2B52 |
 | `--ok` / `--ok-soft` / `--ok-line` | #34D399 / #0C2A1F / #14532D |
@@ -274,13 +274,13 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 
 | 变体 | 规格 |
 |---|---|
-| 主按钮 `.btn` | `--btn-bg`（强调靛蓝）底、`--btn-fg` 字、6px 圆角、`9px 16px`、13px/500 |
+| 主按钮 `.btn` | `--btn-bg`（低饱和墨青紫）底、`--btn-fg` 字、6px 圆角、`9px 16px`、13px/500 |
 | 次按钮 `.btn.ghost` | 白底、`--line-strong` 边框、`--ink-2` 文字 |
 | 小号 `.btn.sm` | `6px 11px`、12px、5px 圆角 |
 | 选中态 `.btn.acc` / 筛选 chip / 页码 | `--accent-soft` 底、`--accent-line` 边框、`--accent` 文字；不使用填充墨色 |
 | 禁用 | 40% 透明度、不可点 |
 
-主按钮使用与链接一致的强调靛蓝，而不是近黑填充；一屏通常只出现一个主按钮。悬停加深底色；按下位移 1px；焦点用 4px `--accent-soft` 环。按钮内图标 15px。深色模式下 `--btn-bg/--btn-fg` 自动反转，禁止把「墨色底 + 白字」写死。
+主按钮使用与链接一致的低饱和墨青紫，而不是近黑或高饱和填充；一屏通常只出现一个主按钮。悬停加深底色；按下位移 1px；焦点用 4px `--accent-soft` 环。按钮内图标 15px。深色模式下 `--btn-bg/--btn-fg` 自动反转，禁止把「墨色底 + 白字」写死。
 
 ### 6.2 卡片
 
@@ -398,5 +398,6 @@ AADO 是「影视工业工具」，不是消费级娱乐 App，也不是通用 S
 |------|--------|----------|
 | 2026-10-22 | Agent | 建立 AADO DESIGN.md：从现有 app.css 提取 Token 与组件规则，补齐布局、页面模板、响应式、无障碍、Agent 生成指南与禁止项；登记为强规则四 |
 | 2026-10-22 | Agent | 视觉精修：页面标题改衬线 28px、统计数字放大、侧栏选中强调条、表格头去灰底、空态圆形图标、工具卡化、模型页双列、视频缩略图改中性渐变；补齐深色模式 `--btn-bg/--btn-fg/--on-ink` 反转 |
-| 2026-10-22 | Agent | 按钮体系二次精修：主按钮由近黑改为强调靛蓝，列表/看板、筛选 chip、页码统一为浅靛蓝选中态，避免页面出现沉重黑块 |
+| 2026-10-22 | Agent | 按钮体系二次精修：主按钮由近黑改为强调色，列表/看板、筛选 chip、页码统一为浅色选中态，避免页面出现沉重黑块 |
+| 2026-10-22 | Agent | 色系第三次精修：强调色从高饱和靛蓝 `#4F46E5` 降到低饱和墨青紫 `#6468A0`，链接/按钮/选中态/深色模式同步换色，降低视觉突兀感 |
 | 2026-10-22 | Agent | 空态与列表布局精修：侧栏选中项去底色只留竖条；工具条改浅灰条；0 条时隐藏顶栏主按钮与分页；空态只保留一个主按钮 + 一个次按钮，减少重复 CTA |
