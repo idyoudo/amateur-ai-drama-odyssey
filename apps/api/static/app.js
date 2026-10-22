@@ -850,7 +850,7 @@ function renderProjects() {
     top: `<div class="right"><button class="btn sm" onclick="go('new-project')">新建项目</button>
       <span class="pill">${PROJS.total} 个项目</span></div>`,
     body: `
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <div class="toolbar list-toolbar">
       <input id="psearch" placeholder="搜索片名 / logline / 题材" style="max-width:260px" value="${esc(PROJS.q)}" oninput="scheduleProjectSearch()">
       <select id="psort" style="max-width:170px" onchange="changeProjectSort()">
         <option value="id" ${PROJS.sort === "id" ? "selected" : ""}>按创建时间</option>
