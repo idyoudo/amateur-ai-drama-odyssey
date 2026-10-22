@@ -34,7 +34,7 @@ DESIGN_COLOR_TOKENS = [
     'ink', 'ink-2', 'dim', 'dim-2', 'accent', 'accent-soft', 'accent-line',
     'ok', 'ok-soft', 'ok-line', 'warn', 'warn-soft', 'warn-line',
     'bad', 'bad-soft', 'bad-line',
-    'btn-bg', 'btn-fg', 'btn-hover', 'on-ink',
+    'btn-bg', 'btn-fg', 'btn-hover', 'btn-line', 'on-ink',
 ]
 DESIGN_SIZE_TOKENS = [
     'radius', 'radius-md', 'radius-lg', 'radius-xl',
