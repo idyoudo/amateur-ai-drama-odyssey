@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PRD 治理门禁（强规则一 + 强规则二 + 强规则三）——见 GOVERNANCE.md。
+"""PRD 治理门禁（强规则一 + 强规则二 + 强规则三 + 强规则四）——见 GOVERNANCE.md。
 
 用法：
   python3 tools/prd_guard.py --all                          # 全量结构体检
@@ -22,6 +22,23 @@ FP_RE = re.compile(r'^M(\d+)\.(\d+)-F(\d{1,3})$')
 LEDGER_JSONL = PRD / 'changelog.jsonl'
 LEDGER_MD = PRD / 'CHANGELOG.md'
 MODULE_DOCS_DIR = ROOT / 'docs' / 'modules'
+DESIGN_MD = ROOT / 'DESIGN.md'
+DESIGN_REQUIRED_SECTIONS = [
+    '## 1. 视觉主题', '## 2. 色彩', '## 3. 字体', '## 4. 布局与间距',
+    '## 5. 形状与层次', '## 6. 组件', '## 7. 页面模板',
+    "## 8. Do / Don't", '## 9. 响应式', '## 10. 无障碍与文案',
+    '## 11. Agent 生成指南', '## 13. 维护与变更记录',
+]
+DESIGN_COLOR_TOKENS = [
+    'bg', 'surface', 'surface-2', 'surface-3', 'line', 'line-strong',
+    'ink', 'ink-2', 'dim', 'dim-2', 'accent', 'accent-soft', 'accent-line',
+    'ok', 'ok-soft', 'ok-line', 'warn', 'warn-soft', 'warn-line',
+    'bad', 'bad-soft', 'bad-line',
+]
+DESIGN_SIZE_TOKENS = [
+    'radius', 'radius-md', 'radius-lg', 'radius-xl',
+    'sidebar', 'fs-body', 'fs-h1', 'fs-h2', 'fs-h3', 'fs-stat',
+]
 VALID_TASK_STATUS = {'待开发', '进行中', '已完成', '阻塞', '已废弃'}
 TASK_RE = re.compile(r'^M(\d+)-T(\d{2})$')
 errors: list[str] = []
@@ -202,6 +219,65 @@ def check_module_docs() -> None:
                 err(f'[3] {path.name} {code} 状态非法：{status}')
             if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
                 err(f'[3] {path.name} {code} 日期不合规：{date}（应为 YYYY-MM-DD）')
+
+
+# ---------------- 强规则四：UI 设计以 DESIGN.md 为唯一事实来源 ----------------
+def design_color_maps(text: str) -> tuple[dict[str, str], dict[str, str]]:
+    """从 DESIGN.md 的 YAML frontmatter 读取 colors / dark_colors。"""
+    parts = text.split('---', 2)
+    if len(parts) < 3:
+        return {}, {}
+    block = parts[1]
+
+    def section(name: str) -> dict[str, str]:
+        m = re.search(r'^' + name + r':\s*\n((?:[ \t]{2}[\w-]+:\s*"[^"]*"\s*\n)+)', block, re.M)
+        if not m:
+            return {}
+        return {k: v for k, v in re.findall(r'^[ \t]{2}([\w-]+):\s*"([^"]+)"', m.group(1), re.M)}
+
+    return section('colors'), section('dark_colors')
+
+
+def check_design_md() -> None:
+    """强规则四：DESIGN.md 存在、必需章节齐备，且关键 Token 与 app.css :root 不漂移。"""
+    text = read(DESIGN_MD)
+    if not text:
+        err('[4] 缺少根目录 DESIGN.md（强规则四：UI 设计唯一事实来源）')
+        return
+    for sec in DESIGN_REQUIRED_SECTIONS:
+        if sec not in text:
+            err(f'[4] DESIGN.md 缺少必需章节：{sec}')
+    css = read(ROOT / 'apps/api/static/app.css')
+    m = re.search(r':root\s*\{(.*?)\}', css, re.S)
+    if not m:
+        err('[4] 无法解析 apps/api/static/app.css 的 :root，无法校验 DESIGN.md 同步')
+        return
+    tokens = {k: v.strip() for k, v in re.findall(r'--([\w-]+)\s*:\s*([^;]+);', m.group(1))}
+    dm = re.search(r'body\.dark\s*\{(.*?)\}', css, re.S)
+    dark_tokens = ({k: v.strip() for k, v in re.findall(r'--([\w-]+)\s*:\s*([^;]+);', dm.group(1))}
+                   if dm else {})
+    base_map, dark_map = design_color_maps(text)
+    for k in DESIGN_COLOR_TOKENS:
+        v = tokens.get(k)
+        if not v:
+            err(f'[4] app.css :root 缺少 Token --{k}')
+            continue
+        if k not in base_map:
+            err(f'[4] DESIGN.md frontmatter 的 colors 缺少 `{k}`')
+        elif base_map[k].upper() != v.upper():
+            err(f'[4] DESIGN.md colors.{k}=`{base_map[k]}` 与 app.css `{v}` 不一致（强规则四：Token 成对更新）')
+        dv = dark_tokens.get(k)
+        if dv:
+            if k not in dark_map:
+                err(f'[4] DESIGN.md frontmatter 的 dark_colors 缺少 `{k}`')
+            elif dark_map[k].upper() != dv.upper():
+                err(f'[4] DESIGN.md dark_colors.{k}=`{dark_map[k]}` 与 app.css `{dv}` 不一致')
+    for k in DESIGN_SIZE_TOKENS:
+        v = tokens.get(k)
+        if not v:
+            err(f'[4] app.css :root 缺少 Token --{k}')
+        elif v not in text:
+            err(f'[4] DESIGN.md 未同步 --{k} 的值 `{v}`（强规则四：Token 成对更新）')
 
 
 # ---------------- 强规则一：变更登记 ----------------
@@ -387,9 +463,10 @@ def new_entry(args: argparse.Namespace) -> int:
 AGENTS_FACTS_START = '```aado-facts'
 REQUIRED_FACT_KEYS = ['python_version', 'venv_python', 'requirements', 'demo_verify',
                       'demo_qc_expected', 'slice_build', 'slice_verify', 'slice_out',
-                      'guard', 'module_docs', 'ffmpeg', 'gpu', 'paid_api', 'max_parallel_writers']
+                      'guard', 'module_docs', 'design_md', 'ffmpeg', 'gpu', 'paid_api',
+                      'max_parallel_writers']
 FACT_PATH_KEYS = ['venv_python', 'requirements', 'demo_verify', 'slice_build', 'slice_verify',
-                  'slice_out', 'guard', 'module_docs']
+                  'slice_out', 'guard', 'module_docs', 'design_md']
 # 允许「尚未生成」的路径（新克隆/CI 场景）：提示而非 FAIL
 OPTIONAL_PATH_KEYS = {'slice_out', 'venv_python'}
 
@@ -621,6 +698,7 @@ def main() -> int:
     check_stability_a()
     check_stability_b()
     check_module_docs()
+    check_design_md()
     if args.staged:
         check_registration('HEAD', staged=True)
     elif args.range:
@@ -643,7 +721,7 @@ def main() -> int:
         for e in errors:
             print(f'  {e}')
         return 1
-    print('✓ PRD 治理门禁通过：强规则一（变更登记）、强规则二（两个稳定）、强规则三（模块文档登记）均满足')
+    print('✓ PRD 治理门禁通过：强规则一（变更登记）、强规则二（两个稳定）、强规则三（模块文档登记）、强规则四（DESIGN.md 同步）均满足')
     return 0
 
 

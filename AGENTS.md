@@ -52,6 +52,7 @@ python3 -m venv .venv && . .venv/bin/activate && pip install -r demo/requirement
 | 4 | **项目级文档唯一**：模块地图 / NFR / 路线图只由 `PRD/00-项目背景.md`（L1）定义，且 L1 模块地图 ↔ `PRD/M*.md` ↔ `PRD/README.md` 索引**三者集合完全一致** | `--all` | 拒绝 |
 | 5 | **功能必归模块**：功能点只登记在 `M#` 模块内；编号 `M<模块>.<二级>-F<序号>` 全局唯一；表头固定 7 列；状态取值封闭集合；`已实现` 必须给 `path:行号` 证据；`规划中` 必须有依据 | `--all` | 拒绝 |
 | 6 | **开发任务必登记模块文档**：任何触及 `M#` 模块的实现/改动/排查/文档/迁移，动手前必读 `docs/modules/M#-<中文名>.md` 总入口，开工在 `## 任务登记` 登记一行（编号 `M#-TNN`），完成在 `## 变更记录` 回写；每个模块必须有同名 `docs/modules/M#-<中文名>.md` | `--all` / `--staged` | 拒绝 |
+| 7 | **UI 设计以 `DESIGN.md` 为唯一事实来源**：新增/修改界面必须使用 `DESIGN.md` 登记的 Token 与组件规则；Token 变更必须同步 `DESIGN.md` 与 `apps/api/static/app.css`；不得照搬第三方品牌视觉 | `--all` / `--staged` | 拒绝 |
 
 合规改动姿势（唯一正确写法）：
 
@@ -103,7 +104,8 @@ git add PRD/M5-电影摄影与画面生成.md PRD/CHANGELOG.md PRD/changelog.jso
 ```text
 AGENTS.md            ← 本文件：所有 Agent 的统一入口（单一事实来源）
 CLAUDE.md            ← Claude Code 适配层（指向本文件）
-GOVERNANCE.md        ← 两条强规则 + 合规三步
+DESIGN.md            ← UI 设计唯一事实来源（强规则四：Token / 组件 / 页面模板 / Do-Don't）
+GOVERNANCE.md        ← 强规则 + 合规三步
 README.md            ← 面向人的仓库总览
 PRD/                 ← 产品需求（唯一归档位置）：L1 00-项目背景 + M1..M19 模块 + 90..99 附录 + 两份台账
 demo/                ← 可运行「规范合规模拟母版」代理样片（build_demo.py / verify.py / report.py / demo.html）
@@ -178,6 +180,7 @@ slice_verify = tools/verify_p1_a.py
 slice_out = out/p1a
 guard = tools/prd_guard.py
 module_docs = docs/modules
+design_md = DESIGN.md
 ffmpeg = false
 gpu = false
 paid_api = false
@@ -246,3 +249,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism   # 必须带 --determi
 | 2026-10-11 | Agent | 新增 P1 开发范式与自主决策协议：六步流水线、模块级范围、文档不漂移、开源参考政策；选举替代人类拍板（12 项拍板分类处置） |
 | 2026-10-11 | Agent | 19 模块契约层全部落地（film/ 16 子包 + 337 断言）；5 人选举裁决 6 项拍板；M13 PG 集成（Alembic 迁移 + SKIP LOCKED 并发测试）；新增 apps/api + apps/worker |
 | 2026-10-11 | Agent | 新增后端依赖 `requirements.txt`（SQLAlchemy/psycopg2-binary/alembic）与 M13 模型层 `film/jobs/db.py`、`tools/verify_db.py` |
+| 2026-10-22 | Agent | 新增强规则四：UI 设计以根目录 `DESIGN.md` 为唯一事实来源；硬约束第 7 条、目录地图与 aado-facts 新增 `design_md` 键；门禁校验文档章节与 `app.css` 关键 Token 不漂移 |

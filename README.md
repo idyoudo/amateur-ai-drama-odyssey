@@ -8,14 +8,16 @@
 > **克隆仓库后第一步**：`sh tools/install-hooks.sh`（Git 钩子不随 clone 生效，必须本机启用一次）。
 
 
-本项目有两条**强规则**，由 `tools/prd_guard.py` 在提交时与 CI 中强制执行：
+本项目有四条**强规则**，由 `tools/prd_guard.py` 在提交时与 CI 中强制执行：
 
 1. **PRD 变更必登记**：任何 `PRD/` 下的改动都必须同时更新三处台账——项目级 [PRD/CHANGELOG.md](PRD/CHANGELOG.md)、机器可读 `PRD/changelog.jsonl`、被改文件内的 `## 变更记录`。
 2. **两个稳定**：**项目级文档唯一**（`PRD/00-项目背景.md` 独占定义模块地图/NFR/路线图）＋ **功能必归模块**（每个功能点只能登记在所属 `M#` 模块内，编号唯一、字段齐备）。
+3. **开发任务必登记模块文档**：触及 `M#` 模块的改动，先读 `docs/modules/M#-<中文名>.md`，开工登记任务、完成回写变更。
+4. **UI 设计以 [DESIGN.md](DESIGN.md) 为唯一事实来源**：只用已登记的 Token 与组件；Token 变更必须同步 `DESIGN.md` 与 `apps/api/static/app.css`；禁止照搬第三方品牌视觉。
 
 **Agent 入口**：任何 AI 工具（Claude Code / DeepSeek Harness / Codex / Cursor…）接手本仓库，先读
-[AGENTS.md](AGENTS.md)（唯一事实来源）；Claude Code 另见 [CLAUDE.md](CLAUDE.md)。
-两份文件不得各自维护规则，由 `python3 tools/prd_guard.py --agent-docs` 校验一致性（也包含在 `--all` 中）。
+[AGENTS.md](AGENTS.md)（唯一事实来源）与 [DESIGN.md](DESIGN.md)（UI 唯一事实来源）；Claude Code 另见 [CLAUDE.md](CLAUDE.md)。
+多份文件不得各自维护规则，由 `python3 tools/prd_guard.py --all` 校验一致性。
 
 详见 [GOVERNANCE.md](GOVERNANCE.md)。日常改动姿势：
 
@@ -30,6 +32,7 @@ git add -A && git commit -m "docs(prd): …"   # 钩子自动校验，违规直�
 ```text
 AGENTS.md                      ← **所有 AI Agent 的统一入口**（单一事实来源：硬约束/命令/环境事实）
 CLAUDE.md                      ← Claude Code 适配层（指向 AGENTS.md，不复制规则）
+DESIGN.md                      ← **UI 设计唯一事实来源**（强规则四：Token/组件/页面模板/Do-Don't）
 README.md                      ← 本文件
 PRD/                           ← 产品需求文档（唯一归档位置，31 个文件）
   README.md                    ← PRD 规则与索引（先读这个）
@@ -133,6 +136,14 @@ python3 tools/prd_guard.py --agent-docs   # 单跑；--all 也会带上
 它校验：`AGENTS.md` 的 `aado-facts` 机器可读事实块是否齐备且键值合法；声明的路径与命令**是否真实存在**；
 声明的 Python 版本与**实际解释器**是否主次版本一致（本机 3.9.6 / CI 3.12 双环境已在事实块登记）；
 `CLAUDE.md` 是否指向 `AGENTS.md`（防止两套规则漂移）；`README` 里的通过率是否与事实块一致（**逐处校验**）。
+
+## UI 设计门禁（强规则四）
+
+```bash
+python3 tools/prd_guard.py --all
+```
+
+它校验：根目录 `DESIGN.md` 存在且章节齐备；frontmatter 的 `colors` / `dark_colors` 与 `apps/api/static/app.css` 的 `:root` / `body.dark` 逐值一致；关键圆角、字号与侧栏宽度已登记。任何 Token 漂移都会拒绝提交。
 
 ## 当前状态
 

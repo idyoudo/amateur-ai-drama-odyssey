@@ -32,6 +32,7 @@
 5. **文档归位约定**（权威索引 `docs/README.md`）：架构→`docs/architecture.md`；技术设计→`docs/designs/`；计划决策→`docs/plans/`；验证证据→`docs/spec/`；部署运维→`docs/guid/`。**断链或索引不一致会被 `prd_guard --all` 拦。**
 6. **变更档位（先判档）**：快路径/轻量/完整三档，只门控「可选仪式」（计划/规格/选举/红灯），**不豁免**三条必绿命令与强规则一/三；新模块默认完整。执行/审计工作流见 `.agents/skills/`（Codex）与 `.cursor/skills/`（Cursor）
 7. **设计原则：大气优先**：新建/配置类流程用**独立整页 + 有序分区 + 充足留白**（如左侧表单、右侧固定摘要），不要用挤牙膏式向导或弹窗把内容一屏一屏藏起来；只按上下文隐藏确实无关的分区（如原创项目隐藏「原著」区）。
+8. **UI 设计以 `DESIGN.md` 为唯一事实来源（强规则四）**：新增/修改界面前先读根目录 [DESIGN.md](DESIGN.md)；只用已登记的 Token 与组件；改 Token 必须同一提交同步 `DESIGN.md` 与 `apps/api/static/app.css`；禁止照搬第三方品牌视觉。门禁 `prd_guard --all/--staged` 会校验章节与关键色值。
 
 ## 从哪里开工
 
@@ -44,10 +45,11 @@
 ## 必读文档（按顺序）
 
 1. [AGENTS.md](AGENTS.md) —— 硬约束、三条必绿命令、环境事实、产物纪律
-2. [docs/architecture.md](docs/architecture.md) —— 技术选型 + 19 模块→代码包映射 + 宿主基线边界
-3. [docs/plans/P1-实施计划.md](docs/plans/P1-实施计划.md) —— 工单拆分 + 依赖 + 验收命令 + 12 项拍板
-4. [docs/designs/](docs/designs/) —— 数据模型 / API 契约 / 任务编排 / 测试策略（动手前按需）
-5. [docs/modules/](docs/modules/) —— 模块级开发总入口（强规则三：开发前必读、开工登记、完成回写）
+2. [DESIGN.md](DESIGN.md) —— UI 唯一事实来源：Token、字体、布局、组件、页面模板、Do/Don't（强规则四）
+3. [docs/architecture.md](docs/architecture.md) —— 技术选型 + 19 模块→代码包映射 + 宿主基线边界
+4. [docs/plans/P1-实施计划.md](docs/plans/P1-实施计划.md) —— 工单拆分 + 依赖 + 验收命令 + 12 项拍板
+5. [docs/designs/](docs/designs/) —— 数据模型 / API 契约 / 任务编排 / 测试策略（动手前按需）
+6. [docs/modules/](docs/modules/) —— 模块级开发总入口（强规则三：开发前必读、开工登记、完成回写）
 
 ## 收工前必跑（全绿才算完成）
 
@@ -80,3 +82,4 @@ python3 tools/verify_p1_a.py --out out/p1a --determinism
 | 2026-10-11 | Agent | 新增强规则三指引：必读文档增补 `docs/modules/`（模块开发总入口，开发前必读、开工登记、完成回写），与 `.agents/rules/module-dev-record.md` 对齐 |
 | 2026-10-11 | Agent | 新增「变更档位」关键决策（快/轻/完整 + 反向门禁，默认完整、不豁免机器门禁），并指向 `execute-plan`/`review-plan` 两个 skill |
 | 2026-10-18 | Agent | 新增「设计原则：大气优先」：整页 + 有序分区 + 留白，反对挤牙膏式向导/弹窗隐藏内容 |
+| 2026-10-22 | Agent | 新增强规则四与必读 `DESIGN.md`：UI 以 DESIGN.md 为唯一事实来源，Token 与 app.css 成对更新，禁止照搬第三方品牌视觉 |
