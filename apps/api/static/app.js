@@ -4295,7 +4295,7 @@ function viewTools() {
         <div class="video-path tool-path">
           <span><b>1</b> 短剧/漫剧全流程：ToonFlow</span>
           <span><b>2</b> 一键短视频：MoneyPrinterTurbo</span>
-          <span><b>3</b> 解说二创：NarratoAI</span>
+          <span><b>3</b> 解说二创：NarratoAI（外链）</span>
         </div>
       </div>
       <div class="video-filters">

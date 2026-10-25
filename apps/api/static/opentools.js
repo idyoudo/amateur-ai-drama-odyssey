@@ -40,13 +40,13 @@ window.OPEN_TOOLS = {
       author: "linyqh",
       stars: "11,526",
       license: "MIT",
-      group: "已部署",
-      status: "ok",
+      group: "仅外链",
+      status: "dim",
       icon: "wave",
       desc: "影视解说文案生成 + 自动剪辑 + 配音字幕，一站式完成二创解说视频。",
       best: "影视解说、二创剪辑；原创短剧能力弱于 ToonFlow。",
-      note: "需配置 LLM 与 TTS；镜像较重，构建失败时部署会自动跳过。",
-      url: "http://101.200.220.4:18503",
+      note: "构建超时：依赖同步超过 28 分钟未完成，暂未部署；可在服务器重跑 scripts/deploy-tools.sh 重试。",
+      url: "",
       repo: "https://github.com/linyqh/NarratoAI"
     },
     {
