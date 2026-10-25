@@ -33,8 +33,8 @@ mkdir -p mpt/storage narrato/storage
 clone_or_pull() {
   url="$1"; dir="$2"
   if [ -d "$TOOLS_ROOT/$dir/.git" ]; then
-    git -C "$TOOLS_ROOT/$dir" fetch --all --prune
-    git -C "$TOOLS_ROOT/$dir" pull --ff-only || echo "警告：$dir 无法快进，沿用当前版本"
+    timeout 60 git -C "$TOOLS_ROOT/$dir" fetch --all --prune || echo "警告：$dir fetch 超时，沿用当前版本"
+    timeout 30 git -C "$TOOLS_ROOT/$dir" pull --ff-only || echo "警告：$dir 无法快进，沿用当前版本"
   else
     git clone --depth 1 "$url" "$TOOLS_ROOT/$dir"
   fi
@@ -65,11 +65,10 @@ if [ ! -f .env.tools ]; then
   pw="$(openssl rand -hex 12)"
   docker pull caddy:2-alpine >/dev/null
   hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$pw")"
-  hash_esc="$(printf '%s' "$hash" | sed 's/\$/$$/g')"
   cat > .env.tools <<EOF
 TOOLS_ROOT=$TOOLS_ROOT
 TOOLS_PASSWORD=$pw
-TOOLS_PASSWORD_HASH=$hash_esc
+TOOLS_PASSWORD_HASH='$hash'
 MPT_IMAGE=ghcr.io/harry0703/moneyprinterturbo:latest
 EOF
   chmod 600 .env.tools
