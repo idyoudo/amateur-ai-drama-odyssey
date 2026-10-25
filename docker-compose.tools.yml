@@ -1,0 +1,87 @@
+name: aado-tools
+
+services:
+  toonflow:
+    build:
+      context: ${TOOLS_ROOT}/toonflow
+    image: aado-toonflow:local
+    init: true
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TOONFLOW_DATA_DIR: /app/data
+    volumes:
+      - toonflow_data:/app/data
+    expose:
+      - "3000"
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  mpt-webui:
+    image: ${MPT_IMAGE}
+    restart: unless-stopped
+    command: ["streamlit", "run", "./webui/Main.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.enableCORS=True", "--server.enableXsrfProtection=false", "--server.gatherUsageStats=False", "--client.toolbarMode=minimal", "--logger.hideWelcomeMessage=True", "--server.showEmailPrompt=False"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Shanghai
+    volumes:
+      - ./mpt/config.toml:/MoneyPrinterTurbo/config.toml
+      - ./mpt/storage:/MoneyPrinterTurbo/storage
+    expose:
+      - "8501"
+    mem_limit: 2g
+
+  mpt-api:
+    image: ${MPT_IMAGE}
+    restart: unless-stopped
+    command: ["python3", "main.py"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Shanghai
+    volumes:
+      - ./mpt/config.toml:/MoneyPrinterTurbo/config.toml
+      - ./mpt/storage:/MoneyPrinterTurbo/storage
+    expose:
+      - "8080"
+    mem_limit: 2g
+
+  narratoai:
+    build:
+      context: ${TOOLS_ROOT}/narratoai
+    image: aado-narratoai:local
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Shanghai
+    volumes:
+      - ./narrato/config.toml:/NarratoAI/config.toml
+      - ./narrato/storage:/NarratoAI/storage
+    expose:
+      - "8501"
+    mem_limit: 2g
+
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "18588:18588"
+      - "18501:18501"
+      - "18502:18502"
+      - "18503:18503"
+    environment:
+      TOOLS_PASSWORD_HASH: ${TOOLS_PASSWORD_HASH}
+    volumes:
+      - ./Caddyfile.tools:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - toonflow
+      - mpt-webui
+      - mpt-api
+    mem_limit: 128m
+
+volumes:
+  toonflow_data:

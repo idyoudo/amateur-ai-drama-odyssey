@@ -52,6 +52,7 @@
 | `docs/plans/` | `AADO-自主打磨清单.md` | 自驱动迭代的判定清单 |
 | `docs/plans/` | `开源调研报告-短剧漫剧视频.md` | 开源短剧/漫剧/视频项目调研 |
 | `docs/plans/` | `开源吸纳-选举记录.md` | 10 项候选吸纳 5 人多数决 |
+| `docs/plans/` | `开源项目部署选举记录.md` | 10 个开源项目、5 人选举、部署 3 个与外链清单 |
 | `docs/plans/` | `UI重设计-调研与方向.md` | UI 重设计调研 + 4 候选方向 |
 | `docs/plans/` | `UI方向-选举记录.md` | UI 方向 5 人一致裁决 |
 | `docs/plans/` | `UI进阶-候选方案.md` | UI 进阶候选 E1–E5 |
@@ -80,6 +81,7 @@
 | `docs/guid/` | `README.md` | 部署/运维/使用指南（预留） |
 | `docs/guid/` | `remote-deploy.md` | 远端部署规范：与 retail 三方隔离、独立 postgres、构建打包、发布流程、安全铁律 |
 | `docs/guid/` | `模型配置指南.md` | 接入真实供应商（6 类厂商/协议/授权） |
+| `docs/guid/` | `开源工具部署与使用.md` | ToonFlow / MoneyPrinterTurbo / NarratoAI 的部署、认证、使用与运维 |
 
 ## 五、变更记录
 

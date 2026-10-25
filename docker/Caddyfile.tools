@@ -1,0 +1,27 @@
+:18588 {
+	basic_auth {
+		aado {$TOOLS_PASSWORD_HASH}
+	}
+	reverse_proxy toonflow:3000
+}
+
+:18501 {
+	basic_auth {
+		aado {$TOOLS_PASSWORD_HASH}
+	}
+	reverse_proxy mpt-webui:8501
+}
+
+:18502 {
+	basic_auth {
+		aado {$TOOLS_PASSWORD_HASH}
+	}
+	reverse_proxy mpt-api:8080
+}
+
+:18503 {
+	basic_auth {
+		aado {$TOOLS_PASSWORD_HASH}
+	}
+	reverse_proxy narratoai:8501
+}
