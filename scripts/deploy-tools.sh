@@ -64,12 +64,14 @@ fi
 # shellcheck disable=SC1091
 . ./.env.tools
 
-if ! docker pull "$MPT_IMAGE" >/tmp/aado-mpt-pull.log 2>&1; then
-  echo "GHCR 拉取失败，改为本地构建 MoneyPrinterTurbo（可能需要数分钟）"
-  docker build -t aado/moneyprinterturbo:local "$TOOLS_ROOT/moneyprinterturbo"
-  sed -i 's|^MPT_IMAGE=.*|MPT_IMAGE=aado/moneyprinterturbo:local|' .env.tools
-  # shellcheck disable=SC1091
-  . ./.env.tools
+if ! timeout 180 docker pull "$MPT_IMAGE" >/tmp/aado-mpt-pull.log 2>&1; then
+  if timeout 180 docker pull ghcr.nju.edu.cn/harry0703/moneyprinterturbo:latest; then
+    echo "GHCR 官方源不可达，已使用 NJU 镜像并打回官方标签"
+    docker tag ghcr.nju.edu.cn/harry0703/moneyprinterturbo:latest "$MPT_IMAGE"
+  else
+    echo "镜像源均不可达，改为本地构建 MoneyPrinterTurbo（可能需要数分钟）"
+    docker build -t "$MPT_IMAGE" "$TOOLS_ROOT/moneyprinterturbo"
+  fi
 fi
 
 COMPOSE="docker compose --env-file .env.tools -f docker-compose.tools.yml"
