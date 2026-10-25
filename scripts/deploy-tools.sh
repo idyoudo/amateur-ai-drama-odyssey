@@ -44,6 +44,20 @@ clone_or_pull https://github.com/HBAI-Ltd/Toonflow-app.git toonflow
 clone_or_pull https://github.com/harry0703/MoneyPrinterTurbo.git moneyprinterturbo
 clone_or_pull https://github.com/linyqh/NarratoAI.git narratoai
 
+# Debian 官方源在本机容器内不稳定，构建前统一改写为阿里云镜像（幂等）
+python3 - "$TOOLS_ROOT/narratoai/Dockerfile" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+if 'mirrors.aliyun.com' not in s:
+    s = s.replace(
+        'apt-get update',
+        'sed -i "s|http://deb.debian.org|https://mirrors.aliyun.com|g" '
+        '/etc/apt/sources.list.d/debian.sources 2>/dev/null || true; apt-get update'
+    )
+    open(p, 'w', encoding='utf-8').write(s)
+PY
+
 [ -f mpt/config.toml ] || cp "$TOOLS_ROOT/moneyprinterturbo/config.example.toml" mpt/config.toml
 [ -f narrato/config.toml ] || cp "$TOOLS_ROOT/narratoai/config.example.toml" narrato/config.toml
 
