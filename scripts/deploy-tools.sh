@@ -44,6 +44,9 @@ clone_or_pull https://github.com/HBAI-Ltd/Toonflow-app.git toonflow
 clone_or_pull https://github.com/harry0703/MoneyPrinterTurbo.git moneyprinterturbo
 clone_or_pull https://github.com/linyqh/NarratoAI.git narratoai
 
+# HTTP 公网非安全上下文：注入 crypto.randomUUID polyfill（幂等）
+python3 "$REMOTE_REPO_DIR/docker/patches/toonflow-randomuuid.py" "$TOOLS_ROOT/toonflow/apps/web/index.html"
+
 # Debian 官方源在本机容器内不稳定，构建前统一改写为阿里云镜像（幂等）
 python3 - "$TOOLS_ROOT/narratoai/Dockerfile" <<'PY'
 import sys

@@ -15,7 +15,7 @@ window.OPEN_TOOLS = {
       icon: "film",
       desc: "无限画布写剧本与分镜，管理角色/场景资产，接入模型生成图像与视频，可用 Agent、MCP 与插件扩展。",
       best: "短剧、漫剧的完整创作流程；从剧本到关键帧再到视频。",
-      note: "无内置登录，已加 Basic Auth；需在设置中自备文本/图像/视频模型 API。",
+      note: "无内置登录，已加 Basic Auth；HTTP 公网下已注入 randomUUID 兼容补丁。远程访问不支持 Device Link，请在 Add your own provider 里配置模型。",
       url: "http://101.200.220.4:18588",
       repo: "https://github.com/HBAI-Ltd/Toonflow-app"
     },
