@@ -4,6 +4,23 @@ services:
   toonflow:
     build:
       context: ${TOOLS_ROOT}/toonflow
+      dockerfile_inline: |
+        FROM python:3.12-slim-bookworm
+        ENV BUN_INSTALL=/usr/local
+        RUN apt-get update \
+            && apt-get install -y --no-install-recommends curl unzip git ca-certificates ffmpeg \
+            && rm -rf /var/lib/apt/lists/*
+        RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14"
+        WORKDIR /app
+        COPY . .
+        RUN bun install --frozen-lockfile
+        RUN bun run build:server && mkdir -p data/workspaces/myProject
+        RUN useradd -m -u 10001 appuser && chown -R appuser:appuser /app
+        USER appuser
+        ENV NODE_ENV=production
+        ENV TOONFLOW_DATA_DIR=/app/data
+        EXPOSE 3000
+        CMD ["bun", "build/server/index.js"]
     image: aado-toonflow:local
     init: true
     restart: unless-stopped
@@ -16,11 +33,11 @@ services:
       - "3000"
     mem_limit: 1g
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/ >/dev/null || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10
-      start_period: 90s
+      start_period: 120s
 
   mpt-webui:
     image: ${MPT_IMAGE}
