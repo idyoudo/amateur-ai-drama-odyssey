@@ -801,3 +801,34 @@ input.invalid,select.invalid{border-color:var(--bad);box-shadow:0 0 0 4px rgba(2
   .video-path i{display:none}
   .video-path span{flex:1 1 100%}
 }
+
+/* G8：开源工具 */
+.tool-hero{padding:22px 24px}
+.tool-hero > p{max-width:860px;font-size:var(--fs-body);line-height:1.85;margin:10px 0 16px}
+.tool-path{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tool-path span{justify-content:flex-start;white-space:normal;border-radius:10px;padding:10px 12px;line-height:1.55;min-width:0}
+@media (max-width:720px){.tool-path{grid-template-columns:1fr}}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.tool-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px;
+  display:flex;flex-direction:column;min-width:0}
+.tool-head{display:flex;gap:12px;align-items:flex-start}
+.tool-ico{width:40px;height:40px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--accent);flex:none}
+.tool-ico svg{width:19px;height:19px}
+.tool-title{min-width:0;flex:1}
+.tool-title h3{margin:0;font-family:var(--serif);font-size:var(--fs-h3);font-weight:400;letter-spacing:-.01em;color:var(--ink)}
+.tool-by{font-size:var(--fs-meta);color:var(--dim-2);margin-top:4px;line-height:1.5}
+.tool-head .pill{flex:none}
+.tool-desc{font-size:var(--fs-table);line-height:1.75;color:var(--ink-2);margin:14px 0 10px}
+.tool-best{font-size:var(--fs-sm);line-height:1.7;color:var(--dim);margin-bottom:8px}
+.tool-best b{color:var(--ink-2);font-weight:600;margin-right:6px}
+.tool-note{font-size:var(--fs-sm);line-height:1.7;color:var(--dim-2);border-top:1px dashed var(--line);
+  padding-top:10px;margin-bottom:14px}
+.tool-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.tool-security{margin-top:22px;padding:20px 24px}
+.tool-security b{font-size:var(--fs-table);color:var(--ink)}
+.tool-security p{font-size:var(--fs-sm);line-height:1.8;color:var(--dim);margin:8px 0 10px}
+.tool-security code{font-size:var(--fs-meta)}
+.tool-cmd{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+  padding:10px 12px;color:var(--ink-2);overflow-x:auto;white-space:nowrap}
+@media (max-width:640px){.tool-grid{grid-template-columns:1fr}}

@@ -65,10 +65,11 @@ if [ ! -f .env.tools ]; then
   pw="$(openssl rand -hex 12)"
   docker pull caddy:2-alpine >/dev/null
   hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$pw")"
+  hash_esc="$(printf '%s' "$hash" | sed 's/\$/$$/g')"
   cat > .env.tools <<EOF
 TOOLS_ROOT=$TOOLS_ROOT
 TOOLS_PASSWORD=$pw
-TOOLS_PASSWORD_HASH='$hash'
+TOOLS_PASSWORD_HASH=$hash_esc
 MPT_IMAGE=ghcr.io/harry0703/moneyprinterturbo:latest
 EOF
   chmod 600 .env.tools

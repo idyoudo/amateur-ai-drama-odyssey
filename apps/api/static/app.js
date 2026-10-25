@@ -175,7 +175,7 @@ function ico(name, cls) {
 const NAV = [
   ["制作", [["overview","概览","home"],["projects","项目","film"],["hits","爆款分析","pulse"]]],
   ["资产", [["assets","资产库","layers"],["subtitles","字幕","doc"],["templates","模板","sparkle"],["playground","生成台","lab"]]],
-  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["marketing","营销","sparkle"],["jobs","任务","list"]]],
+  ["运行", [["distribution","分发","route"],["reviews","审核","check"],["settlements","商业化","pulse"],["marketing","营销","sparkle"],["jobs","任务","list"],["tools","开源工具","box"]]],
   ["系统", [["team","团队","users"],["models","模型","sliders"],["settings","设置","gear"]]],
 ];
 function shell(active) {
@@ -239,7 +239,7 @@ async function openNotifications() {
   document.body.appendChild(modal);
 }
 /* E1：hash 深链（#/project/12/M4%20%E5%88%86%E9%95%9C），刷新/分享/前进后退不丢视图 */
-const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models", "model-add", "model-guide", "academy", "videos", "help", "settings"]);
+const ROUTE_NAMES = new Set(["guide", "overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "tools", "team", "models", "model-add", "model-guide", "academy", "videos", "help", "settings"]);
 const SKELETON_ROUTES = new Set(["overview", "projects", "project", "new-project", "hits", "hit-analyze", "assets", "subtitles", "templates", "playground", "distribution", "reviews", "settlements", "marketing", "jobs", "team", "models"]);
 let _settingHash = false;
 function hashFor(name, param, stage) {
@@ -322,6 +322,7 @@ async function routeView(name, param) {
   if (name === "settlements") return viewSettlements();
   if (name === "marketing") return viewMarketing();
   if (name === "jobs") return viewJobs();
+  if (name === "tools") return viewTools();
   if (name === "team") return viewTeam();
   if (name === "models") return viewModels();
   if (name === "model-add") return viewModelAdd(param);
@@ -4247,6 +4248,75 @@ async function attachParams(st) {
       toast("参数已保存");
     } catch (e) { toast("保存失败：" + e.message); }
   };
+}
+
+/* ── 开源工具 ── */
+var TOOL_GROUP = "全部";
+function toolData() { return window.OPEN_TOOLS || { groups: ["全部"], items: [] }; }
+function toolCardHtml(t) {
+  const deployed = t.group === "已部署" && t.url;
+  return `<article class="tool-card">
+    <div class="tool-head">
+      <span class="tool-ico">${ico(t.icon || "box")}</span>
+      <div class="tool-title"><h3>${esc(t.name)}</h3>
+        <div class="tool-by">${esc(t.author)} · ★ ${esc(t.stars)} · ${esc(t.license)}</div></div>
+      <span class="pill ${esc(t.status || "")}">${esc(t.group)}</span>
+    </div>
+    <p class="tool-desc">${esc(t.desc)}</p>
+    <div class="tool-best"><b>适合</b>${esc(t.best)}</div>
+    <div class="tool-note">${esc(t.note)}</div>
+    <div class="tool-actions">
+      ${deployed ? `<a class="btn sm" href="${esc(t.url)}" target="_blank" rel="noopener noreferrer">打开工具 ↗</a>` : ""}
+      <a class="btn ghost sm" href="${esc(t.repo)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    </div>
+  </article>`;
+}
+function renderTools() {
+  const grid = $("#toolgrid");
+  if (!grid) return;
+  const group = TOOL_GROUP || "全部";
+  const list = toolData().items.filter(t => group === "全部" || t.group === group);
+  grid.innerHTML = list.map(toolCardHtml).join("")
+    || `<div class="card empty">这个分类还没有项目</div>`;
+  $$(".tool-filter").forEach(b => b.classList.toggle("on", b.dataset.group === group));
+}
+function pickToolGroup(g) { TOOL_GROUP = g; renderTools(); }
+function viewTools() {
+  const d = toolData();
+  const groups = d.groups || ["全部"];
+  if (!TOOL_GROUP || groups.indexOf(TOOL_GROUP) < 0) TOOL_GROUP = "全部";
+  setMain({
+    title: "开源工具",
+    top: `<div class="right"><span class="pill">${d.items.filter(t => t.group === "已部署").length} 个已部署</span></div>`,
+    body: `
+      <div class="card tool-hero">
+        <div class="guide-hero-t">站在开源项目的肩膀上</div>
+        <p class="muted">这些项目独立部署在服务器上，AADO 只提供入口链接，不写入 AADO 的数据库与流水线。已部署项经过 Caddy Basic Auth 保护。</p>
+        <div class="video-path tool-path">
+          <span><b>1</b> 短剧/漫剧全流程：ToonFlow</span>
+          <span><b>2</b> 一键短视频：MoneyPrinterTurbo</span>
+          <span><b>3</b> 解说二创：NarratoAI</span>
+        </div>
+      </div>
+      <div class="video-filters">
+        ${groups.map(g => `<button class="video-filter tool-filter ${g === TOOL_GROUP ? "on" : ""}" data-group="${esc(g)}" onclick="pickToolGroup('${esc(g)}')">${esc(g)}</button>`).join("")}
+      </div>
+      <div class="tool-grid" id="toolgrid"></div>
+
+      <div class="card tool-security">
+        <b>访问与安全</b>
+        <p>已部署工具统一使用 Basic Auth：用户名 <code>aado</code>，密码保存在服务器
+          <code>/data/runtime/amateur-ai-drama-odyssey/.env.tools</code>（chmod 600）。不要在公开渠道传播密码。
+          当前为 HTTP，请只在可信网络使用。</p>
+        <code class="tool-cmd">ssh root@101.200.220.4 'grep ^TOOLS_PASSWORD= /data/runtime/amateur-ai-drama-odyssey/.env.tools'</code>
+      </div>
+      <p class="muted" style="font-size:var(--fs-meta);margin-top:16px;line-height:1.8">
+        选型来自 5 人多智能体选举：ToonFlow、MoneyPrinterTurbo、NarratoAI 全票入选；AI 切条与 GPU 大模型只做外链。
+        详细使用说明见仓库 <code>docs/guid/开源工具部署与使用.md</code>。
+      </p>
+    `
+  });
+  renderTools();
 }
 
 /* ── 视频课 ── */
