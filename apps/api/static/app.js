@@ -4281,19 +4281,6 @@ function renderTools() {
   $$(".tool-filter").forEach(b => b.classList.toggle("on", b.dataset.group === group));
 }
 function pickToolGroup(g) { TOOL_GROUP = g; renderTools(); }
-function copyTunnelCmd() {
-  const el = $("#tooltunnel");
-  if (!el) return;
-  const text = el.textContent.trim();
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(
-      () => toast("隧道命令已复制"),
-      () => toast("复制失败，请手动选择命令")
-    );
-  } else {
-    toast("请手动选择命令复制");
-  }
-}
 function viewTools() {
   const d = toolData();
   const groups = d.groups || ["全部"];
@@ -4304,7 +4291,7 @@ function viewTools() {
     body: `
       <div class="card tool-hero">
         <div class="guide-hero-t">站在开源项目的肩膀上</div>
-        <p class="muted">这些项目独立部署在服务器上，AADO 只提供入口链接，不写入 AADO 的数据库与流水线。已部署项只监听服务器 127.0.0.1，通过 SSH 隧道访问，不暴露公网。</p>
+        <p class="muted">这些项目独立部署在服务器上，AADO 只提供入口链接，不写入 AADO 的数据库与流水线。已部署项直接通过服务器端口访问，无需登录。</p>
         <div class="video-path tool-path">
           <span><b>1</b> 短剧/漫剧全流程：ToonFlow</span>
           <span><b>2</b> 一键短视频：MoneyPrinterTurbo</span>
@@ -4317,11 +4304,12 @@ function viewTools() {
       <div class="tool-grid" id="toolgrid"></div>
 
       <div class="card tool-security">
-        <b>访问方式：SSH 隧道</b>
-        <p>工具端口只绑定服务器 <code>127.0.0.1</code>，不暴露公网，也没有额外登录。在本机保持下面这条命令运行，再点卡片上的「打开工具」。</p>
-        <code class="tool-cmd" id="tooltunnel">ssh -N -L 18588:127.0.0.1:18588 -L 18501:127.0.0.1:18501 -L 18502:127.0.0.1:18502 -L 18503:127.0.0.1:18503 root@101.200.220.4</code>
+        <b>访问方式：直接打开</b>
+        <p>已部署项在服务器 <code>101.200.220.4</code> 上直接对外提供，没有额外登录，点卡片上的「打开工具」即可。首次进入 ToonFlow 需在设置里填模型 Key；2 vCPU 下建议一次只跑一个生成任务。</p>
         <div class="tool-actions" style="margin-top:10px">
-          <button class="btn sm" onclick="copyTunnelCmd()">复制隧道命令</button>
+          <a class="btn sm" href="http://101.200.220.4:18588" target="_blank" rel="noopener">ToonFlow · 18588</a>
+          <a class="btn sm" href="http://101.200.220.4:18501" target="_blank" rel="noopener">MoneyPrinterTurbo · 18501</a>
+          <a class="btn sm" href="http://101.200.220.4:18502/docs" target="_blank" rel="noopener">MPT API · 18502</a>
         </div>
       </div>
       <p class="muted" style="font-size:var(--fs-meta);margin-top:16px;line-height:1.8">

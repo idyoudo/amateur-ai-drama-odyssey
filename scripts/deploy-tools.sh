@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AADO 开源工具栈发布入口（ToonFlow / MoneyPrinterTurbo / NarratoAI）
-# 与 AADO 主栈隔离：独立 compose 项目 aado-tools、独立目录、独立端口、统一 Basic Auth 网关。
+# 与 AADO 主栈隔离：独立 compose 项目 aado-tools、独立目录、独立端口、Caddy 统一入口（公网直连）。
 set -euo pipefail
 
 REMOTE_HOST="${REMOTE_HOST:-root@101.200.220.4}"
@@ -110,8 +110,8 @@ for i in $(seq 1 24); do
 done
 
 $COMPOSE ps
-echo "工具仅监听 127.0.0.1；请使用 SSH 隧道访问。"
+echo "工具入口：http://101.200.220.4:18588 / 18501 / 18502（公网直连，无额外登录）。"
 [ "$ok" = 1 ] || { echo "部分服务未就绪，请查看 docker compose logs" >&2; exit 1; }
 REMOTE_DEPLOY
 
-echo "开源工具栈部署完成：$REMOTE_HOST:$REMOTE_RUNTIME_DIR（端口 18588 / 18501 / 18502 / 18503）"
+echo "开源工具栈部署完成：$REMOTE_HOST:$REMOTE_RUNTIME_DIR（端口 18588 / 18501 / 18502 / 18503，公网直连）"

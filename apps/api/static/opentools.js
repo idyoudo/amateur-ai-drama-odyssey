@@ -16,7 +16,7 @@ window.OPEN_TOOLS = {
       desc: "无限画布写剧本与分镜，管理角色/场景资产，接入模型生成图像与视频，可用 Agent、MCP 与插件扩展。",
       best: "短剧、漫剧的完整创作流程；从剧本到关键帧再到视频。",
       note: "HTTP 公网下已注入 randomUUID 兼容补丁。远程访问不支持 Device Link，请在 Add your own provider 里配置模型。",
-      url: "http://localhost:18588",
+      url: "http://101.200.220.4:18588",
       repo: "https://github.com/HBAI-Ltd/Toonflow-app"
     },
     {
@@ -31,7 +31,7 @@ window.OPEN_TOOLS = {
       desc: "输入主题或关键词，自动写脚本、匹配素材、生成字幕与 BGM，合成高清短视频；带 WebUI 与 HTTP API。",
       best: "宣发预告、口播短视频、素材混剪；不适合连续剧叙事。",
       note: "需配置 LLM 与素材站 Key；Edge TTS 免费。API 文档在 18502。",
-      url: "http://localhost:18501",
+      url: "http://101.200.220.4:18501",
       repo: "https://github.com/harry0703/MoneyPrinterTurbo"
     },
     {
