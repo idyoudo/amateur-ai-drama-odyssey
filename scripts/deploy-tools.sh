@@ -65,14 +65,8 @@ PY
 [ -f narrato/config.toml ] || cp "$TOOLS_ROOT/narratoai/config.example.toml" narrato/config.toml
 
 if [ ! -f .env.tools ]; then
-  pw="$(openssl rand -hex 12)"
-  docker pull caddy:2-alpine >/dev/null
-  hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$pw")"
-  hash_esc="$(printf '%s' "$hash" | sed 's/\$/$$/g')"
   cat > .env.tools <<EOF
 TOOLS_ROOT=$TOOLS_ROOT
-TOOLS_PASSWORD=$pw
-TOOLS_PASSWORD_HASH=$hash_esc
 MPT_IMAGE=ghcr.io/harry0703/moneyprinterturbo:latest
 EOF
   chmod 600 .env.tools
@@ -105,20 +99,18 @@ echo "等待网关就绪……"
 ok=0
 for i in $(seq 1 24); do
   ok=1
-  curl -fsS --max-time 5 -u "aado:$TOOLS_PASSWORD" http://127.0.0.1:18588/ >/dev/null || ok=0
-  curl -fsS --max-time 5 -u "aado:$TOOLS_PASSWORD" http://127.0.0.1:18501/ >/dev/null || ok=0
-  curl -fsS --max-time 5 -u "aado:$TOOLS_PASSWORD" http://127.0.0.1:18502/docs >/dev/null || ok=0
+  curl -fsS --max-time 5 http://127.0.0.1:18588/ >/dev/null || ok=0
+  curl -fsS --max-time 5 http://127.0.0.1:18501/ >/dev/null || ok=0
+  curl -fsS --max-time 5 http://127.0.0.1:18502/docs >/dev/null || ok=0
   if docker image inspect aado-narratoai:local >/dev/null 2>&1; then
-    curl -fsS --max-time 5 -u "aado:$TOOLS_PASSWORD" http://127.0.0.1:18503/ >/dev/null || ok=0
+    curl -fsS --max-time 5 http://127.0.0.1:18503/ >/dev/null || ok=0
   fi
   [ "$ok" = 1 ] && break
   sleep 10
 done
 
 $COMPOSE ps
-echo "工具账号：aado"
-echo "工具密码：$TOOLS_PASSWORD"
-echo "凭据文件：$REMOTE_RUNTIME_DIR/.env.tools（chmod 600）"
+echo "工具仅监听 127.0.0.1；请使用 SSH 隧道访问。"
 [ "$ok" = 1 ] || { echo "部分服务未就绪，请查看 docker compose logs" >&2; exit 1; }
 REMOTE_DEPLOY
 

@@ -4281,6 +4281,19 @@ function renderTools() {
   $$(".tool-filter").forEach(b => b.classList.toggle("on", b.dataset.group === group));
 }
 function pickToolGroup(g) { TOOL_GROUP = g; renderTools(); }
+function copyTunnelCmd() {
+  const el = $("#tooltunnel");
+  if (!el) return;
+  const text = el.textContent.trim();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      () => toast("隧道命令已复制"),
+      () => toast("复制失败，请手动选择命令")
+    );
+  } else {
+    toast("请手动选择命令复制");
+  }
+}
 function viewTools() {
   const d = toolData();
   const groups = d.groups || ["全部"];
@@ -4291,7 +4304,7 @@ function viewTools() {
     body: `
       <div class="card tool-hero">
         <div class="guide-hero-t">站在开源项目的肩膀上</div>
-        <p class="muted">这些项目独立部署在服务器上，AADO 只提供入口链接，不写入 AADO 的数据库与流水线。已部署项经过 Caddy Basic Auth 保护。</p>
+        <p class="muted">这些项目独立部署在服务器上，AADO 只提供入口链接，不写入 AADO 的数据库与流水线。已部署项只监听服务器 127.0.0.1，通过 SSH 隧道访问，不暴露公网。</p>
         <div class="video-path tool-path">
           <span><b>1</b> 短剧/漫剧全流程：ToonFlow</span>
           <span><b>2</b> 一键短视频：MoneyPrinterTurbo</span>
@@ -4304,11 +4317,12 @@ function viewTools() {
       <div class="tool-grid" id="toolgrid"></div>
 
       <div class="card tool-security">
-        <b>访问与安全</b>
-        <p>已部署工具统一使用 Basic Auth：用户名 <code>aado</code>，密码保存在服务器
-          <code>/data/runtime/amateur-ai-drama-odyssey/.env.tools</code>（chmod 600）。不要在公开渠道传播密码。
-          当前为 HTTP，请只在可信网络使用。</p>
-        <code class="tool-cmd">ssh root@101.200.220.4 'grep ^TOOLS_PASSWORD= /data/runtime/amateur-ai-drama-odyssey/.env.tools'</code>
+        <b>访问方式：SSH 隧道</b>
+        <p>工具端口只绑定服务器 <code>127.0.0.1</code>，不暴露公网，也没有额外登录。在本机保持下面这条命令运行，再点卡片上的「打开工具」。</p>
+        <code class="tool-cmd" id="tooltunnel">ssh -N -L 18588:127.0.0.1:18588 -L 18501:127.0.0.1:18501 -L 18502:127.0.0.1:18502 -L 18503:127.0.0.1:18503 root@101.200.220.4</code>
+        <div class="tool-actions" style="margin-top:10px">
+          <button class="btn sm" onclick="copyTunnelCmd()">复制隧道命令</button>
+        </div>
       </div>
       <p class="muted" style="font-size:var(--fs-meta);margin-top:16px;line-height:1.8">
         选型来自 5 人多智能体选举：ToonFlow、MoneyPrinterTurbo、NarratoAI 全票入选；AI 切条与 GPU 大模型只做外链。

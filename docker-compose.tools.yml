@@ -91,12 +91,10 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "18588:18588"
-      - "18501:18501"
-      - "18502:18502"
-      - "18503:18503"
-    environment:
-      TOOLS_PASSWORD_HASH: ${TOOLS_PASSWORD_HASH}
+      - "127.0.0.1:18588:18588"
+      - "127.0.0.1:18501:18501"
+      - "127.0.0.1:18502:18502"
+      - "127.0.0.1:18503:18503"
     volumes:
       - ./Caddyfile.tools:/etc/caddy/Caddyfile:ro
     depends_on:
